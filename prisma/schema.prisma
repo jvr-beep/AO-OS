@@ -4,5 +4,328 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url = env("DATABASE_URL")
+  url      = env("DATABASE_URL")
+}
+
+enum MemberStatus {
+  pending
+  active
+  suspended
+  banned
+}
+
+enum SubscriptionStatus {
+  trialing
+  active
+  past_due
+  paused
+  cancelled
+}
+
+enum BillingInterval {
+  day
+  week
+  month
+  year
+}
+
+enum PaymentMethodStatus {
+  active
+  inactive
+  revoked
+}
+
+enum WristbandStatus {
+  inventory
+  assigned
+  active
+  lost
+  stolen
+  damaged
+  retired
+}
+
+enum AccessDecision {
+  allowed
+  denied
+  error
+}
+
+enum VisitStatus {
+  checked_in
+  checked_out
+}
+
+model Member {
+  id                   String                   @id @default(uuid())
+  publicMemberNumber   String                   @unique
+  email                String                   @unique
+  firstName            String
+  lastName             String
+  displayName          String?
+  phone                String?
+  status               MemberStatus             @default(pending)
+  createdAt            DateTime                 @default(now())
+  updatedAt            DateTime                 @updatedAt
+
+  profile              MemberProfile?
+  authIdentities       AuthIdentity[]
+  subscriptions        MembershipSubscription[]
+  paymentMethods       PaymentMethodToken[]
+  wristbandAssignments WristbandAssignment[]
+  visitSessions        VisitSession[]
+  accessAttempts       AccessAttempt[]
+  accessGrants         MemberAccessGrant[]
+  accessOverrides      MemberAccessOverride[]
+  presenceEvents       PresenceEvent[]
+}
+
+model MemberProfile {
+  id                     String   @id @default(uuid())
+  memberId               String   @unique
+  preferredName          String?
+  pronouns               String?
+  emergencyContactName   String?
+  emergencyContactPhone  String?
+  marketingOptInEmail    Boolean  @default(false)
+  marketingOptInSms      Boolean  @default(false)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  member                 Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+}
+
+model AuthIdentity {
+  id              String   @id @default(uuid())
+  memberId        String
+  provider        String
+  providerUserId  String
+  createdAt       DateTime @default(now())
+
+  member          Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerUserId])
+}
+
+model MembershipPlan {
+  id                String                   @id @default(uuid())
+  code              String                   @unique
+  name              String
+  description       String?
+  tierRank          Int
+  billingInterval   BillingInterval
+  priceAmount       Decimal                  @db.Decimal(10, 2)
+  currency          String
+  active            Boolean                  @default(true)
+  createdAt         DateTime                 @default(now())
+  updatedAt         DateTime                 @updatedAt
+
+  subscriptions     MembershipSubscription[]
+  entitlements      MembershipEntitlement[]
+}
+
+model MembershipSubscription {
+  id                        String               @id @default(uuid())
+  memberId                  String
+  membershipPlanId          String
+  billingProvider           String
+  billingProviderCustomerId String?
+  status                    SubscriptionStatus
+  cancelAtPeriodEnd         Boolean              @default(false)
+  startDate                 DateTime
+  currentPeriodStart        DateTime?
+  currentPeriodEnd          DateTime?
+  pausedAt                  DateTime?
+  resumedAt                 DateTime?
+  createdAt                 DateTime             @default(now())
+  updatedAt                 DateTime             @updatedAt
+
+  member                    Member               @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  membershipPlan            MembershipPlan       @relation(fields: [membershipPlanId], references: [id])
+}
+
+model MembershipEntitlement {
+  id                String         @id @default(uuid())
+  membershipPlanId  String
+  entitlementCode   String
+  entitlementType   String
+  valueJson         Json
+  active            Boolean        @default(true)
+  createdAt         DateTime       @default(now())
+
+  membershipPlan    MembershipPlan @relation(fields: [membershipPlanId], references: [id], onDelete: Cascade)
+}
+
+model PaymentMethodToken {
+  id                       String               @id @default(uuid())
+  memberId                 String
+  provider                 String
+  providerCustomerId       String?
+  providerPaymentMethodId  String
+  brand                    String?
+  last4                    String?
+  expMonth                 Int?
+  expYear                  Int?
+  isDefault                Boolean              @default(false)
+  status                   PaymentMethodStatus  @default(active)
+  createdAt                DateTime             @default(now())
+  updatedAt                DateTime             @updatedAt
+
+  member                   Member               @relation(fields: [memberId], references: [id], onDelete: Cascade)
+}
+
+model Location {
+  id               String         @id @default(uuid())
+  code             String         @unique
+  name             String
+  createdAt        DateTime       @default(now())
+
+  wristbands       Wristband[]
+  accessPoints     AccessPoint[]
+  visitSessions    VisitSession[]
+}
+
+model Wristband {
+  id               String                @id @default(uuid())
+  uid              String                @unique
+  locationId       String?
+  status           WristbandStatus       @default(inventory)
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+
+  location         Location?             @relation(fields: [locationId], references: [id])
+  assignments      WristbandAssignment[]
+  accessAttempts   AccessAttempt[]
+}
+
+model WristbandAssignment {
+  id                    String      @id @default(uuid())
+  wristbandId           String
+  memberId              String
+  assignedByStaffUserId String?
+  assignedAt            DateTime    @default(now())
+  unassignedAt          DateTime?
+  unassignedReason      String?
+  active                Boolean     @default(true)
+
+  wristband             Wristband   @relation(fields: [wristbandId], references: [id], onDelete: Cascade)
+  member                Member      @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  visitSessions         VisitSession[]
+}
+
+model AccessZone {
+  id                 String               @id @default(uuid())
+  code               String               @unique
+  name               String
+  requiresBooking    Boolean              @default(false)
+  createdAt          DateTime             @default(now())
+
+  accessPoints       AccessPoint[]
+  accessAttempts     AccessAttempt[]
+  accessGrants       MemberAccessGrant[]
+  accessOverrides    MemberAccessOverride[]
+  bookings           Booking[]
+  presenceEvents     PresenceEvent[]
+}
+
+model AccessPoint {
+  id                 String         @id @default(uuid())
+  locationId         String
+  accessZoneId       String
+  code               String         @unique
+  name               String
+  createdAt          DateTime       @default(now())
+
+  location           Location       @relation(fields: [locationId], references: [id])
+  accessZone         AccessZone     @relation(fields: [accessZoneId], references: [id])
+  accessAttempts     AccessAttempt[]
+}
+
+model MemberAccessGrant {
+  id                 String      @id @default(uuid())
+  memberId           String
+  accessZoneId       String
+  validFrom          DateTime?
+  validUntil         DateTime?
+  active             Boolean     @default(true)
+  createdAt          DateTime    @default(now())
+
+  member             Member      @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  accessZone         AccessZone  @relation(fields: [accessZoneId], references: [id], onDelete: Cascade)
+}
+
+model MemberAccessOverride {
+  id                    String      @id @default(uuid())
+  memberId              String
+  accessZoneId          String
+  action                String
+  reason                String?
+  grantedByStaffUserId  String?
+  validFrom             DateTime?
+  validUntil            DateTime?
+  createdAt             DateTime    @default(now())
+
+  member                Member      @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  accessZone            AccessZone  @relation(fields: [accessZoneId], references: [id], onDelete: Cascade)
+}
+
+model AccessAttempt {
+  id                 String          @id @default(uuid())
+  memberId           String?
+  wristbandId        String?
+  accessPointId      String
+  accessZoneId       String
+  attemptSource      String?
+  decision           AccessDecision
+  denialReasonCode   String?
+  occurredAt         DateTime
+
+  member             Member?         @relation(fields: [memberId], references: [id], onDelete: SetNull)
+  wristband          Wristband?      @relation(fields: [wristbandId], references: [id], onDelete: SetNull)
+  accessPoint        AccessPoint     @relation(fields: [accessPointId], references: [id])
+  accessZone         AccessZone      @relation(fields: [accessZoneId], references: [id])
+}
+
+model VisitSession {
+  id                    String               @id @default(uuid())
+  memberId              String
+  locationId            String
+  wristbandAssignmentId String?
+  checkInAt             DateTime
+  checkOutAt            DateTime?
+  status                VisitStatus
+  createdAt             DateTime             @default(now())
+
+  member                Member               @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  location              Location             @relation(fields: [locationId], references: [id])
+  wristbandAssignment   WristbandAssignment? @relation(fields: [wristbandAssignmentId], references: [id])
+  presenceEvents        PresenceEvent[]
+}
+
+model PresenceEvent {
+  id                 String       @id @default(uuid())
+  visitSessionId     String
+  memberId           String
+  accessZoneId       String?
+  eventType          String
+  sourceType         String?
+  sourceReference    String?
+  occurredAt         DateTime     @default(now())
+  payloadJson        Json?
+
+  visitSession       VisitSession @relation(fields: [visitSessionId], references: [id], onDelete: Cascade)
+  member             Member       @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  accessZone         AccessZone?  @relation(fields: [accessZoneId], references: [id], onDelete: SetNull)
+}
+
+model Booking {
+  id                 String      @id @default(uuid())
+  memberId           String
+  accessZoneId       String
+  startsAt           DateTime
+  endsAt             DateTime
+  status             String
+  createdAt          DateTime    @default(now())
+
+  accessZone         AccessZone  @relation(fields: [accessZoneId], references: [id])
 }
