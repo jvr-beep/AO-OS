@@ -1,23 +1,13 @@
-import * as Joi from 'joi';
+import { z } from "zod";
 
-export const envValidation = Joi.object({
-  NODE_ENV: Joi.string()
-    .valid('development', 'production', 'test')
-    .default('development'),
-  PORT: Joi.number().default(3001),
-  DATABASE_URL: Joi.string().required(),
-  DATABASE_HOST: Joi.string().default('localhost'),
-  DATABASE_PORT: Joi.number().default(5432),
-  DATABASE_USERNAME: Joi.string().default('postgres'),
-  DATABASE_PASSWORD: Joi.string(),
-  DATABASE_NAME: Joi.string().default('api_db'),
-  DATABASE_LOGGING: Joi.boolean().default(false),
-  JWT_SECRET: Joi.string(),
-  JWT_EXPIRATION: Joi.number().default(3600),
-  API_VERSION: Joi.string().default('v1'),
-  LOG_LEVEL: Joi.string()
-    .valid('error', 'warn', 'log', 'debug', 'verbose')
-    .default('debug'),
-  APP_NAME: Joi.string().default('AO-OS API'),
-  APP_DESCRIPTION: Joi.string().default('API for AO-OS application'),
+export const envSchema = z.object({
+  NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
+  PORT: z.coerce.number().int().positive().default(4000),
+  DATABASE_URL: z.string().min(1, "DATABASE_URL is required")
 });
+
+export type Env = z.infer<typeof envSchema>;
+
+export function validateEnv(config: Record<string, unknown>): Env {
+  return envSchema.parse(config);
+}

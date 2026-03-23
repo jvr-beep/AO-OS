@@ -1,8 +1,14 @@
-import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
+import "reflect-metadata";
+import { NestFactory } from "@nestjs/core";
+import { AppModule } from "./app.module";
 
-async function bootstrap() {
+async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
-  await app.listen(3000);
+  app.setGlobalPrefix("v1");
+  await app.listen(4000);
 }
-bootstrap();
+
+bootstrap().catch((error) => {
+  console.error("Failed to start API", error);
+  process.exit(1);
+});
