@@ -13,13 +13,19 @@ export class StaffAuditController {
 
   @Get()
   list(
+    @Query("actorStaffUserId") actorStaffUserId?: string,
     @Query("targetStaffUserId") targetStaffUserId?: string,
-    @Query("eventType") eventType?: string,
+    @Query("action") action?: string,
+    @Query("startDate") startDate?: string,
+    @Query("endDate") endDate?: string,
     @Query("limit") limit?: string
   ): Promise<StaffAuditEventResponseDto[]> {
     return this.staffAuditService.list({
+      actorStaffUserId,
       targetStaffUserId,
-      eventType,
+      action,
+      startDate,
+      endDate,
       limit: typeof limit === "string" ? Number(limit) : undefined
     });
   }

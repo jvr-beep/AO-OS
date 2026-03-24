@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { BadRequestException, Injectable } from "@nestjs/common";
 import { randomUUID } from "crypto";
 import { PrismaService } from "../../prisma/prisma.service";
 import { StaffAuditEventResponseDto } from "../dto/staff-audit-event.response.dto";
@@ -20,8 +20,11 @@ export type StaffAuditWriteInput = {
 };
 
 type StaffAuditQuery = {
+  actorStaffUserId?: string;
   targetStaffUserId?: string;
-  eventType?: string;
+  action?: string;
+  startDate?: string;
+  endDate?: string;
   limit?: number;
 };
 
@@ -60,17 +63,38 @@ export class StaffAuditService {
     const filters: string[] = [];
     const values: unknown[] = [];
 
+    if (query.actorStaffUserId) {
+      values.push(query.actorStaffUserId);
+      filters.push(`"actorStaffUserId" = $${values.length}`);
+    }
+
     if (query.targetStaffUserId) {
       values.push(query.targetStaffUserId);
       filters.push(`"targetStaffUserId" = $${values.length}`);
     }
 
-    if (query.eventType) {
-      values.push(query.eventType);
+    if (query.action) {
+      values.push(query.action);
       filters.push(`"eventType" = $${values.length}`);
     }
 
-    const limit = Math.min(Math.max(query.limit ?? 50, 1), 200);
+    const startDate = this.parseIsoDate(query.startDate, "INVALID_START_DATE");
+    if (startDate) {
+      values.push(startDate);
+      filters.push(`"occurredAt" >= $${values.length}`);
+    }
+
+    const endDate = this.parseIsoDate(query.endDate, "INVALID_END_DATE");
+    if (endDate) {
+      values.push(endDate);
+      filters.push(`"occurredAt" <= $${values.length}`);
+    }
+
+    if (startDate && endDate && startDate.getTime() > endDate.getTime()) {
+      throw new BadRequestException("INVALID_DATE_RANGE");
+    }
+
+    const limit = this.parseLimit(query.limit);
     values.push(limit);
 
     const whereSql = filters.length > 0 ? `WHERE ${filters.join(" AND ")}` : "";
@@ -108,5 +132,30 @@ export class StaffAuditService {
       reasonCode: row.reasonCode ?? undefined,
       metadataJson: row.metadataJson ?? undefined
     }));
+  }
+
+  private parseLimit(limit?: number): number {
+    if (typeof limit === "undefined") {
+      return 50;
+    }
+
+    if (!Number.isFinite(limit) || !Number.isInteger(limit)) {
+      throw new BadRequestException("INVALID_LIMIT");
+    }
+
+    return Math.min(Math.max(limit, 1), 200);
+  }
+
+  private parseIsoDate(value: string | undefined, errorCode: string): Date | undefined {
+    if (!value) {
+      return undefined;
+    }
+
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) {
+      throw new BadRequestException(errorCode);
+    }
+
+    return parsed;
   }
 }
