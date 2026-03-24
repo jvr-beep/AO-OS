@@ -1,13 +1,35 @@
 import { Injectable } from "@nestjs/common";
+import { AccessDecision } from "@prisma/client";
 import { PrismaService } from "../../prisma/prisma.service";
+import { AccessControlService } from "../../access-control/access-control.service";
 import { AccessAttemptResponseDto } from "../dto/access-attempt.response.dto";
 import { CreateAccessAttemptDto } from "../dto/create-access-attempt.dto";
 
 @Injectable()
 export class AccessAttemptsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly accessControl: AccessControlService
+  ) {}
 
   async createAttempt(input: CreateAccessAttemptDto): Promise<AccessAttemptResponseDto> {
+    const attemptOccurredAt = new Date(input.occurredAt);
+    let decision: AccessDecision = AccessDecision.allowed;
+    let denialReasonCode: string | null = null;
+
+    if (input.memberId) {
+      const zoneEvaluation = await this.accessControl.evaluateZoneAccess({
+        memberId: input.memberId,
+        accessZoneId: input.accessZoneId,
+        attemptedAt: attemptOccurredAt.toISOString()
+      });
+
+      if (!zoneEvaluation.allowed) {
+        decision = AccessDecision.denied;
+        denialReasonCode = zoneEvaluation.denialReasonCode ?? "ACCESS_DENIED";
+      }
+    }
+
     const created = await this.prisma.accessAttempt.create({
       data: {
         memberId: input.memberId ?? null,
@@ -15,9 +37,9 @@ export class AccessAttemptsService {
         accessPointId: input.accessPointId,
         accessZoneId: input.accessZoneId,
         attemptSource: input.attemptSource ?? null,
-        decision: input.decision,
-        denialReasonCode: input.denialReasonCode ?? null,
-        occurredAt: new Date(input.occurredAt)
+        decision,
+        denialReasonCode,
+        occurredAt: attemptOccurredAt
       }
     });
 

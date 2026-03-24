@@ -89,8 +89,14 @@ export class AccessControlService {
         memberId: input.memberId,
         accessZoneId: input.accessZoneId,
         active: true,
-        validFrom: { lte: attemptedAtDate },
-        validUntil: { gte: attemptedAtDate }
+        AND: [
+          {
+            OR: [{ validFrom: null }, { validFrom: { lte: attemptedAtDate } }]
+          },
+          {
+            OR: [{ validUntil: null }, { validUntil: { gte: attemptedAtDate } }]
+          }
+        ]
       }
     });
 
@@ -103,8 +109,14 @@ export class AccessControlService {
       where: {
         memberId: input.memberId,
         accessZoneId: input.accessZoneId,
-        validFrom: { lte: attemptedAtDate },
-        validUntil: { gte: attemptedAtDate }
+        AND: [
+          {
+            OR: [{ validFrom: null }, { validFrom: { lte: attemptedAtDate } }]
+          },
+          {
+            OR: [{ validUntil: null }, { validUntil: { gte: attemptedAtDate } }]
+          }
+        ]
       }
     });
 
@@ -134,6 +146,7 @@ export class AccessControlService {
       where: {
         memberId: input.memberId,
         accessZoneId: input.accessZoneId,
+        status: "confirmed",
         startsAt: { lte: attemptedAtDate },
         endsAt: { gte: attemptedAtDate }
       }
