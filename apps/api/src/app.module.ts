@@ -8,6 +8,7 @@ import { WristbandsModule } from "./wristbands/wristbands.module";
 import { AccessControlModule } from "./access-control/access-control.module";
 import { AccessAttemptsModule } from "./access-attempts/access-attempts.module";
 import { VisitSessionsModule } from "./visit-sessions/visit-sessions.module";
+import { PresenceEventsModule } from "./presence-events/presence-events.module";
 
 @Module({
   imports: [
@@ -19,7 +20,8 @@ import { VisitSessionsModule } from "./visit-sessions/visit-sessions.module";
     WristbandsModule,
     AccessControlModule,
     AccessAttemptsModule,
-    VisitSessionsModule
+    VisitSessionsModule,
+    PresenceEventsModule
   ]
 })
 export class AppModule {}
