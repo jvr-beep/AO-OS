@@ -16,8 +16,11 @@ export class StaffUsersController {
   constructor(private readonly staffUsersService: StaffUsersService) {}
 
   @Post()
-  createStaffUser(@Body() body: CreateStaffUserDto): Promise<StaffUserResponseDto> {
-    return this.staffUsersService.createStaffUser(body);
+  createStaffUser(
+    @Body() body: CreateStaffUserDto,
+    @Req() req: { user: JwtPayload }
+  ): Promise<StaffUserResponseDto> {
+    return this.staffUsersService.createStaffUser(body, req.user);
   }
 
   @Get()
@@ -34,8 +37,12 @@ export class StaffUsersController {
   }
 
   @Patch(":id/role")
-  setRole(@Param("id") id: string, @Body() body: SetRoleDto): Promise<StaffUserResponseDto> {
-    return this.staffUsersService.setRole(id, body.role);
+  setRole(
+    @Param("id") id: string,
+    @Body() body: SetRoleDto,
+    @Req() req: { user: JwtPayload }
+  ): Promise<StaffUserResponseDto> {
+    return this.staffUsersService.setRole(id, body.role, req.user);
   }
 
   @Patch(":id/deactivate")
@@ -43,19 +50,23 @@ export class StaffUsersController {
     @Param("id") id: string,
     @Req() req: { user: JwtPayload }
   ): Promise<StaffUserResponseDto> {
-    return this.staffUsersService.deactivate(id, req.user.sub);
+    return this.staffUsersService.deactivate(id, req.user);
   }
 
   @Patch(":id/reactivate")
-  reactivate(@Param("id") id: string): Promise<StaffUserResponseDto> {
-    return this.staffUsersService.reactivate(id);
+  reactivate(
+    @Param("id") id: string,
+    @Req() req: { user: JwtPayload }
+  ): Promise<StaffUserResponseDto> {
+    return this.staffUsersService.reactivate(id, req.user);
   }
 
   @Patch(":id/password")
   updatePassword(
     @Param("id") id: string,
-    @Body() body: UpdateStaffPasswordDto
+    @Body() body: UpdateStaffPasswordDto,
+    @Req() req: { user: JwtPayload }
   ): Promise<StaffUserResponseDto> {
-    return this.staffUsersService.updatePassword(id, body.password);
+    return this.staffUsersService.updatePassword(id, body.password, req.user);
   }
 }

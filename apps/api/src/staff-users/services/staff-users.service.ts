@@ -1,7 +1,9 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from "@nestjs/common";
 import * as bcrypt from "bcryptjs";
 import { StaffRole } from "../../auth/decorators/roles.decorator";
+import { JwtPayload } from "../../auth/strategies/jwt.strategy";
 import { PrismaService } from "../../prisma/prisma.service";
+import { StaffAuditService } from "../../staff-audit/services/staff-audit.service";
 import { CreateStaffUserDto } from "../dto/create-staff-user.dto";
 import { StaffUserResponseDto } from "../dto/staff-user.response.dto";
 
@@ -14,9 +16,12 @@ type StaffUserListFilters = {
 
 @Injectable()
 export class StaffUsersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly staffAuditService: StaffAuditService
+  ) {}
 
-  async createStaffUser(input: CreateStaffUserDto): Promise<StaffUserResponseDto> {
+  async createStaffUser(input: CreateStaffUserDto, actor: JwtPayload): Promise<StaffUserResponseDto> {
     this.ensureValidRole(input.role);
     this.ensureValidPassword(input.password);
 
@@ -37,6 +42,18 @@ export class StaffUsersService {
         fullName: input.fullName,
         role: input.role,
         active: true
+      }
+    });
+
+    await this.staffAuditService.write({
+      eventType: "STAFF_USER_CREATED",
+      actor: this.toAuditActor(actor),
+      targetStaffUserId: created.id,
+      targetEmailSnapshot: created.email,
+      outcome: "success",
+      metadataJson: {
+        createdRole: created.role,
+        createdActive: created.active
       }
     });
 
@@ -70,38 +87,95 @@ export class StaffUsersService {
     return this.toResponse(user);
   }
 
-  async setRole(id: string, role: string): Promise<StaffUserResponseDto> {
+  async setRole(id: string, role: string, actor: JwtPayload): Promise<StaffUserResponseDto> {
     this.ensureValidRole(role);
 
     const user = await this.findStaffUserOrThrow(id);
-    await this.ensureLastActiveAdminNotRemoved(user, role as StaffRole, user.active);
+
+    if (await this.wouldRemoveLastActiveAdmin(user, role as StaffRole, user.active)) {
+      await this.staffAuditService.write({
+        eventType: "STAFF_USER_ROLE_CHANGED",
+        actor: this.toAuditActor(actor),
+        targetStaffUserId: user.id,
+        targetEmailSnapshot: user.email,
+        outcome: "blocked",
+        reasonCode: "CANNOT_REMOVE_LAST_ACTIVE_ADMIN",
+        metadataJson: {
+          roleFrom: user.role,
+          roleTo: role
+        }
+      });
+      throw new ConflictException("CANNOT_REMOVE_LAST_ACTIVE_ADMIN");
+    }
 
     const updated = await (this.prisma as any).staffUser.update({
       where: { id },
       data: { role }
     });
 
+    await this.staffAuditService.write({
+      eventType: "STAFF_USER_ROLE_CHANGED",
+      actor: this.toAuditActor(actor),
+      targetStaffUserId: updated.id,
+      targetEmailSnapshot: updated.email,
+      outcome: "success",
+      metadataJson: {
+        roleFrom: user.role,
+        roleTo: updated.role
+      }
+    });
+
     return this.toResponse(updated);
   }
 
-  async deactivate(id: string, requesterId: string): Promise<StaffUserResponseDto> {
+  async deactivate(id: string, actor: JwtPayload): Promise<StaffUserResponseDto> {
     const user = await this.findStaffUserOrThrow(id);
 
-    if (user.id === requesterId) {
+    if (user.id === actor.sub) {
+      await this.staffAuditService.write({
+        eventType: "STAFF_USER_DEACTIVATED",
+        actor: this.toAuditActor(actor),
+        targetStaffUserId: user.id,
+        targetEmailSnapshot: user.email,
+        outcome: "blocked",
+        reasonCode: "CANNOT_DEACTIVATE_SELF"
+      });
       throw new ConflictException("CANNOT_DEACTIVATE_SELF");
     }
 
-    await this.ensureLastActiveAdminNotRemoved(user, user.role, false);
+    if (await this.wouldRemoveLastActiveAdmin(user, user.role, false)) {
+      await this.staffAuditService.write({
+        eventType: "STAFF_USER_DEACTIVATED",
+        actor: this.toAuditActor(actor),
+        targetStaffUserId: user.id,
+        targetEmailSnapshot: user.email,
+        outcome: "blocked",
+        reasonCode: "CANNOT_REMOVE_LAST_ACTIVE_ADMIN"
+      });
+      throw new ConflictException("CANNOT_REMOVE_LAST_ACTIVE_ADMIN");
+    }
 
     const updated = await (this.prisma as any).staffUser.update({
       where: { id },
       data: { active: false }
     });
 
+    await this.staffAuditService.write({
+      eventType: "STAFF_USER_DEACTIVATED",
+      actor: this.toAuditActor(actor),
+      targetStaffUserId: updated.id,
+      targetEmailSnapshot: updated.email,
+      outcome: "success",
+      metadataJson: {
+        activeFrom: user.active,
+        activeTo: updated.active
+      }
+    });
+
     return this.toResponse(updated);
   }
 
-  async reactivate(id: string): Promise<StaffUserResponseDto> {
+  async reactivate(id: string, actor: JwtPayload): Promise<StaffUserResponseDto> {
     const user = await this.findStaffUserOrThrow(id);
 
     const updated = await (this.prisma as any).staffUser.update({
@@ -109,10 +183,22 @@ export class StaffUsersService {
       data: { active: true }
     });
 
+    await this.staffAuditService.write({
+      eventType: "STAFF_USER_REACTIVATED",
+      actor: this.toAuditActor(actor),
+      targetStaffUserId: updated.id,
+      targetEmailSnapshot: updated.email,
+      outcome: "success",
+      metadataJson: {
+        activeFrom: user.active,
+        activeTo: updated.active
+      }
+    });
+
     return this.toResponse(updated);
   }
 
-  async updatePassword(id: string, password: string): Promise<StaffUserResponseDto> {
+  async updatePassword(id: string, password: string, actor: JwtPayload): Promise<StaffUserResponseDto> {
     this.ensureValidPassword(password);
 
     const user = await this.findStaffUserOrThrow(id);
@@ -121,6 +207,17 @@ export class StaffUsersService {
     const updated = await (this.prisma as any).staffUser.update({
       where: { id: user.id },
       data: { passwordHash }
+    });
+
+    await this.staffAuditService.write({
+      eventType: "STAFF_USER_PASSWORD_RESET",
+      actor: this.toAuditActor(actor),
+      targetStaffUserId: updated.id,
+      targetEmailSnapshot: updated.email,
+      outcome: "success",
+      metadataJson: {
+        passwordReset: true
+      }
     });
 
     return this.toResponse(updated);
@@ -134,15 +231,15 @@ export class StaffUsersService {
     return user;
   }
 
-  private async ensureLastActiveAdminNotRemoved(
+  private async wouldRemoveLastActiveAdmin(
     user: any,
     nextRole: StaffRole,
     nextActive: boolean
-  ): Promise<void> {
+  ): Promise<boolean> {
     const removesActiveAdmin = user.role === "admin" && user.active && (!nextActive || nextRole !== "admin");
 
     if (!removesActiveAdmin) {
-      return;
+      return false;
     }
 
     const activeAdminCount = await (this.prisma as any).staffUser.count({
@@ -152,9 +249,15 @@ export class StaffUsersService {
       }
     });
 
-    if (activeAdminCount <= 1) {
-      throw new ConflictException("CANNOT_REMOVE_LAST_ACTIVE_ADMIN");
-    }
+    return activeAdminCount <= 1;
+  }
+
+  private toAuditActor(actor: JwtPayload): { id: string; email: string; role: string } {
+    return {
+      id: actor.sub,
+      email: actor.email,
+      role: actor.role
+    };
   }
 
   private ensureValidRole(role: string): void {

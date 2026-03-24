@@ -11,6 +11,7 @@ import { VisitSessionsModule } from "./visit-sessions/visit-sessions.module";
 import { PresenceEventsModule } from "./presence-events/presence-events.module";
 import { AuthModule } from "./auth/auth.module";
 import { StaffUsersModule } from "./staff-users/staff-users.module";
+import { StaffAuditModule } from "./staff-audit/staff-audit.module";
 
 @Module({
   imports: [
@@ -25,7 +26,8 @@ import { StaffUsersModule } from "./staff-users/staff-users.module";
     VisitSessionsModule,
     PresenceEventsModule,
     AuthModule,
-    StaffUsersModule
+    StaffUsersModule,
+    StaffAuditModule
   ]
 })
 export class AppModule {}
