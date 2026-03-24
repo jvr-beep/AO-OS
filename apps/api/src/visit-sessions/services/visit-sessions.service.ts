@@ -44,6 +44,12 @@ export class VisitSessionsService {
       throw new NotFoundException("Visit session not found");
     }
 
+    if (session.status !== "checked_in") {
+      throw new ForbiddenException(
+        `Cannot check out from status '${session.status}'. Session must be in 'checked_in' status.`
+      );
+    }
+
     const updated = await this.prisma.visitSession.update({
       where: { id: input.visitSessionId },
       data: {
