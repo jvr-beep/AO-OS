@@ -6,8 +6,9 @@ import { MembershipPlansModule } from "./membership-plans/membership-plans.modul
 import { SubscriptionsModule } from "./subscriptions/subscriptions.module";
 import { WristbandsModule } from "./wristbands/wristbands.module";
 import { AccessAttemptsModule } from "./access-attempts/access-attempts.module";
+import { VisitSessionsModule } from "./visit-sessions/visit-sessions.module";
 
 @Module({
-  imports: [PrismaModule, HealthModule, MembersModule, MembershipPlansModule, SubscriptionsModule, WristbandsModule, AccessAttemptsModule]
+  imports: [PrismaModule, HealthModule, MembersModule, MembershipPlansModule, SubscriptionsModule, WristbandsModule, AccessAttemptsModule, VisitSessionsModule]
 })
 export class AppModule {}
