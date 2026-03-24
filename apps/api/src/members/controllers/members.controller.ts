@@ -1,4 +1,7 @@
-import { Body, Controller, Get, Param, Post } from "@nestjs/common";
+import { Body, Controller, Get, Param, Post, UseGuards } from "@nestjs/common";
+import { Roles } from "../../auth/decorators/roles.decorator";
+import { JwtAuthGuard } from "../../auth/guards/jwt-auth.guard";
+import { RolesGuard } from "../../auth/guards/roles.guard";
 import { CreateMemberDto } from "../dto/create-member.dto";
 import { MemberResponseDto } from "../dto/member.response.dto";
 import { MembersService } from "../services/members.service";
@@ -8,6 +11,8 @@ export class MembersController {
   constructor(private readonly membersService: MembersService) {}
 
   @Post()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("front_desk", "operations", "admin")
   createMember(@Body() body: CreateMemberDto): Promise<MemberResponseDto> {
     return this.membersService.createMember(body);
   }

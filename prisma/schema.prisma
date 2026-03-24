@@ -56,6 +56,12 @@ enum VisitStatus {
   checked_out
 }
 
+enum StaffRole {
+  front_desk
+  operations
+  admin
+}
+
 model Member {
   id                   String                   @id @default(uuid())
   publicMemberNumber   String                   @unique
@@ -105,6 +111,17 @@ model AuthIdentity {
   member          Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerUserId])
+}
+
+model StaffUser {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  passwordHash  String
+  fullName      String
+  role          StaffRole @default(front_desk)
+  active        Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 }
 
 model MembershipPlan {

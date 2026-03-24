@@ -9,6 +9,7 @@ import { AccessControlModule } from "./access-control/access-control.module";
 import { AccessAttemptsModule } from "./access-attempts/access-attempts.module";
 import { VisitSessionsModule } from "./visit-sessions/visit-sessions.module";
 import { PresenceEventsModule } from "./presence-events/presence-events.module";
+import { AuthModule } from "./auth/auth.module";
 
 @Module({
   imports: [
@@ -21,7 +22,8 @@ import { PresenceEventsModule } from "./presence-events/presence-events.module";
     AccessControlModule,
     AccessAttemptsModule,
     VisitSessionsModule,
-    PresenceEventsModule
+    PresenceEventsModule,
+    AuthModule
   ]
 })
 export class AppModule {}

@@ -1,4 +1,7 @@
-import { Body, Controller, Get, Param, Post } from "@nestjs/common";
+import { Body, Controller, Get, Param, Post, UseGuards } from "@nestjs/common";
+import { Roles } from "../../auth/decorators/roles.decorator";
+import { JwtAuthGuard } from "../../auth/guards/jwt-auth.guard";
+import { RolesGuard } from "../../auth/guards/roles.guard";
 import { AccessAttemptResponseDto } from "../dto/access-attempt.response.dto";
 import { CreateAccessAttemptDto } from "../dto/create-access-attempt.dto";
 import { AccessAttemptsService } from "../services/access-attempts.service";
@@ -8,6 +11,8 @@ export class AccessAttemptsController {
   constructor(private readonly accessAttemptsService: AccessAttemptsService) {}
 
   @Post("access-attempts")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("front_desk", "operations", "admin")
   createAttempt(@Body() body: CreateAccessAttemptDto): Promise<AccessAttemptResponseDto> {
     return this.accessAttemptsService.createAttempt(body);
   }
