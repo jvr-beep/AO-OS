@@ -1,4 +1,5 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { ConflictException, Injectable, NotFoundException } from "@nestjs/common";
+import { WristbandStatus } from "@prisma/client";
 import { PrismaService } from "../../prisma/prisma.service";
 import { AssignWristbandDto } from "../dto/assign-wristband.dto";
 import { CreateWristbandDto } from "../dto/create-wristband.dto";
@@ -69,6 +70,10 @@ export class WristbandsService {
       throw new NotFoundException("Wristband not found");
     }
 
+    if (wristband.status !== "inventory") {
+      throw new ConflictException("WRISTBAND_NOT_IN_INVENTORY");
+    }
+
     const member = await this.prisma.member.findUnique({ where: { id: input.memberId } });
     if (!member) {
       throw new NotFoundException("Member not found");
@@ -118,9 +123,14 @@ export class WristbandsService {
       }
     });
 
+    const exitStatuses: WristbandStatus[] = ["lost", "stolen", "damaged", "retired"];
+    const wristbandStatus: WristbandStatus = exitStatuses.includes(input.unassignedReason as WristbandStatus)
+      ? (input.unassignedReason as WristbandStatus)
+      : "inventory";
+
     await this.prisma.wristband.update({
       where: { id: input.wristbandId },
-      data: { status: "inventory" }
+      data: { status: wristbandStatus }
     });
 
     return {

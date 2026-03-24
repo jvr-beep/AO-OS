@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../../prisma/prisma.service";
 import { CreatePresenceEventDto } from "../dto/create-presence-event.dto";
 import { PresenceEventResponseDto } from "../dto/presence-event.response.dto";
@@ -8,6 +8,10 @@ export class PresenceEventsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async createPresenceEvent(input: CreatePresenceEventDto): Promise<PresenceEventResponseDto> {
+    const session = await this.prisma.visitSession.findUnique({ where: { id: input.visitSessionId } });
+    if (!session) throw new NotFoundException("VISIT_SESSION_NOT_FOUND");
+    if (session.status !== "checked_in") throw new ForbiddenException("VISIT_SESSION_CLOSED");
+
     const created = await this.prisma.presenceEvent.create({
       data: {
         visitSessionId: input.visitSessionId,

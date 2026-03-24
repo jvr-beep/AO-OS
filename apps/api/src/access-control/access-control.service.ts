@@ -30,11 +30,11 @@ export class AccessControlService {
       };
     }
 
-    // 3. Member has an active subscription
+    // 3. Member has an active or trialing subscription
     const activeSubscription = await this.prisma.membershipSubscription.findFirst({
       where: {
         memberId: input.memberId,
-        status: "active"
+        status: { in: ["active", "trialing"] }
       }
     });
 
@@ -60,16 +60,24 @@ export class AccessControlService {
       };
     }
 
-    // 5. If wristbandAssignmentId provided, must be active
+    // 5. If wristbandAssignmentId provided, must be active and wristband status assigned/active
     if (input.wristbandAssignmentId) {
       const wristbandAssignment = await this.prisma.wristbandAssignment.findUnique({
-        where: { id: input.wristbandAssignmentId }
+        where: { id: input.wristbandAssignmentId },
+        include: { wristband: true }
       });
 
       if (!wristbandAssignment || !wristbandAssignment.active) {
         return {
           eligible: false,
           denialReasonCode: "NO_ACTIVE_WRISTBAND_ASSIGNMENT"
+        };
+      }
+
+      if (!(["assigned", "active"] as string[]).includes(wristbandAssignment.wristband.status)) {
+        return {
+          eligible: false,
+          denialReasonCode: "WRISTBAND_NOT_ACTIVE"
         };
       }
     }
@@ -83,7 +91,52 @@ export class AccessControlService {
   async evaluateZoneAccess(input: ZoneAccessEligibilityDto): Promise<ZoneAccessDecisionDto> {
     const attemptedAtDate = new Date(input.attemptedAt);
 
-    // 1. Check active MemberAccessGrant to zone (time-bounded)
+    // 1. Check for explicit DENY override (deny overrides take priority over everything)
+    const denyOverride = await this.prisma.memberAccessOverride.findFirst({
+      where: {
+        memberId: input.memberId,
+        accessZoneId: input.accessZoneId,
+        action: "deny",
+        AND: [
+          {
+            OR: [{ validFrom: null }, { validFrom: { lte: attemptedAtDate } }]
+          },
+          {
+            OR: [{ validUntil: null }, { validUntil: { gte: attemptedAtDate } }]
+          }
+        ]
+      }
+    });
+
+    if (denyOverride) {
+      return {
+        allowed: false,
+        denialReasonCode: "ZONE_ACCESS_EXPLICITLY_DENIED"
+      };
+    }
+
+    // 2. Check for explicit ALLOW override (time-bounded)
+    const allowOverride = await this.prisma.memberAccessOverride.findFirst({
+      where: {
+        memberId: input.memberId,
+        accessZoneId: input.accessZoneId,
+        action: "allow",
+        AND: [
+          {
+            OR: [{ validFrom: null }, { validFrom: { lte: attemptedAtDate } }]
+          },
+          {
+            OR: [{ validUntil: null }, { validUntil: { gte: attemptedAtDate } }]
+          }
+        ]
+      }
+    });
+
+    if (allowOverride) {
+      return { allowed: true };
+    }
+
+    // 3. Check active MemberAccessGrant to zone (time-bounded)
     const grant = await this.prisma.memberAccessGrant.findFirst({
       where: {
         memberId: input.memberId,
@@ -104,27 +157,7 @@ export class AccessControlService {
       return { allowed: true };
     }
 
-    // 2. Check active MemberAccessOverride to zone (time-bounded)
-    const override = await this.prisma.memberAccessOverride.findFirst({
-      where: {
-        memberId: input.memberId,
-        accessZoneId: input.accessZoneId,
-        AND: [
-          {
-            OR: [{ validFrom: null }, { validFrom: { lte: attemptedAtDate } }]
-          },
-          {
-            OR: [{ validUntil: null }, { validUntil: { gte: attemptedAtDate } }]
-          }
-        ]
-      }
-    });
-
-    if (override) {
-      return { allowed: true };
-    }
-
-    // 3. Get zone to check requiresBooking flag
+    // 4. Get zone to check requiresBooking flag
     const zone = await this.prisma.accessZone.findUnique({
       where: { id: input.accessZoneId }
     });
@@ -136,17 +169,17 @@ export class AccessControlService {
       };
     }
 
-    // 4. If zone does not require booking, allow access
+    // 5. If zone does not require booking, allow access
     if (!zone.requiresBooking) {
       return { allowed: true };
     }
 
-    // 5. Zone requires booking - check for valid Booking (time-bounded)
+    // 6. Zone requires booking - check for valid Booking (status reserved or checked_in, time-bounded)
     const booking = await this.prisma.booking.findFirst({
       where: {
         memberId: input.memberId,
         accessZoneId: input.accessZoneId,
-        status: "confirmed",
+        status: { in: ["reserved", "checked_in"] },
         startsAt: { lte: attemptedAtDate },
         endsAt: { gte: attemptedAtDate }
       }
