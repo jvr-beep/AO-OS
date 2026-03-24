@@ -1,4 +1,5 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
+import { AccessControlService } from "../../access-control/access-control.service";
 import { PrismaService } from "../../prisma/prisma.service";
 import { CheckOutVisitSessionDto } from "../dto/check-out-visit-session.dto";
 import { CreateVisitSessionDto } from "../dto/create-visit-session.dto";
@@ -6,9 +7,21 @@ import { VisitSessionResponseDto } from "../dto/visit-session.response.dto";
 
 @Injectable()
 export class VisitSessionsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly accessControlService: AccessControlService
+  ) {}
 
   async checkIn(input: CreateVisitSessionDto): Promise<VisitSessionResponseDto> {
+    const eligibility = await this.accessControlService.evaluateCheckIn({
+      memberId: input.memberId,
+      wristbandAssignmentId: input.wristbandAssignmentId
+    });
+
+    if (!eligibility.eligible) {
+      throw new ForbiddenException(eligibility.denialReasonCode);
+    }
+
     const created = await this.prisma.visitSession.create({
       data: {
         memberId: input.memberId,
