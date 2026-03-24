@@ -5,7 +5,9 @@
   "scripts": {
     "dev": "nest start --watch",
     "build": "nest build",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "kill-node-locks": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"Get-CimInstance Win32_Process | Where-Object { $_.Name -eq 'node.exe' -and ($_.CommandLine -match 'nest start --watch|pnpm --filter api dev|pnpm dev') } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }; exit 0\"",
+    "prisma:generate:safe": "pnpm run kill-node-locks && prisma generate --schema ../../prisma/schema.prisma"
   },
   "dependencies": {
     "@nestjs/common": "^10.4.2",
