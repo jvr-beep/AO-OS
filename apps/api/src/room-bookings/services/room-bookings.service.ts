@@ -115,7 +115,10 @@ export class RoomBookingsService {
   async checkInBooking(id: string, input: CheckInBookingDto): Promise<BookingResponseDto> {
     const occurredAt = this.parseDate(input.occurredAt, "INVALID_OCCURRED_AT");
 
-    const booking = await this.prisma.roomBooking.findUnique({ where: { id } });
+    const booking = await this.prisma.roomBooking.findUnique({
+      where: { id },
+      include: { room: true }
+    });
     if (!booking) {
       throw new NotFoundException("BOOKING_NOT_FOUND");
     }
@@ -151,7 +154,10 @@ export class RoomBookingsService {
   async checkOutBooking(id: string, input: CheckOutBookingDto): Promise<BookingResponseDto> {
     const occurredAt = this.parseDate(input.occurredAt, "INVALID_OCCURRED_AT");
 
-    const booking = await this.prisma.roomBooking.findUnique({ where: { id } });
+    const booking = await this.prisma.roomBooking.findUnique({
+      where: { id },
+      include: { room: true }
+    });
     if (!booking) {
       throw new NotFoundException("BOOKING_NOT_FOUND");
     }
@@ -179,9 +185,22 @@ export class RoomBookingsService {
         orderBy: { startsAt: "asc" }
       });
 
+      if (booking.room.cleaningRequired) {
+        await tx.cleaningTask.create({
+          data: {
+            roomId: booking.roomId,
+            bookingId: booking.id,
+            taskType: "turnover",
+            status: "open"
+          }
+        });
+      }
+
       await tx.room.update({
         where: { id: booking.roomId },
-        data: { status: hasActive ? "booked" : "available" }
+        data: {
+          status: booking.room.cleaningRequired ? "cleaning" : hasActive ? "booked" : "available"
+        }
       });
 
       return row;

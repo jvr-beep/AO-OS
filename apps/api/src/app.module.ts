@@ -18,6 +18,7 @@ import { MemberAccountModule } from "./member-account/member-account.module";
 import { FloorPlansModule } from "./floor-plans/floor-plans.module";
 import { RoomsModule } from "./rooms/rooms.module";
 import { RoomBookingsModule } from "./room-bookings/room-bookings.module";
+import { CleaningModule } from "./cleaning/cleaning.module";
 
 @Module({
   imports: [
@@ -39,7 +40,8 @@ import { RoomBookingsModule } from "./room-bookings/room-bookings.module";
     MemberAccountModule,
     FloorPlansModule,
     RoomsModule,
-    RoomBookingsModule
+    RoomBookingsModule,
+    CleaningModule
   ]
 })
 export class AppModule {}
