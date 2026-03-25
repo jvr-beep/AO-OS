@@ -12,6 +12,8 @@ import { PresenceEventsModule } from "./presence-events/presence-events.module";
 import { AuthModule } from "./auth/auth.module";
 import { StaffUsersModule } from "./staff-users/staff-users.module";
 import { StaffAuditModule } from "./staff-audit/staff-audit.module";
+import { WristbandTransactionsModule } from "./wristband-transactions/wristband-transactions.module";
+import { LockersModule } from "./lockers/lockers.module";
 
 @Module({
   imports: [
@@ -27,7 +29,9 @@ import { StaffAuditModule } from "./staff-audit/staff-audit.module";
     PresenceEventsModule,
     AuthModule,
     StaffUsersModule,
-    StaffAuditModule
+    StaffAuditModule,
+    WristbandTransactionsModule,
+    LockersModule
   ]
 })
 export class AppModule {}

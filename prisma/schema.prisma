@@ -62,6 +62,36 @@ enum StaffRole {
   admin
 }
 
+enum WristbandTransactionType {
+  purchase
+  adjustment
+  refund
+}
+
+enum WristbandTransactionStatus {
+  pending
+  completed
+  failed
+}
+
+enum LockerStatus {
+  available
+  assigned
+  out_of_service
+}
+
+enum LockerAccessDecision {
+  allowed
+  denied
+}
+
+enum LockerAccessEventType {
+  unlock
+  lock
+  open
+  close
+}
+
 model Member {
   id                   String                   @id @default(uuid())
   publicMemberNumber   String                   @unique
@@ -84,6 +114,9 @@ model Member {
   accessGrants         MemberAccessGrant[]
   accessOverrides      MemberAccessOverride[]
   presenceEvents       PresenceEvent[]
+  wristbandTransactions WristbandTransaction[]
+  lockerAssignments     LockerAssignment[]
+  lockerAccessEvents    LockerAccessEvent[]
 }
 
 model MemberProfile {
@@ -200,6 +233,7 @@ model Location {
   wristbands       Wristband[]
   accessPoints     AccessPoint[]
   visitSessions    VisitSession[]
+  lockers          Locker[]
 }
 
 model Wristband {
@@ -213,6 +247,8 @@ model Wristband {
   location         Location?             @relation(fields: [locationId], references: [id])
   assignments      WristbandAssignment[]
   accessAttempts   AccessAttempt[]
+  wristbandTransactions WristbandTransaction[]
+  lockerAccessEvents    LockerAccessEvent[]
 }
 
 model WristbandAssignment {
@@ -228,6 +264,83 @@ model WristbandAssignment {
   wristband             Wristband   @relation(fields: [wristbandId], references: [id], onDelete: Cascade)
   member                Member      @relation(fields: [memberId], references: [id], onDelete: Cascade)
   visitSessions         VisitSession[]
+  lockerAssignments     LockerAssignment[]
+}
+
+model WristbandTransaction {
+  id              String                    @id @default(uuid())
+  memberId        String
+  wristbandId     String
+  transactionType WristbandTransactionType
+  merchantType    String
+  amount          Decimal                   @db.Decimal(10, 2)
+  currency        String
+  description     String?
+  sourceReference String?
+  status          WristbandTransactionStatus @default(completed)
+  occurredAt      DateTime
+  createdAt       DateTime                  @default(now())
+
+  member          Member                    @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  wristband       Wristband                 @relation(fields: [wristbandId], references: [id], onDelete: Cascade)
+
+  @@index([occurredAt])
+  @@index([memberId])
+}
+
+model Locker {
+  id              String              @id @default(uuid())
+  code            String              @unique
+  locationId      String?
+  status          LockerStatus        @default(available)
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  location        Location?           @relation(fields: [locationId], references: [id])
+  assignments     LockerAssignment[]
+  accessEvents    LockerAccessEvent[]
+}
+
+model LockerAssignment {
+  id                    String               @id @default(uuid())
+  lockerId              String
+  memberId              String
+  wristbandAssignmentId String?
+  assignedByStaffUserId String?
+  assignedAt            DateTime             @default(now())
+  unassignedAt          DateTime?
+  unassignedReason      String?
+  active                Boolean              @default(true)
+
+  locker                Locker               @relation(fields: [lockerId], references: [id], onDelete: Cascade)
+  member                Member               @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  wristbandAssignment   WristbandAssignment? @relation(fields: [wristbandAssignmentId], references: [id], onDelete: SetNull)
+  accessEvents          LockerAccessEvent[]
+
+  @@index([lockerId, active])
+  @@index([memberId])
+}
+
+model LockerAccessEvent {
+  id                 String              @id @default(uuid())
+  memberId           String?
+  lockerId           String
+  wristbandId        String?
+  lockerAssignmentId String?
+  decision           LockerAccessDecision
+  denialReasonCode   String?
+  eventType          LockerAccessEventType
+  occurredAt         DateTime
+  sourceReference    String?
+  createdAt          DateTime            @default(now())
+
+  member             Member?             @relation(fields: [memberId], references: [id], onDelete: SetNull)
+  locker             Locker              @relation(fields: [lockerId], references: [id], onDelete: Cascade)
+  wristband          Wristband?          @relation(fields: [wristbandId], references: [id], onDelete: SetNull)
+  lockerAssignment   LockerAssignment?   @relation(fields: [lockerAssignmentId], references: [id], onDelete: SetNull)
+
+  @@index([occurredAt])
+  @@index([memberId])
 }
 
 model AccessZone {
