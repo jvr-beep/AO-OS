@@ -18,6 +18,8 @@ Important for local dev:
 - Before testing rooms/floor-plans/bookings/cleaning endpoints, apply the rooms migration:
   - `prisma/migrations/20260325170000_rooms_floorplans_bookings_cleaning/migration.sql`
   - If this migration is not applied, requests can fail with HTTP 500 due to missing tables (for example `Room` and `CleaningTask`).
+- Before testing locker policy endpoints, apply the locker policy migration:
+  - `prisma/migrations/20260325213000_locker_policy_engine_foundation/migration.sql`
 
 ## One-Time Local Data Setup
 
@@ -86,6 +88,36 @@ Note: booking-allowed status is now `reserved` or `checked_in`. If older seeds u
 | A3 | Deny when booking-required zone has no valid booking | `POST /access-attempts` | `decision = denied`, `denialReasonCode = ZONE_BOOKING_REQUIRED` |
 | A4 | Allow check-in with `trialing` subscription | `POST /visit-sessions/check-in` | `status = checked_in` |
 | A5 | Deny presence event on checked-out session | `POST /presence-events` | HTTP 403 with `VISIT_SESSION_CLOSED` |
+
+---
+
+## Locker Policy Engine Scenarios (2026-03-25)
+
+Policy evaluate endpoint:
+- `POST /lockers/policy/evaluate`
+
+Policy event query endpoints:
+- `GET /lockers/policy/events`
+- `GET /members/:id/locker-policy-events`
+
+Recommended test scenarios:
+
+| ID | Scenario | Endpoint | Expected |
+|---|---|---|---|
+| LPE1 | Deny when credential is not active | `POST /lockers/policy/evaluate` | `decision = deny`, `reasonCode = CREDENTIAL_NOT_ACTIVE` |
+| LPE2 | Deny when no active session at site | `POST /lockers/policy/evaluate` | `decision = deny`, `reasonCode = SESSION_NOT_ACTIVE` |
+| LPE3 | Deny premium request for non-premium member | `POST /lockers/policy/evaluate` | `decision = deny`, `reasonCode = LOCKER_TIER_RESTRICTED` |
+| LPE4 | Allow assigned/day-use mode with eligible locker | `POST /lockers/policy/evaluate` | `decision = allow`, non-empty `eligibleLockerIds` |
+| LPE5 | Assignment uses policy and writes decision events | `POST /lockers/assign`, then `GET /lockers/policy/events` | assignment success + appended decision event |
+
+Core reason codes used by policy engine:
+- `MEMBER_NOT_FOUND`
+- `CREDENTIAL_NOT_ACTIVE`
+- `SESSION_NOT_ACTIVE`
+- `LOCKER_TIER_RESTRICTED`
+- `NO_ELIGIBLE_LOCKERS`
+- `LOCKER_ELIGIBLE`
+- `STAFF_OVERRIDE_APPLIED`
 
 ---
 

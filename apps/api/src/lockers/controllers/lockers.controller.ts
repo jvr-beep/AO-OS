@@ -5,9 +5,14 @@ import { RolesGuard } from "../../auth/guards/roles.guard";
 import { AssignLockerDto } from "../dto/assign-locker.dto";
 import { CreateLockerAccessDto } from "../dto/create-locker-access.dto";
 import { CreateLockerDto } from "../dto/create-locker.dto";
+import { EvaluateLockerPolicyDto } from "../dto/evaluate-locker-policy.dto";
 import { ListLockerAccessEventsQueryDto } from "../dto/list-locker-access-events.query.dto";
+import { ListLockerPolicyEventsQueryDto } from "../dto/list-locker-policy-events.query.dto";
+import { ListLockersQueryDto } from "../dto/list-lockers.query.dto";
 import { LockerAccessEventResponseDto } from "../dto/locker-access-event.response.dto";
 import { LockerAssignmentResponseDto } from "../dto/locker-assignment.response.dto";
+import { LockerPolicyEventResponseDto } from "../dto/locker-policy-event.response.dto";
+import { LockerPolicyDecisionResponseDto } from "../dto/locker-policy-decision.response.dto";
 import { LockerResponseDto } from "../dto/locker.response.dto";
 import { UnassignLockerDto } from "../dto/unassign-locker.dto";
 import { LockersService } from "../services/lockers.service";
@@ -25,8 +30,8 @@ export class LockersController {
 
   @Get("lockers")
   @Roles("front_desk", "operations", "admin")
-  listLockers(): Promise<LockerResponseDto[]> {
-    return this.lockersService.listLockers();
+  listLockers(@Query() query: ListLockersQueryDto): Promise<LockerResponseDto[]> {
+    return this.lockersService.listLockers(query);
   }
 
   @Get("lockers/:id/access-events")
@@ -42,6 +47,18 @@ export class LockersController {
   @Roles("front_desk", "operations", "admin")
   assignLocker(@Body() body: AssignLockerDto): Promise<LockerAssignmentResponseDto> {
     return this.lockersService.assignLocker(body);
+  }
+
+  @Post("lockers/policy/evaluate")
+  @Roles("operations", "admin")
+  evaluateLockerPolicy(@Body() body: EvaluateLockerPolicyDto): Promise<LockerPolicyDecisionResponseDto> {
+    return this.lockersService.evaluateLockerPolicy(body);
+  }
+
+  @Get("lockers/policy/events")
+  @Roles("operations", "admin")
+  listLockerPolicyEvents(@Query() query: ListLockerPolicyEventsQueryDto): Promise<LockerPolicyEventResponseDto[]> {
+    return this.lockersService.listLockerPolicyEvents(query);
   }
 
   @Post("lockers/unassign")
@@ -63,5 +80,11 @@ export class LockersController {
     @Query() query: ListLockerAccessEventsQueryDto
   ): Promise<LockerAccessEventResponseDto[]> {
     return this.lockersService.listMemberLockerAccessEvents(memberId, query);
+  }
+
+  @Get("members/:id/locker-policy-events")
+  @Roles("front_desk", "operations", "admin")
+  listMemberLockerPolicyEvents(@Param("id") memberId: string): Promise<LockerPolicyEventResponseDto[]> {
+    return this.lockersService.listLockerPolicyEvents({ memberId });
   }
 }

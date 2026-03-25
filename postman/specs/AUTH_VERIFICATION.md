@@ -13,6 +13,8 @@ Set Postman environment variables:
 Note:
 - If you also verify rooms/floor-plans/bookings/cleaning endpoints, apply the rooms migration first:
   - `prisma/migrations/20260325170000_rooms_floorplans_bookings_cleaning/migration.sql`
+- If you verify locker policy + credential lifecycle endpoints, apply:
+  - `prisma/migrations/20260325213000_locker_policy_engine_foundation/migration.sql`
 
 Optional test data variables (for protected route test):
 
@@ -161,6 +163,7 @@ Use an endpoint restricted to `operations` or `admin`:
 
 - `POST {{baseUrl}}/membership-plans`
 - or `POST {{baseUrl}}/wristbands`
+- or `POST {{baseUrl}}/lockers/policy/evaluate`
 
 If your logged-in role is `front_desk`, expect `403`.
 If your role is `operations` or `admin`, expect auth pass (not 401/403) and normal business validation.

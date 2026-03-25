@@ -36,6 +36,11 @@ enum PaymentMethodStatus {
 }
 
 enum WristbandStatus {
+  unassigned
+  pending_activation
+  suspended
+  replaced
+
   inventory
   assigned
   active
@@ -97,8 +102,27 @@ enum MemberAccountSourceType {
 
 enum LockerStatus {
   available
+  reserved
+  occupied
+  cleaning
+  maintenance
+  offline
+  forced_open
+
   assigned
   out_of_service
+}
+
+enum LockerAssignmentMode {
+  day_use_shared
+  assigned
+  premium
+  staff_override
+}
+
+enum LockerPolicyDecision {
+  allow
+  deny
 }
 
 enum LockerAccessDecision {
@@ -229,6 +253,7 @@ model Member {
   wristbandTransactions WristbandTransaction[]
   lockerAssignments     LockerAssignment[]
   lockerAccessEvents    LockerAccessEvent[]
+  lockerPolicyDecisionEvents LockerPolicyDecisionEvent[]
   accountEntries        MemberAccountEntry[]
   roomBookings          RoomBooking[]
   roomAccessEvents      RoomAccessEvent[]
@@ -359,7 +384,15 @@ model Wristband {
   id               String                @id @default(uuid())
   uid              String                @unique
   locationId       String?
+  homeLocationId   String?
   status           WristbandStatus       @default(inventory)
+  globalAccessFlag Boolean               @default(false)
+  issuedAt         DateTime              @default(now())
+  activatedAt      DateTime?
+  suspendedAt      DateTime?
+  replacedFromWristbandId String?
+  lastSeenLocationId String?
+  lastSeenAt       DateTime?
   createdAt        DateTime              @default(now())
   updatedAt        DateTime              @updatedAt
 
@@ -430,21 +463,39 @@ model MemberAccountEntry {
 model Locker {
   id              String              @id @default(uuid())
   code            String              @unique
+  vendorLockId    String?
   locationId      String?
+  zoneId          String?
+  bankId          String?
+  wallId          String?
+  lockerLabel     String?
+  lockerSize      String?
+  lockerType      String?
+  isAccessible    Boolean             @default(false)
+  isWetAreaRated  Boolean             @default(false)
+  hasPower        Boolean             @default(false)
+  tierClass       String?
   status          LockerStatus        @default(available)
+  supportsDayUse  Boolean             @default(true)
+  supportsAssignedUse Boolean         @default(true)
+  active          Boolean             @default(true)
   createdAt       DateTime            @default(now())
   updatedAt       DateTime            @updatedAt
 
   location        Location?           @relation(fields: [locationId], references: [id])
   assignments     LockerAssignment[]
   accessEvents    LockerAccessEvent[]
+  policyDecisionEvents LockerPolicyDecisionEvent[]
 }
 
 model LockerAssignment {
   id                    String               @id @default(uuid())
   lockerId              String
   memberId              String
+  visitSessionId        String?
   wristbandAssignmentId String?
+  assignmentMode        LockerAssignmentMode @default(assigned)
+  policySnapshot        Json?
   assignedByStaffUserId String?
   assignedAt            DateTime             @default(now())
   unassignedAt          DateTime?
@@ -453,6 +504,7 @@ model LockerAssignment {
 
   locker                Locker               @relation(fields: [lockerId], references: [id], onDelete: Cascade)
   member                Member               @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  visitSession          VisitSession?        @relation(fields: [visitSessionId], references: [id], onDelete: SetNull)
   wristbandAssignment   WristbandAssignment? @relation(fields: [wristbandAssignmentId], references: [id], onDelete: SetNull)
   accessEvents          LockerAccessEvent[]
 
@@ -471,6 +523,7 @@ model LockerAccessEvent {
   eventType          LockerAccessEventType
   occurredAt         DateTime
   sourceReference    String?
+  rawPayloadJson     Json?
   createdAt          DateTime            @default(now())
 
   member             Member?             @relation(fields: [memberId], references: [id], onDelete: SetNull)
@@ -480,6 +533,35 @@ model LockerAccessEvent {
 
   @@index([occurredAt])
   @@index([memberId])
+}
+
+model LockerPolicyDecisionEvent {
+  id                   String               @id @default(uuid())
+  memberId             String?
+  lockerId             String?
+  visitSessionId       String?
+  staffUserId          String?
+  siteId               String?
+  requestedZoneId      String?
+  requestedLockerId    String?
+  assignmentMode       LockerAssignmentMode
+  decision             LockerPolicyDecision
+  reasonCode           String
+  eligibleLockerIds    String[]
+  chosenLockerId       String?
+  inputSnapshotJson    Json
+  outputSnapshotJson   Json
+  correlationId        String?
+  createdAt            DateTime             @default(now())
+
+  member               Member?              @relation(fields: [memberId], references: [id], onDelete: SetNull)
+  locker               Locker?              @relation(fields: [lockerId], references: [id], onDelete: SetNull)
+  visitSession         VisitSession?        @relation(fields: [visitSessionId], references: [id], onDelete: SetNull)
+
+  @@index([memberId, createdAt])
+  @@index([lockerId, createdAt])
+  @@index([visitSessionId, createdAt])
+  @@index([siteId, createdAt])
 }
 
 model AccessZone {
@@ -569,6 +651,8 @@ model VisitSession {
   location              Location             @relation(fields: [locationId], references: [id])
   wristbandAssignment   WristbandAssignment? @relation(fields: [wristbandAssignmentId], references: [id])
   presenceEvents        PresenceEvent[]
+  lockerAssignments     LockerAssignment[]
+  lockerPolicyDecisionEvents LockerPolicyDecisionEvent[]
 }
 
 model PresenceEvent {
