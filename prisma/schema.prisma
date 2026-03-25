@@ -113,6 +113,97 @@ enum LockerAccessEventType {
   close
 }
 
+enum FloorPlanAreaType {
+  room
+  corridor
+  entry
+  service
+  bath
+  lounge
+  locker_bank
+}
+
+enum RoomType {
+  private
+  premium_private
+  retreat
+  ritual
+  accessible
+  couples_reserved_future
+}
+
+enum RoomPrivacyLevel {
+  standard
+  high
+  premium
+}
+
+enum RoomStatus {
+  available
+  booked
+  occupied
+  cleaning
+  out_of_service
+}
+
+enum RoomBookingType {
+  restore
+  release
+  retreat
+}
+
+enum RoomBookingStatus {
+  reserved
+  checked_in
+  checked_out
+  expired
+  cancelled
+  no_show
+  waitlisted
+}
+
+enum RoomBookingSourceType {
+  membership_credit
+  upgrade_credit
+  one_time_purchase
+  manual_staff
+  package_credit
+}
+
+enum RoomAccessDecision {
+  allowed
+  denied
+  error
+}
+
+enum RoomAccessEventType {
+  unlock
+  lock
+  open
+  close
+  check_in_gate
+  check_out_gate
+}
+
+enum RoomAccessSourceType {
+  wristband_reader
+  staff_console
+  system
+}
+
+enum CleaningTaskType {
+  turnover
+  deep_clean
+  inspection
+}
+
+enum CleaningTaskStatus {
+  open
+  in_progress
+  completed
+  cancelled
+}
+
 model Member {
   id                   String                   @id @default(uuid())
   publicMemberNumber   String                   @unique
@@ -139,6 +230,8 @@ model Member {
   lockerAssignments     LockerAssignment[]
   lockerAccessEvents    LockerAccessEvent[]
   accountEntries        MemberAccountEntry[]
+  roomBookings          RoomBooking[]
+  roomAccessEvents      RoomAccessEvent[]
 }
 
 model MemberProfile {
@@ -177,6 +270,8 @@ model StaffUser {
   active        Boolean   @default(true)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+
+  assignedCleaningTasks CleaningTask[]
 }
 
 model MembershipPlan {
@@ -256,6 +351,8 @@ model Location {
   accessPoints     AccessPoint[]
   visitSessions    VisitSession[]
   lockers          Locker[]
+  floorPlans       FloorPlan[]
+  rooms            Room[]
 }
 
 model Wristband {
@@ -271,6 +368,7 @@ model Wristband {
   accessAttempts   AccessAttempt[]
   wristbandTransactions WristbandTransaction[]
   lockerAccessEvents    LockerAccessEvent[]
+  roomAccessEvents      RoomAccessEvent[]
 }
 
 model WristbandAssignment {
@@ -499,4 +597,134 @@ model Booking {
   createdAt          DateTime    @default(now())
 
   accessZone         AccessZone  @relation(fields: [accessZoneId], references: [id])
+}
+
+model FloorPlan {
+  id          String          @id @default(uuid())
+  locationId  String
+  name        String
+  active      Boolean         @default(true)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  location    Location        @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  areas       FloorPlanArea[]
+
+  @@index([locationId, active])
+}
+
+model FloorPlanArea {
+  id          String            @id @default(uuid())
+  floorPlanId String
+  code        String
+  name        String
+  areaType    FloorPlanAreaType
+  x           Decimal           @db.Decimal(10, 2)
+  y           Decimal           @db.Decimal(10, 2)
+  width       Decimal           @db.Decimal(10, 2)
+  height      Decimal           @db.Decimal(10, 2)
+  active      Boolean           @default(true)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  floorPlan   FloorPlan         @relation(fields: [floorPlanId], references: [id], onDelete: Cascade)
+  room        Room?
+
+  @@unique([floorPlanId, code])
+  @@index([floorPlanId, active])
+}
+
+model Room {
+  id               String           @id @default(uuid())
+  locationId       String
+  floorPlanAreaId  String           @unique
+  code             String           @unique
+  name             String
+  roomType         RoomType
+  privacyLevel     RoomPrivacyLevel
+  status           RoomStatus       @default(available)
+  active           Boolean          @default(true)
+  bookable         Boolean          @default(true)
+  cleaningRequired Boolean          @default(false)
+  lastTurnedAt     DateTime?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  location         Location         @relation(fields: [locationId], references: [id])
+  floorPlanArea    FloorPlanArea    @relation(fields: [floorPlanAreaId], references: [id])
+  bookings         RoomBooking[]
+  accessEvents     RoomAccessEvent[]
+  cleaningTasks    CleaningTask[]
+
+  @@index([locationId, status])
+  @@index([roomType, privacyLevel])
+}
+
+model RoomBooking {
+  id               String                @id @default(uuid())
+  memberId         String
+  roomId           String
+  bookingType      RoomBookingType
+  status           RoomBookingStatus
+  startsAt         DateTime
+  endsAt           DateTime
+  sourceType       RoomBookingSourceType
+  sourceReference  String?
+  waitlistPriority Int                   @default(0)
+  checkedInAt      DateTime?
+  checkedOutAt     DateTime?
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+
+  member           Member                @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  room             Room                  @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  accessEvents     RoomAccessEvent[]
+  cleaningTasks    CleaningTask[]
+
+  @@index([roomId, startsAt])
+  @@index([memberId, startsAt])
+  @@index([status, startsAt])
+}
+
+model RoomAccessEvent {
+  id               String              @id @default(uuid())
+  bookingId        String?
+  roomId           String
+  memberId         String?
+  wristbandId      String?
+  decision         RoomAccessDecision
+  denialReasonCode String?
+  eventType        RoomAccessEventType
+  occurredAt       DateTime
+  sourceType       RoomAccessSourceType
+  sourceReference  String?
+  createdAt        DateTime            @default(now())
+
+  booking          RoomBooking?        @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  room             Room                @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  member           Member?             @relation(fields: [memberId], references: [id], onDelete: SetNull)
+  wristband        Wristband?          @relation(fields: [wristbandId], references: [id], onDelete: SetNull)
+
+  @@index([roomId, occurredAt])
+  @@index([memberId, occurredAt])
+}
+
+model CleaningTask {
+  id                    String             @id @default(uuid())
+  roomId                String
+  bookingId             String?
+  taskType              CleaningTaskType
+  status                CleaningTaskStatus @default(open)
+  createdAt             DateTime           @default(now())
+  startedAt             DateTime?
+  completedAt           DateTime?
+  assignedToStaffUserId String?
+  notes                 String?
+
+  room                  Room               @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  booking               RoomBooking?       @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  assignedToStaffUser   StaffUser?         @relation(fields: [assignedToStaffUserId], references: [id], onDelete: SetNull)
+
+  @@index([roomId, status])
+  @@index([status, createdAt])
 }
