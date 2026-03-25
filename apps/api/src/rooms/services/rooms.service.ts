@@ -1,8 +1,18 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
-import { RoomPrivacyLevel, RoomStatus, RoomType } from "@prisma/client";
+import {
+  RoomAccessDecision,
+  RoomAccessEventType,
+  RoomAccessSourceType,
+  RoomPrivacyLevel,
+  RoomStatus,
+  RoomType
+} from "@prisma/client";
 import { PrismaService } from "../../prisma/prisma.service";
+import { CreateRoomAccessDto } from "../dto/create-room-access.dto";
+import { ListRoomAccessEventsQueryDto } from "../dto/list-room-access-events.query.dto";
 import { CreateRoomDto } from "../dto/create-room.dto";
 import { ListRoomsQueryDto } from "../dto/list-rooms.query.dto";
+import { RoomAccessEventResponseDto } from "../dto/room-access-event.response.dto";
 import { RoomResponseDto } from "../dto/room.response.dto";
 
 @Injectable()
@@ -70,6 +80,115 @@ export class RoomsService {
     return this.toRoomResponse(row);
   }
 
+  async accessRoom(input: CreateRoomAccessDto): Promise<RoomAccessEventResponseDto> {
+    const occurredAt = this.parseDate(input.occurredAt, "INVALID_OCCURRED_AT");
+
+    const room = await this.prisma.room.findUnique({ where: { id: input.roomId } });
+    if (!room) {
+      throw new NotFoundException("ROOM_NOT_FOUND");
+    }
+
+    const wristband = await this.prisma.wristband.findUnique({ where: { id: input.wristbandId } });
+    const activeAssignment = await this.prisma.wristbandAssignment.findFirst({
+      where: {
+        wristbandId: input.wristbandId,
+        active: true
+      }
+    });
+
+    const activeBooking = await this.prisma.roomBooking.findFirst({
+      where: {
+        roomId: input.roomId,
+        status: { in: ["reserved", "checked_in"] },
+        startsAt: { lte: occurredAt },
+        endsAt: { gte: occurredAt }
+      },
+      orderBy: { startsAt: "desc" }
+    });
+
+    let decision: RoomAccessDecision = "allowed";
+    let denialReasonCode: string | null = null;
+
+    if (!room.active || !room.bookable) {
+      decision = "denied";
+      denialReasonCode = "ROOM_NOT_BOOKABLE";
+    } else if (room.status === "out_of_service") {
+      decision = "denied";
+      denialReasonCode = "ROOM_OUT_OF_SERVICE";
+    } else if (room.status === "cleaning") {
+      decision = "denied";
+      denialReasonCode = "ROOM_IN_CLEANING";
+    } else if (!wristband) {
+      decision = "denied";
+      denialReasonCode = "WRISTBAND_NOT_FOUND";
+    } else if (wristband.status !== "assigned" && wristband.status !== "active") {
+      decision = "denied";
+      denialReasonCode = "WRISTBAND_NOT_ACTIVE";
+    } else if (!activeAssignment) {
+      decision = "denied";
+      denialReasonCode = "NO_ACTIVE_WRISTBAND_ASSIGNMENT";
+    } else if (!activeBooking) {
+      decision = "denied";
+      denialReasonCode = "NO_ACTIVE_BOOKING";
+    } else if (activeAssignment.memberId !== activeBooking.memberId) {
+      decision = "denied";
+      denialReasonCode = "ROOM_ACCESS_WRISTBAND_MISMATCH";
+    }
+
+    const created = await this.prisma.roomAccessEvent.create({
+      data: {
+        bookingId: activeBooking?.id ?? null,
+        roomId: input.roomId,
+        memberId: activeBooking?.memberId ?? activeAssignment?.memberId ?? null,
+        wristbandId: wristband?.id ?? null,
+        decision,
+        denialReasonCode,
+        eventType: this.parseRoomAccessEventType(input.eventType),
+        occurredAt,
+        sourceType: this.parseOptionalSourceType(input.sourceType),
+        sourceReference: input.sourceReference ?? null
+      }
+    });
+
+    return this.toRoomAccessEventResponse(created);
+  }
+
+  async listRoomAccessEvents(
+    roomId: string,
+    query: ListRoomAccessEventsQueryDto
+  ): Promise<RoomAccessEventResponseDto[]> {
+    await this.ensureRoomExists(roomId);
+
+    const rows = await this.prisma.roomAccessEvent.findMany({
+      where: {
+        roomId,
+        ...this.buildAccessEventWhere(query)
+      },
+      take: this.parseLimit(query.limit),
+      orderBy: { occurredAt: "desc" }
+    });
+
+    return rows.map((row) => this.toRoomAccessEventResponse(row));
+  }
+
+  async listMemberRoomAccessEvents(
+    memberId: string,
+    query: ListRoomAccessEventsQueryDto
+  ): Promise<RoomAccessEventResponseDto[]> {
+    await this.ensureMemberExists(memberId);
+
+    const rows = await this.prisma.roomAccessEvent.findMany({
+      where: {
+        memberId,
+        ...this.buildAccessEventWhere(query)
+      },
+      take: this.parseLimit(query.limit),
+      orderBy: { occurredAt: "desc" }
+    });
+
+    return rows.map((row) => this.toRoomAccessEventResponse(row));
+  }
+
   private parseRoomType(input: string): RoomType {
     if (
       input === "private" ||
@@ -128,6 +247,23 @@ export class RoomsService {
     return Math.min(parsed, 200);
   }
 
+  private parseDate(value: string, errorCode: string): Date {
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) {
+      throw new BadRequestException(errorCode);
+    }
+
+    return parsed;
+  }
+
+  private parseOptionalDate(value: string | undefined, errorCode: string): Date | undefined {
+    if (!value) {
+      return undefined;
+    }
+
+    return this.parseDate(value, errorCode);
+  }
+
   private parseOptionalBoolean(
     input: string | undefined,
     errorCode: "INVALID_BOOKABLE_FILTER" | "INVALID_CLEANING_REQUIRED_FILTER"
@@ -145,6 +281,77 @@ export class RoomsService {
     }
 
     throw new BadRequestException(errorCode);
+  }
+
+  private parseRoomAccessDecision(input: string): RoomAccessDecision {
+    if (input === "allowed" || input === "denied" || input === "error") {
+      return input;
+    }
+
+    throw new BadRequestException("INVALID_ROOM_ACCESS_DECISION");
+  }
+
+  private parseRoomAccessEventType(input: string): RoomAccessEventType {
+    if (
+      input === "unlock" ||
+      input === "lock" ||
+      input === "open" ||
+      input === "close" ||
+      input === "check_in_gate" ||
+      input === "check_out_gate"
+    ) {
+      return input;
+    }
+
+    throw new BadRequestException("INVALID_ROOM_ACCESS_EVENT_TYPE");
+  }
+
+  private parseOptionalSourceType(input: string | undefined): RoomAccessSourceType {
+    if (!input) {
+      return "wristband_reader";
+    }
+
+    if (input === "wristband_reader" || input === "staff_console" || input === "system") {
+      return input;
+    }
+
+    throw new BadRequestException("INVALID_ROOM_ACCESS_SOURCE_TYPE");
+  }
+
+  private buildAccessEventWhere(query: ListRoomAccessEventsQueryDto): {
+    decision?: RoomAccessDecision;
+    eventType?: RoomAccessEventType;
+    occurredAt?: { gte?: Date; lte?: Date };
+  } {
+    const startDate = this.parseOptionalDate(query.startDate, "INVALID_START_DATE");
+    const endDate = this.parseOptionalDate(query.endDate, "INVALID_END_DATE");
+
+    return {
+      ...(query.decision ? { decision: this.parseRoomAccessDecision(query.decision) } : {}),
+      ...(query.eventType ? { eventType: this.parseRoomAccessEventType(query.eventType) } : {}),
+      ...(startDate || endDate
+        ? {
+            occurredAt: {
+              ...(startDate ? { gte: startDate } : {}),
+              ...(endDate ? { lte: endDate } : {})
+            }
+          }
+        : {})
+    };
+  }
+
+  private async ensureRoomExists(roomId: string): Promise<void> {
+    const room = await this.prisma.room.findUnique({ where: { id: roomId } });
+    if (!room) {
+      throw new NotFoundException("ROOM_NOT_FOUND");
+    }
+  }
+
+  private async ensureMemberExists(memberId: string): Promise<void> {
+    const member = await this.prisma.member.findUnique({ where: { id: memberId } });
+    if (!member) {
+      throw new NotFoundException("MEMBER_NOT_FOUND");
+    }
   }
 
   private toRoomResponse(row: {
@@ -178,6 +385,36 @@ export class RoomsService {
       lastTurnedAt: row.lastTurnedAt?.toISOString(),
       createdAt: row.createdAt.toISOString(),
       updatedAt: row.updatedAt.toISOString()
+    };
+  }
+
+  private toRoomAccessEventResponse(row: {
+    id: string;
+    bookingId: string | null;
+    roomId: string;
+    memberId: string | null;
+    wristbandId: string | null;
+    decision: RoomAccessDecision;
+    denialReasonCode: string | null;
+    eventType: RoomAccessEventType;
+    occurredAt: Date;
+    sourceType: RoomAccessSourceType;
+    sourceReference: string | null;
+    createdAt: Date;
+  }): RoomAccessEventResponseDto {
+    return {
+      id: row.id,
+      bookingId: row.bookingId ?? undefined,
+      roomId: row.roomId,
+      memberId: row.memberId ?? undefined,
+      wristbandId: row.wristbandId ?? undefined,
+      decision: row.decision,
+      denialReasonCode: row.denialReasonCode ?? undefined,
+      eventType: row.eventType,
+      occurredAt: row.occurredAt.toISOString(),
+      sourceType: row.sourceType,
+      sourceReference: row.sourceReference ?? undefined,
+      createdAt: row.createdAt.toISOString()
     };
   }
 }
