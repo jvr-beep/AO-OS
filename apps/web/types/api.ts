@@ -113,3 +113,90 @@ export interface AuditEvent {
   metadata?: Record<string, unknown>
   createdAt: string
 }
+
+export interface FloorPlanArea {
+  id: string
+  floorPlanId: string
+  code: string
+  name: string
+  areaType: 'room' | 'corridor' | 'entry' | 'service' | 'bath' | 'lounge' | 'locker_bank'
+  x: string
+  y: string
+  width: string
+  height: string
+  active: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export interface FloorPlan {
+  id: string
+  locationId: string
+  name: string
+  active: boolean
+  createdAt: string
+  updatedAt: string
+  areas: FloorPlanArea[]
+}
+
+export interface Room {
+  id: string
+  locationId: string
+  floorPlanAreaId: string
+  code: string
+  name: string
+  roomType: 'private' | 'premium_private' | 'retreat' | 'ritual' | 'accessible' | 'couples_reserved_future'
+  privacyLevel: 'standard' | 'high' | 'premium'
+  status: 'available' | 'booked' | 'occupied' | 'cleaning' | 'out_of_service'
+  active: boolean
+  bookable: boolean
+  cleaningRequired: boolean
+  lastTurnedAt?: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface RoomBooking {
+  id: string
+  memberId: string
+  roomId: string
+  bookingType: 'restore' | 'release' | 'retreat'
+  status: 'reserved' | 'checked_in' | 'checked_out' | 'expired' | 'cancelled' | 'no_show' | 'waitlisted'
+  startsAt: string
+  endsAt: string
+  sourceType: 'membership_credit' | 'upgrade_credit' | 'one_time_purchase' | 'manual_staff' | 'package_credit'
+  sourceReference?: string
+  waitlistPriority: number
+  checkedInAt?: string
+  checkedOutAt?: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface RoomAccessEvent {
+  id: string
+  bookingId?: string
+  roomId: string
+  memberId?: string
+  wristbandId?: string
+  decision: 'allowed' | 'denied' | 'error'
+  denialReasonCode?: string
+  eventType: 'unlock' | 'lock' | 'open' | 'close' | 'check_in_gate' | 'check_out_gate'
+  occurredAt: string
+  sourceType: 'wristband_reader' | 'staff_console' | 'system'
+  sourceReference?: string
+  createdAt: string
+}
+
+export interface CleaningTask {
+  id: string
+  roomId: string
+  bookingId?: string
+  taskType: 'turnover' | 'deep_clean' | 'inspection'
+  status: 'open' | 'in_progress' | 'completed' | 'cancelled'
+  createdAt: string
+  startedAt?: string
+  completedAt?: string
+  assignedToStaffUserId?: string
+  notes?: string
+}

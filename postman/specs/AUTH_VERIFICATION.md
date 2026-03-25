@@ -10,6 +10,10 @@ Set Postman environment variables:
 - `authEmail` = your staff user email
 - `authPassword` = your staff user password
 
+Note:
+- If you also verify rooms/floor-plans/bookings/cleaning endpoints, apply the rooms migration first:
+  - `prisma/migrations/20260325170000_rooms_floorplans_bookings_cleaning/migration.sql`
+
 Optional test data variables (for protected route test):
 
 - `memberId` = an existing member ID

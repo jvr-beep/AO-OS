@@ -6,6 +6,10 @@ import { logout } from '@/app/actions/auth'
 
 const NAV_ITEMS = [
   { href: '/dashboard', label: 'Dashboard' },
+  { href: '/rooms', label: 'Rooms' },
+  { href: '/bookings', label: 'Bookings' },
+  { href: '/cleaning', label: 'Cleaning' },
+  { href: '/floor-plans', label: 'Floor Plans' },
   { href: '/wristbands', label: 'Wristbands' },
   { href: '/lockers', label: 'Lockers' },
 ]

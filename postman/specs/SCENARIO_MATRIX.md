@@ -14,6 +14,11 @@ Set these Postman environment variables:
 - `openZonePointId` = `aaaa1111-0000-0000-0000-000000000001`
 - `reservedZonePointId` = `aaaa2222-0000-0000-0000-000000000001`
 
+Important for local dev:
+- Before testing rooms/floor-plans/bookings/cleaning endpoints, apply the rooms migration:
+  - `prisma/migrations/20260325170000_rooms_floorplans_bookings_cleaning/migration.sql`
+  - If this migration is not applied, requests can fail with HTTP 500 due to missing tables (for example `Room` and `CleaningTask`).
+
 ## One-Time Local Data Setup
 
 Run after migrations, before testing:
@@ -81,6 +86,26 @@ Note: booking-allowed status is now `reserved` or `checked_in`. If older seeds u
 | A3 | Deny when booking-required zone has no valid booking | `POST /access-attempts` | `decision = denied`, `denialReasonCode = ZONE_BOOKING_REQUIRED` |
 | A4 | Allow check-in with `trialing` subscription | `POST /visit-sessions/check-in` | `status = checked_in` |
 | A5 | Deny presence event on checked-out session | `POST /presence-events` | HTTP 403 with `VISIT_SESSION_CLOSED` |
+
+---
+
+## Rooms Slice Verified Behavior (2026-03-25)
+
+Manual verification confirms the following for the rooms/bookings/cleaning flow:
+
+- Overlapping room bookings are not hard-denied.
+- Overlapping room bookings are created with `status = waitlisted`.
+- Room state progression for a cleaning-required room is:
+  - `booked` after reserved booking creation
+  - `occupied` after booking check-in
+  - `cleaning` after booking check-out (turnover task created)
+  - `booked` or `available` after cleaning completion:
+    - `booked` if a waitlisted booking was promoted to reserved
+    - `available` if no active reservation remains
+
+Observed denial codes during room access verification:
+- `NO_ACTIVE_BOOKING` (attempt before booking window)
+- `ROOM_ACCESS_WRISTBAND_MISMATCH` (wristband assignment member does not match booking member)
 
 ---
 

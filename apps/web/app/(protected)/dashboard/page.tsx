@@ -13,6 +13,10 @@ async function getApiHealth(): Promise<'ok' | 'degraded' | 'unreachable'> {
 }
 
 const QUICK_LINKS = [
+  { href: '/rooms', label: 'Rooms' },
+  { href: '/bookings', label: 'Bookings' },
+  { href: '/cleaning', label: 'Cleaning' },
+  { href: '/floor-plans', label: 'Floor Plans' },
   { href: '/wristbands', label: 'Wristbands' },
   { href: '/lockers', label: 'Lockers' },
   { href: '/staff', label: 'Staff' },
