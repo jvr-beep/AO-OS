@@ -17,6 +17,7 @@ import { LockersModule } from "./lockers/lockers.module";
 import { MemberAccountModule } from "./member-account/member-account.module";
 import { FloorPlansModule } from "./floor-plans/floor-plans.module";
 import { RoomsModule } from "./rooms/rooms.module";
+import { RoomBookingsModule } from "./room-bookings/room-bookings.module";
 
 @Module({
   imports: [
@@ -37,7 +38,8 @@ import { RoomsModule } from "./rooms/rooms.module";
     LockersModule,
     MemberAccountModule,
     FloorPlansModule,
-    RoomsModule
+    RoomsModule,
+    RoomBookingsModule
   ]
 })
 export class AppModule {}
