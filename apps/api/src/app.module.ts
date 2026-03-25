@@ -15,6 +15,8 @@ import { StaffAuditModule } from "./staff-audit/staff-audit.module";
 import { WristbandTransactionsModule } from "./wristband-transactions/wristband-transactions.module";
 import { LockersModule } from "./lockers/lockers.module";
 import { MemberAccountModule } from "./member-account/member-account.module";
+import { FloorPlansModule } from "./floor-plans/floor-plans.module";
+import { RoomsModule } from "./rooms/rooms.module";
 
 @Module({
   imports: [
@@ -33,7 +35,9 @@ import { MemberAccountModule } from "./member-account/member-account.module";
     StaffAuditModule,
     WristbandTransactionsModule,
     LockersModule,
-    MemberAccountModule
+    MemberAccountModule,
+    FloorPlansModule,
+    RoomsModule
   ]
 })
 export class AppModule {}
