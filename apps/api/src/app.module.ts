@@ -14,6 +14,7 @@ import { StaffUsersModule } from "./staff-users/staff-users.module";
 import { StaffAuditModule } from "./staff-audit/staff-audit.module";
 import { WristbandTransactionsModule } from "./wristband-transactions/wristband-transactions.module";
 import { LockersModule } from "./lockers/lockers.module";
+import { MemberAccountModule } from "./member-account/member-account.module";
 
 @Module({
   imports: [
@@ -31,7 +32,8 @@ import { LockersModule } from "./lockers/lockers.module";
     StaffUsersModule,
     StaffAuditModule,
     WristbandTransactionsModule,
-    LockersModule
+    LockersModule,
+    MemberAccountModule
   ]
 })
 export class AppModule {}

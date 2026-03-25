@@ -74,6 +74,27 @@ enum WristbandTransactionStatus {
   failed
 }
 
+enum MemberAccountEntryType {
+  charge
+  credit
+  refund
+  payment
+}
+
+enum MemberAccountEntryStatus {
+  posted
+  voided
+}
+
+enum MemberAccountSourceType {
+  wristband_transaction
+  manual_adjustment
+  manual_payment
+  refund
+  membership
+  locker_fee
+}
+
 enum LockerStatus {
   available
   assigned
@@ -117,6 +138,7 @@ model Member {
   wristbandTransactions WristbandTransaction[]
   lockerAssignments     LockerAssignment[]
   lockerAccessEvents    LockerAccessEvent[]
+  accountEntries        MemberAccountEntry[]
 }
 
 model MemberProfile {
@@ -286,6 +308,25 @@ model WristbandTransaction {
 
   @@index([occurredAt])
   @@index([memberId])
+}
+
+model MemberAccountEntry {
+  id              String                   @id @default(uuid())
+  memberId        String
+  entryType       MemberAccountEntryType
+  amount          Decimal                  @db.Decimal(10, 2)
+  currency        String
+  description     String?
+  status          MemberAccountEntryStatus @default(posted)
+  sourceType      MemberAccountSourceType
+  sourceReference String?
+  occurredAt      DateTime
+  createdAt       DateTime                 @default(now())
+
+  member          Member                   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([memberId, occurredAt])
+  @@index([memberId, status])
 }
 
 model Locker {

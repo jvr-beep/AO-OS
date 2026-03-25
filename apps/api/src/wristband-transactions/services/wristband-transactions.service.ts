@@ -44,19 +44,37 @@ export class WristbandTransactionsService {
       throw new ConflictException("MEMBER_NOT_ACTIVE");
     }
 
-    const created = await this.prisma.wristbandTransaction.create({
-      data: {
-        memberId: activeAssignment.memberId,
-        wristbandId: input.wristbandId,
-        transactionType: this.toTransactionType(input.transactionType),
-        merchantType: input.merchantType,
-        amount: input.amount,
-        currency: input.currency,
-        description: input.description ?? null,
-        sourceReference: input.sourceReference ?? null,
-        status: this.toTransactionStatus(input.status),
-        occurredAt: new Date(input.occurredAt)
-      }
+    const created = await this.prisma.$transaction(async (tx) => {
+      const createdTransaction = await tx.wristbandTransaction.create({
+        data: {
+          memberId: activeAssignment.memberId,
+          wristbandId: input.wristbandId,
+          transactionType: this.toTransactionType(input.transactionType),
+          merchantType: input.merchantType,
+          amount: input.amount,
+          currency: input.currency,
+          description: input.description ?? null,
+          sourceReference: input.sourceReference ?? null,
+          status: this.toTransactionStatus(input.status),
+          occurredAt: new Date(input.occurredAt)
+        }
+      });
+
+      await tx.memberAccountEntry.create({
+        data: {
+          memberId: createdTransaction.memberId,
+          entryType: "charge",
+          amount: createdTransaction.amount,
+          currency: createdTransaction.currency,
+          description: createdTransaction.description,
+          status: "posted",
+          sourceType: "wristband_transaction",
+          sourceReference: createdTransaction.id,
+          occurredAt: createdTransaction.occurredAt
+        }
+      });
+
+      return createdTransaction;
     });
 
     return this.toResponse(created);
