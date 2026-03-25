@@ -1,8 +1,9 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from "@nestjs/common";
+import { BadRequestException, Body, Controller, Get, Param, Post, Query, UseGuards } from "@nestjs/common";
 import { Roles } from "../../auth/decorators/roles.decorator";
 import { JwtAuthGuard } from "../../auth/guards/jwt-auth.guard";
 import { RolesGuard } from "../../auth/guards/roles.guard";
 import { CreateWristbandTransactionDto } from "../dto/create-wristband-transaction.dto";
+import { ListWristbandTransactionsQueryDto } from "../dto/list-wristband-transactions.query.dto";
 import { WristbandTransactionResponseDto } from "../dto/wristband-transaction.response.dto";
 import { WristbandTransactionsService } from "../services/wristband-transactions.service";
 
@@ -21,13 +22,22 @@ export class WristbandTransactionsController {
 
   @Get("wristband-transactions")
   @Roles("operations", "admin")
-  list(): Promise<WristbandTransactionResponseDto[]> {
-    return this.wristbandTransactionsService.list();
+  list(
+    @Query() query: ListWristbandTransactionsQueryDto
+  ): Promise<WristbandTransactionResponseDto[]> {
+    return this.wristbandTransactionsService.list(query);
   }
 
   @Get("members/:id/wristband-transactions")
   @Roles("operations", "admin")
-  listForMember(@Param("id") memberId: string): Promise<WristbandTransactionResponseDto[]> {
-    return this.wristbandTransactionsService.listForMember(memberId);
+  listForMember(
+    @Param("id") memberId: string,
+    @Query() query: ListWristbandTransactionsQueryDto
+  ): Promise<WristbandTransactionResponseDto[]> {
+    if (query.memberId) {
+      throw new BadRequestException("MEMBER_ID_QUERY_NOT_ALLOWED");
+    }
+
+    return this.wristbandTransactionsService.listForMember(memberId, query);
   }
 }

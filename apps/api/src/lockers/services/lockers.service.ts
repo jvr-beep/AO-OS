@@ -1,4 +1,4 @@
-import { ConflictException, Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from "@nestjs/common";
 import {
   LockerAccessDecision,
   LockerAccessEventType,
@@ -8,6 +8,7 @@ import { PrismaService } from "../../prisma/prisma.service";
 import { AssignLockerDto } from "../dto/assign-locker.dto";
 import { CreateLockerAccessDto } from "../dto/create-locker-access.dto";
 import { CreateLockerDto } from "../dto/create-locker.dto";
+import { ListLockerAccessEventsQueryDto } from "../dto/list-locker-access-events.query.dto";
 import { LockerAccessEventResponseDto } from "../dto/locker-access-event.response.dto";
 import { LockerAssignmentResponseDto } from "../dto/locker-assignment.response.dto";
 import { LockerResponseDto } from "../dto/locker.response.dto";
@@ -31,6 +32,13 @@ export class LockersService {
 
   async listLockers(): Promise<LockerResponseDto[]> {
     const lockers = await this.prisma.locker.findMany({
+      include: {
+        assignments: {
+          where: { active: true },
+          orderBy: { assignedAt: "desc" },
+          take: 1
+        }
+      },
       orderBy: { createdAt: "desc" }
     });
 
@@ -43,8 +51,20 @@ export class LockersService {
       throw new NotFoundException("LOCKER_NOT_FOUND");
     }
 
+    const activeLockerAssignment = await this.prisma.lockerAssignment.findFirst({
+      where: { lockerId: input.lockerId, active: true }
+    });
+
+    if (activeLockerAssignment) {
+      throw new ConflictException("LOCKER_ALREADY_ASSIGNED");
+    }
+
+    if (locker.status === "out_of_service") {
+      throw new ConflictException("LOCKER_OUT_OF_SERVICE");
+    }
+
     if (locker.status !== "available") {
-      throw new ConflictException("LOCKER_NOT_AVAILABLE");
+      throw new ConflictException("LOCKER_ACCESS_NOT_ALLOWED");
     }
 
     const member = await this.prisma.member.findUnique({ where: { id: input.memberId } });
@@ -52,26 +72,20 @@ export class LockersService {
       throw new NotFoundException("MEMBER_NOT_FOUND");
     }
 
-    if (input.wristbandAssignmentId) {
-      const wristbandAssignment = await this.prisma.wristbandAssignment.findUnique({
-        where: { id: input.wristbandAssignmentId }
-      });
-
-      if (!wristbandAssignment || !wristbandAssignment.active) {
-        throw new NotFoundException("NO_ACTIVE_WRISTBAND_ASSIGNMENT");
-      }
-
-      if (wristbandAssignment.memberId !== input.memberId) {
-        throw new ConflictException("WRISTBAND_ASSIGNMENT_MEMBER_MISMATCH");
-      }
+    if (!input.wristbandAssignmentId) {
+      throw new ConflictException("LOCKER_ASSIGNMENT_INACTIVE");
     }
 
-    const activeLockerAssignment = await this.prisma.lockerAssignment.findFirst({
-      where: { lockerId: input.lockerId, active: true }
+    const wristbandAssignment = await this.prisma.wristbandAssignment.findUnique({
+      where: { id: input.wristbandAssignmentId }
     });
 
-    if (activeLockerAssignment) {
-      throw new ConflictException("LOCKER_ALREADY_ASSIGNED");
+    if (!wristbandAssignment || !wristbandAssignment.active) {
+      throw new ConflictException("LOCKER_ASSIGNMENT_INACTIVE");
+    }
+
+    if (wristbandAssignment.memberId !== input.memberId) {
+      throw new ConflictException("LOCKER_ACCESS_NOT_ALLOWED");
     }
 
     const created = await this.prisma.lockerAssignment.create({
@@ -124,15 +138,11 @@ export class LockersService {
       throw new NotFoundException("LOCKER_NOT_FOUND");
     }
 
-    const wristband = await this.prisma.wristband.findUnique({ where: { id: input.wristbandId } });
-    if (!wristband) {
-      throw new NotFoundException("WRISTBAND_NOT_FOUND");
-    }
-
     const activeLockerAssignment = await this.prisma.lockerAssignment.findFirst({
       where: { lockerId: input.lockerId, active: true }
     });
 
+    const wristband = await this.prisma.wristband.findUnique({ where: { id: input.wristbandId } });
     const activeWristbandAssignment = await this.prisma.wristbandAssignment.findFirst({
       where: { wristbandId: input.wristbandId, active: true }
     });
@@ -140,27 +150,32 @@ export class LockersService {
     let decision: LockerAccessDecision = "allowed";
     let denialReasonCode: string | null = null;
     let memberId: string | null = activeWristbandAssignment?.memberId ?? null;
+    let wristbandId: string | null = wristband?.id ?? null;
+    let lockerAssignmentId: string | null = activeLockerAssignment?.id ?? null;
 
     if (locker.status === "out_of_service") {
       decision = "denied";
       denialReasonCode = "LOCKER_OUT_OF_SERVICE";
+    } else if (!wristband) {
+      decision = "denied";
+      denialReasonCode = "WRISTBAND_NOT_FOUND";
     } else if (!activeLockerAssignment) {
       decision = "denied";
       denialReasonCode = "LOCKER_NOT_ASSIGNED";
     } else if (!activeWristbandAssignment) {
       decision = "denied";
-      denialReasonCode = "NO_ACTIVE_WRISTBAND_ASSIGNMENT";
+      denialReasonCode = "LOCKER_ACCESS_NOT_ALLOWED";
     } else if (activeLockerAssignment.memberId !== activeWristbandAssignment.memberId) {
       decision = "denied";
-      denialReasonCode = "LOCKER_ACCESS_MEMBER_MISMATCH";
+      denialReasonCode = "LOCKER_ACCESS_WRISTBAND_MISMATCH";
     }
 
     const created = await this.prisma.lockerAccessEvent.create({
       data: {
         memberId,
         lockerId: input.lockerId,
-        wristbandId: input.wristbandId,
-        lockerAssignmentId: activeLockerAssignment?.id ?? null,
+        wristbandId,
+        lockerAssignmentId,
         decision,
         denialReasonCode,
         eventType: this.toLockerAccessEventType(input.eventType),
@@ -172,13 +187,116 @@ export class LockersService {
     return this.toLockerAccessEventResponse(created);
   }
 
-  async listMemberLockerAccessEvents(memberId: string): Promise<LockerAccessEventResponseDto[]> {
+  async listLockerAccessEvents(
+    lockerId: string,
+    query: ListLockerAccessEventsQueryDto
+  ): Promise<LockerAccessEventResponseDto[]> {
+    const where = this.buildAccessEventWhere(query);
+    const take = this.parseLimit(query.limit);
+
     const rows = await this.prisma.lockerAccessEvent.findMany({
-      where: { memberId },
+      where: {
+        ...where,
+        lockerId
+      },
+      take,
       orderBy: { occurredAt: "desc" }
     });
 
     return rows.map((row) => this.toLockerAccessEventResponse(row));
+  }
+
+  async listMemberLockerAccessEvents(
+    memberId: string,
+    query: ListLockerAccessEventsQueryDto
+  ): Promise<LockerAccessEventResponseDto[]> {
+    const where = this.buildAccessEventWhere(query);
+    const take = this.parseLimit(query.limit);
+
+    const rows = await this.prisma.lockerAccessEvent.findMany({
+      where: {
+        ...where,
+        memberId
+      },
+      take,
+      orderBy: { occurredAt: "desc" }
+    });
+
+    return rows.map((row) => this.toLockerAccessEventResponse(row));
+  }
+
+  private buildAccessEventWhere(query: ListLockerAccessEventsQueryDto): {
+    decision?: LockerAccessDecision;
+    eventType?: LockerAccessEventType;
+    occurredAt?: { gte?: Date; lte?: Date };
+  } {
+    const startDate = this.parseDate(query.startDate, "INVALID_START_DATE");
+    const endDate = this.parseDate(query.endDate, "INVALID_END_DATE");
+
+    const where: {
+      decision?: LockerAccessDecision;
+      eventType?: LockerAccessEventType;
+      occurredAt?: { gte?: Date; lte?: Date };
+    } = {};
+
+    if (query.decision) {
+      where.decision = this.parseDecisionFilter(query.decision);
+    }
+
+    if (query.eventType) {
+      where.eventType = this.parseEventTypeFilter(query.eventType);
+    }
+
+    if (startDate || endDate) {
+      where.occurredAt = {
+        ...(startDate ? { gte: startDate } : {}),
+        ...(endDate ? { lte: endDate } : {})
+      };
+    }
+
+    return where;
+  }
+
+  private parseDate(input: string | undefined, errorCode: "INVALID_START_DATE" | "INVALID_END_DATE"): Date | undefined {
+    if (!input) {
+      return undefined;
+    }
+
+    const parsed = new Date(input);
+    if (Number.isNaN(parsed.getTime())) {
+      throw new BadRequestException(errorCode);
+    }
+
+    return parsed;
+  }
+
+  private parseLimit(input: string | undefined): number | undefined {
+    if (!input) {
+      return undefined;
+    }
+
+    const parsed = Number.parseInt(input, 10);
+    if (!Number.isInteger(parsed) || parsed <= 0) {
+      throw new BadRequestException("INVALID_LIMIT");
+    }
+
+    return Math.min(parsed, 200);
+  }
+
+  private parseDecisionFilter(input: string): LockerAccessDecision {
+    if (input === "allowed" || input === "denied") {
+      return input;
+    }
+
+    throw new BadRequestException("INVALID_LOCKER_ACCESS_DECISION");
+  }
+
+  private parseEventTypeFilter(input: string): LockerAccessEventType {
+    if (input === "unlock" || input === "lock" || input === "open" || input === "close") {
+      return input;
+    }
+
+    throw new BadRequestException("INVALID_LOCKER_ACCESS_EVENT_TYPE");
   }
 
   private toLockerStatus(status?: CreateLockerDto["status"]): LockerStatus {
@@ -198,14 +316,26 @@ export class LockersService {
     code: string;
     locationId: string | null;
     status: LockerStatus;
+    assignments?: {
+      id: string;
+      memberId: string;
+      wristbandAssignmentId: string | null;
+      assignedAt: Date;
+    }[];
     createdAt: Date;
     updatedAt: Date;
   }): LockerResponseDto {
+    const activeAssignment = locker.assignments?.[0];
+
     return {
       id: locker.id,
       code: locker.code,
       locationId: locker.locationId ?? undefined,
       status: locker.status,
+      activeAssignmentId: activeAssignment?.id,
+      assignedMemberId: activeAssignment?.memberId,
+      wristbandAssignmentId: activeAssignment?.wristbandAssignmentId ?? undefined,
+      assignedAt: activeAssignment?.assignedAt.toISOString(),
       createdAt: locker.createdAt.toISOString(),
       updatedAt: locker.updatedAt.toISOString()
     };

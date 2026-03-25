@@ -1,10 +1,11 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Param, Post, Query, UseGuards } from "@nestjs/common";
 import { Roles } from "../../auth/decorators/roles.decorator";
 import { JwtAuthGuard } from "../../auth/guards/jwt-auth.guard";
 import { RolesGuard } from "../../auth/guards/roles.guard";
 import { AssignLockerDto } from "../dto/assign-locker.dto";
 import { CreateLockerAccessDto } from "../dto/create-locker-access.dto";
 import { CreateLockerDto } from "../dto/create-locker.dto";
+import { ListLockerAccessEventsQueryDto } from "../dto/list-locker-access-events.query.dto";
 import { LockerAccessEventResponseDto } from "../dto/locker-access-event.response.dto";
 import { LockerAssignmentResponseDto } from "../dto/locker-assignment.response.dto";
 import { LockerResponseDto } from "../dto/locker.response.dto";
@@ -23,9 +24,18 @@ export class LockersController {
   }
 
   @Get("lockers")
-  @Roles("operations", "admin")
+  @Roles("front_desk", "operations", "admin")
   listLockers(): Promise<LockerResponseDto[]> {
     return this.lockersService.listLockers();
+  }
+
+  @Get("lockers/:id/access-events")
+  @Roles("front_desk", "operations", "admin")
+  listLockerAccessEvents(
+    @Param("id") lockerId: string,
+    @Query() query: ListLockerAccessEventsQueryDto
+  ): Promise<LockerAccessEventResponseDto[]> {
+    return this.lockersService.listLockerAccessEvents(lockerId, query);
   }
 
   @Post("lockers/assign")
@@ -48,7 +58,10 @@ export class LockersController {
 
   @Get("members/:id/locker-access-events")
   @Roles("front_desk", "operations", "admin")
-  listMemberLockerAccessEvents(@Param("id") memberId: string): Promise<LockerAccessEventResponseDto[]> {
-    return this.lockersService.listMemberLockerAccessEvents(memberId);
+  listMemberLockerAccessEvents(
+    @Param("id") memberId: string,
+    @Query() query: ListLockerAccessEventsQueryDto
+  ): Promise<LockerAccessEventResponseDto[]> {
+    return this.lockersService.listMemberLockerAccessEvents(memberId, query);
   }
 }
