@@ -22,14 +22,14 @@ Copy the template from this repo to your server:
 
 **Destination (server):**
 ```
-C:\Users\Jason van Ravenswaay\.cloudflared\config.yml
+C:\Users\<YOUR_WINDOWS_USERNAME>\.cloudflared\config.yml
 ```
 
 The file should contain:
 
 ```yaml
 tunnel: 3a12c58b-3dad-4cfc-af2b-2b69a7c36ab3
-credentials-file: C:\Users\Jason van Ravenswaay\.cloudflared\3a12c58b-3dad-4cfc-af2b-2b69a7c36ab3.json
+credentials-file: C:\Users\<YOUR_WINDOWS_USERNAME>\.cloudflared\3a12c58b-3dad-4cfc-af2b-2b69a7c36ab3.json
 
 ingress:
   - hostname: api.aosanctuary.com

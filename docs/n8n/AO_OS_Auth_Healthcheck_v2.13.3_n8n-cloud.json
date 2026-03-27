@@ -47,7 +47,38 @@
       "name": "Auth Login",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [460, 300]
+      "position": [460, 300],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "a1b2c3d4-cond-0001",
+              "leftValue": "={{ $json.accessToken }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "a1b2c3d4-0004-0004-0004-000000000004",
+      "name": "Check Token Exists",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [680, 300]
     },
     {
       "parameters": {
@@ -62,20 +93,24 @@
         "propertiesUi": {
           "propertyValues": [
             {
+              "key": "Workflow Name|rich_text",
+              "textValue": "AO OS Auth Healthcheck"
+            },
+            {
               "key": "Status|select",
               "selectValue": "Success"
             },
             {
-              "key": "Token Present|checkbox",
-              "checkboxValue": "={{ $json.accessToken !== undefined }}"
-            },
-            {
-              "key": "Checked At|date",
+              "key": "Timestamp|date",
               "dateValue": "={{ $now.toISO() }}"
             },
             {
-              "key": "Notes|rich_text",
-              "textValue": "={{ 'Auth login returned HTTP 200. accessToken present: ' + ($json.accessToken !== undefined ? 'yes' : 'no') }}"
+              "key": "Trigger|rich_text",
+              "textValue": "Scheduled (30 min)"
+            },
+            {
+              "key": "Raw Payload|rich_text",
+              "textValue": "={{ JSON.stringify($json) }}"
             }
           ]
         }
@@ -84,7 +119,54 @@
       "name": "Log Success",
       "type": "n8n-nodes-base.notion",
       "typeVersion": 2.2,
-      "position": [680, 300],
+      "position": [900, 200],
+      "credentials": {
+        "notionApi": {
+          "id": "REPLACE_WITH_NOTION_CREDENTIAL_ID",
+          "name": "REPLACE_WITH_NOTION_CREDENTIAL_NAME"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "create",
+        "databaseId": {
+          "__rl": true,
+          "value": "REPLACE_WITH_AUTOMATION_LOG_DB_ID",
+          "mode": "id"
+        },
+        "title": "=AO OS Auth Healthcheck — {{ $now.format('yyyy-MM-dd HH:mm') }}",
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Workflow Name|rich_text",
+              "textValue": "AO OS Auth Healthcheck"
+            },
+            {
+              "key": "Status|select",
+              "selectValue": "Failure"
+            },
+            {
+              "key": "Timestamp|date",
+              "dateValue": "={{ $now.toISO() }}"
+            },
+            {
+              "key": "Trigger|rich_text",
+              "textValue": "Scheduled (30 min)"
+            },
+            {
+              "key": "Error Details|rich_text",
+              "textValue": "={{ $json.error?.message || $json.message || 'Login failed: accessToken not returned' }}"
+            }
+          ]
+        }
+      },
+      "id": "a1b2c3d4-0005-0005-0005-000000000005",
+      "name": "Log Failure",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [900, 400],
       "credentials": {
         "notionApi": {
           "id": "REPLACE_WITH_NOTION_CREDENTIAL_ID",
@@ -109,7 +191,25 @@
       "main": [
         [
           {
+            "node": "Check Token Exists",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Token Exists": {
+      "main": [
+        [
+          {
             "node": "Log Success",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Failure",
             "type": "main",
             "index": 0
           }
