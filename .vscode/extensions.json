@@ -1,0 +1,11 @@
+{
+  "recommendations": [
+    "Prisma.prisma",
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+    "42crunch.vscode-openapi",
+    "GitHub.copilot",
+    "GitHub.vscode-pull-request-github",
+    "eamodio.gitlens"
+  ]
+}

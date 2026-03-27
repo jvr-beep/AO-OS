@@ -2,4 +2,1310 @@ openapi: 3.1.0
 info:
   title: AO OS API
   version: 0.1.0
-paths: {}
+  description: |
+    AO OS backend API for AO Sanctuary — membership, wristbands, access control,
+    visit sessions, presence tracking, lockers, rooms, and staff management.
+
+    Base URL: `http://localhost:4000/v1`
+
+servers:
+  - url: http://localhost:4000/v1
+    description: Local development
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        statusCode:
+          type: integer
+        message:
+          type: string
+        error:
+          type: string
+
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: ok
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+
+    LoginResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+        staffUser:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            email:
+              type: string
+              format: email
+            fullName:
+              type: string
+            role:
+              type: string
+              enum: [front_desk, operations, admin]
+
+    CreateMemberRequest:
+      type: object
+      required: [email, firstName, lastName]
+      properties:
+        email:
+          type: string
+          format: email
+        firstName:
+          type: string
+        lastName:
+          type: string
+        displayName:
+          type: string
+        phone:
+          type: string
+
+    MemberResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        publicMemberNumber:
+          type: string
+        email:
+          type: string
+          format: email
+        firstName:
+          type: string
+        lastName:
+          type: string
+        displayName:
+          type: string
+          nullable: true
+        phone:
+          type: string
+          nullable: true
+        status:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    CreateMembershipPlanRequest:
+      type: object
+      required: [code, name, tierRank, billingInterval, priceAmount, currency]
+      properties:
+        code:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        tierRank:
+          type: integer
+        billingInterval:
+          type: string
+          enum: [day, week, month, year]
+        priceAmount:
+          type: number
+        currency:
+          type: string
+        active:
+          type: boolean
+
+    MembershipPlanResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        tierRank:
+          type: integer
+        billingInterval:
+          type: string
+        priceAmount:
+          type: string
+        currency:
+          type: string
+        active:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
+    CreateSubscriptionRequest:
+      type: object
+      required: [memberId, membershipPlanId, billingProvider, status, startDate]
+      properties:
+        memberId:
+          type: string
+          format: uuid
+        membershipPlanId:
+          type: string
+          format: uuid
+        billingProvider:
+          type: string
+        billingProviderCustomerId:
+          type: string
+        status:
+          type: string
+          enum: [trialing, active, past_due, paused, cancelled]
+        startDate:
+          type: string
+          format: date-time
+        currentPeriodStart:
+          type: string
+          format: date-time
+        currentPeriodEnd:
+          type: string
+          format: date-time
+        cancelAtPeriodEnd:
+          type: boolean
+
+    SubscriptionResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        memberId:
+          type: string
+          format: uuid
+        membershipPlanId:
+          type: string
+          format: uuid
+        billingProvider:
+          type: string
+        billingProviderCustomerId:
+          type: string
+          nullable: true
+        status:
+          type: string
+        cancelAtPeriodEnd:
+          type: boolean
+        startDate:
+          type: string
+          format: date-time
+        currentPeriodStart:
+          type: string
+          format: date-time
+          nullable: true
+        currentPeriodEnd:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+
+    WristbandResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        uid:
+          type: string
+        locationId:
+          type: string
+          format: uuid
+          nullable: true
+        homeLocationId:
+          type: string
+          format: uuid
+          nullable: true
+        status:
+          type: string
+        globalAccessFlag:
+          type: boolean
+        issuedAt:
+          type: string
+          format: date-time
+        activatedAt:
+          type: string
+          format: date-time
+          nullable: true
+        suspendedAt:
+          type: string
+          format: date-time
+          nullable: true
+        replacedFromWristbandId:
+          type: string
+          format: uuid
+          nullable: true
+        lastSeenLocationId:
+          type: string
+          format: uuid
+          nullable: true
+        lastSeenAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    WristbandAssignmentResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        wristbandId:
+          type: string
+          format: uuid
+        memberId:
+          type: string
+          format: uuid
+        assignedByStaffUserId:
+          type: string
+          format: uuid
+          nullable: true
+        assignedAt:
+          type: string
+          format: date-time
+        unassignedAt:
+          type: string
+          format: date-time
+          nullable: true
+        unassignedReason:
+          type: string
+          nullable: true
+        active:
+          type: boolean
+
+    AccessAttemptResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        memberId:
+          type: string
+          format: uuid
+          nullable: true
+        wristbandId:
+          type: string
+          format: uuid
+          nullable: true
+        accessPointId:
+          type: string
+          format: uuid
+        accessZoneId:
+          type: string
+          format: uuid
+        attemptSource:
+          type: string
+          nullable: true
+        decision:
+          type: string
+          enum: [allowed, denied, error]
+        denialReasonCode:
+          type: string
+          nullable: true
+        occurredAt:
+          type: string
+          format: date-time
+
+    VisitSessionResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        memberId:
+          type: string
+          format: uuid
+        locationId:
+          type: string
+          format: uuid
+        wristbandAssignmentId:
+          type: string
+          format: uuid
+          nullable: true
+        checkInAt:
+          type: string
+          format: date-time
+        checkOutAt:
+          type: string
+          format: date-time
+          nullable: true
+        status:
+          type: string
+          enum: [checked_in, checked_out]
+        createdAt:
+          type: string
+          format: date-time
+
+    PresenceEventResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        visitSessionId:
+          type: string
+          format: uuid
+        memberId:
+          type: string
+          format: uuid
+        accessZoneId:
+          type: string
+          format: uuid
+          nullable: true
+        eventType:
+          type: string
+        sourceType:
+          type: string
+          nullable: true
+        sourceReference:
+          type: string
+          nullable: true
+        occurredAt:
+          type: string
+          format: date-time
+        payloadJson:
+          nullable: true
+
+    StaffUserResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        fullName:
+          type: string
+        role:
+          type: string
+          enum: [front_desk, operations, admin]
+        active:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
+paths:
+  /health:
+    get:
+      summary: Health check
+      tags: [Health]
+      responses:
+        '200':
+          description: API is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /auth/login:
+    post:
+      summary: Staff login
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '201':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /members:
+    post:
+      summary: Create a member
+      tags: [Members]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateMemberRequest'
+      responses:
+        '201':
+          description: Member created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemberResponse'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden — requires front_desk, operations, or admin role
+
+  /members/{id}:
+    get:
+      summary: Get a member by ID
+      tags: [Members]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Member found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemberResponse'
+        '404':
+          description: Member not found
+
+  /members/{id}/subscriptions:
+    get:
+      summary: List subscriptions for a member
+      tags: [Members, Subscriptions]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of subscriptions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SubscriptionResponse'
+
+  /members/{id}/access-attempts:
+    get:
+      summary: List access attempts for a member
+      tags: [Members, Access Attempts]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of access attempts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AccessAttemptResponse'
+
+  /members/{id}/visit-sessions:
+    get:
+      summary: List visit sessions for a member
+      tags: [Members, Visit Sessions]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of visit sessions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/VisitSessionResponse'
+
+  /members/{id}/presence-events:
+    get:
+      summary: List presence events for a member
+      tags: [Members, Presence Events]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of presence events
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PresenceEventResponse'
+
+  /membership-plans:
+    post:
+      summary: Create a membership plan
+      tags: [Membership Plans]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateMembershipPlanRequest'
+      responses:
+        '201':
+          description: Plan created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MembershipPlanResponse'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden — requires operations or admin role
+    get:
+      summary: List all membership plans
+      tags: [Membership Plans]
+      responses:
+        '200':
+          description: List of membership plans
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MembershipPlanResponse'
+
+  /subscriptions:
+    post:
+      summary: Create a subscription
+      tags: [Subscriptions]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSubscriptionRequest'
+      responses:
+        '201':
+          description: Subscription created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionResponse'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden — requires front_desk, operations, or admin role
+
+  /wristbands:
+    post:
+      summary: Create a wristband record
+      tags: [Wristbands]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [uid]
+              properties:
+                uid:
+                  type: string
+                locationId:
+                  type: string
+                  format: uuid
+                status:
+                  type: string
+      responses:
+        '201':
+          description: Wristband created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WristbandResponse'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden — requires operations or admin role
+    get:
+      summary: List all wristbands
+      tags: [Wristbands]
+      responses:
+        '200':
+          description: List of wristbands
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/WristbandResponse'
+
+  /wristbands/{id}:
+    get:
+      summary: Get a wristband by ID
+      tags: [Wristbands]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Wristband found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WristbandResponse'
+        '404':
+          description: Wristband not found
+
+  /wristbands/issue:
+    post:
+      summary: Issue a credential (wristband) to a member
+      tags: [Wristbands]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [uid]
+              properties:
+                uid:
+                  type: string
+                memberId:
+                  type: string
+                  format: uuid
+                siteId:
+                  type: string
+                  format: uuid
+                globalAccessFlag:
+                  type: boolean
+                assignedByStaffUserId:
+                  type: string
+                  format: uuid
+      responses:
+        '201':
+          description: Credential issued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WristbandResponse'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden — requires operations or admin role
+
+  /wristbands/activate:
+    post:
+      summary: Activate a credential
+      tags: [Wristbands]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [credentialId]
+              properties:
+                credentialId:
+                  type: string
+                  format: uuid
+      responses:
+        '201':
+          description: Credential activated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WristbandResponse'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden — requires front_desk, operations, or admin role
+
+  /wristbands/suspend:
+    post:
+      summary: Suspend a credential
+      tags: [Wristbands]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [credentialId]
+              properties:
+                credentialId:
+                  type: string
+                  format: uuid
+      responses:
+        '201':
+          description: Credential suspended
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WristbandResponse'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden — requires operations or admin role
+
+  /wristbands/replace:
+    post:
+      summary: Replace a credential
+      tags: [Wristbands]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [oldCredentialId, newCredentialUid]
+              properties:
+                oldCredentialId:
+                  type: string
+                  format: uuid
+                newCredentialUid:
+                  type: string
+                assignedByStaffUserId:
+                  type: string
+                  format: uuid
+      responses:
+        '201':
+          description: Credential replaced
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WristbandResponse'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden — requires operations or admin role
+
+  /wristbands/assign:
+    post:
+      summary: Assign a wristband to a member
+      tags: [Wristbands]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [wristbandId, memberId]
+              properties:
+                wristbandId:
+                  type: string
+                  format: uuid
+                memberId:
+                  type: string
+                  format: uuid
+                assignedByStaffUserId:
+                  type: string
+                  format: uuid
+      responses:
+        '201':
+          description: Wristband assigned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WristbandAssignmentResponse'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden — requires front_desk, operations, or admin role
+
+  /wristbands/unassign:
+    post:
+      summary: Unassign a wristband from a member
+      tags: [Wristbands]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [wristbandId]
+              properties:
+                wristbandId:
+                  type: string
+                  format: uuid
+                unassignedReason:
+                  type: string
+      responses:
+        '201':
+          description: Wristband unassigned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WristbandAssignmentResponse'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden — requires front_desk, operations, or admin role
+
+  /access-attempts:
+    post:
+      summary: Record an access attempt
+      tags: [Access Attempts]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [accessPointId, accessZoneId, occurredAt]
+              properties:
+                memberId:
+                  type: string
+                  format: uuid
+                wristbandId:
+                  type: string
+                  format: uuid
+                accessPointId:
+                  type: string
+                  format: uuid
+                accessZoneId:
+                  type: string
+                  format: uuid
+                attemptSource:
+                  type: string
+                occurredAt:
+                  type: string
+                  format: date-time
+      responses:
+        '201':
+          description: Access attempt recorded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessAttemptResponse'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden — requires front_desk, operations, or admin role
+    get:
+      summary: List all access attempts
+      tags: [Access Attempts]
+      responses:
+        '200':
+          description: List of access attempts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AccessAttemptResponse'
+
+  /visit-sessions/check-in:
+    post:
+      summary: Check in a member (start visit session)
+      tags: [Visit Sessions]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [memberId, locationId, checkInAt]
+              properties:
+                memberId:
+                  type: string
+                  format: uuid
+                locationId:
+                  type: string
+                  format: uuid
+                wristbandAssignmentId:
+                  type: string
+                  format: uuid
+                checkInAt:
+                  type: string
+                  format: date-time
+      responses:
+        '201':
+          description: Visit session created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VisitSessionResponse'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden — requires front_desk, operations, or admin role
+
+  /visit-sessions/check-out:
+    post:
+      summary: Check out a member (end visit session)
+      tags: [Visit Sessions]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [visitSessionId, checkOutAt]
+              properties:
+                visitSessionId:
+                  type: string
+                  format: uuid
+                checkOutAt:
+                  type: string
+                  format: date-time
+      responses:
+        '201':
+          description: Visit session closed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VisitSessionResponse'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden — requires front_desk, operations, or admin role
+
+  /visit-sessions/{id}/presence-events:
+    get:
+      summary: List presence events for a visit session
+      tags: [Visit Sessions, Presence Events]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of presence events
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PresenceEventResponse'
+
+  /presence-events:
+    post:
+      summary: Record a presence event
+      tags: [Presence Events]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [visitSessionId, memberId, eventType, occurredAt]
+              properties:
+                visitSessionId:
+                  type: string
+                  format: uuid
+                memberId:
+                  type: string
+                  format: uuid
+                accessZoneId:
+                  type: string
+                  format: uuid
+                eventType:
+                  type: string
+                sourceType:
+                  type: string
+                sourceReference:
+                  type: string
+                occurredAt:
+                  type: string
+                  format: date-time
+                payloadJson:
+                  type: object
+      responses:
+        '201':
+          description: Presence event recorded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PresenceEventResponse'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden — requires front_desk, operations, or admin role
+
+  /staff-users:
+    post:
+      summary: Create a staff user
+      tags: [Staff Users]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, fullName, role, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                fullName:
+                  type: string
+                role:
+                  type: string
+                  enum: [front_desk, operations, admin]
+                password:
+                  type: string
+      responses:
+        '201':
+          description: Staff user created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StaffUserResponse'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden — requires admin role
+    get:
+      summary: List staff users
+      tags: [Staff Users]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: role
+          in: query
+          schema:
+            type: string
+            enum: [front_desk, operations, admin]
+        - name: active
+          in: query
+          schema:
+            type: string
+            enum: ['true', 'false']
+      responses:
+        '200':
+          description: List of staff users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/StaffUserResponse'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden — requires admin role
+
+  /staff-users/{id}:
+    get:
+      summary: Get a staff user by ID
+      tags: [Staff Users]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Staff user found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StaffUserResponse'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden — requires admin role
+        '404':
+          description: Staff user not found
+
+  /staff-users/{id}/role:
+    patch:
+      summary: Update a staff user's role
+      tags: [Staff Users]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [role]
+              properties:
+                role:
+                  type: string
+                  enum: [front_desk, operations, admin]
+      responses:
+        '200':
+          description: Role updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StaffUserResponse'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden — requires admin role
+
+  /staff-users/{id}/deactivate:
+    patch:
+      summary: Deactivate a staff user
+      tags: [Staff Users]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Staff user deactivated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StaffUserResponse'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden — requires admin role
+
+  /staff-users/{id}/reactivate:
+    patch:
+      summary: Reactivate a staff user
+      tags: [Staff Users]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Staff user reactivated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StaffUserResponse'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden — requires admin role
+
+  /staff-users/{id}/password:
+    patch:
+      summary: Update a staff user's password
+      tags: [Staff Users]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [password]
+              properties:
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Password updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StaffUserResponse'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden — requires admin role
