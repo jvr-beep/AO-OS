@@ -1,0 +1,7 @@
+tunnel: 3a12c58b-3dad-4cfc-af2b-2b69a7c36ab3
+credentials-file: C:\Users\Jason van Ravenswaay\.cloudflared\3a12c58b-3dad-4cfc-af2b-2b69a7c36ab3.json
+
+ingress:
+  - hostname: api.aosanctuary.com
+    service: http://localhost:4000
+  - service: http_status:404
