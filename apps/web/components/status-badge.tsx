@@ -31,10 +31,10 @@ const AUTO_VARIANTS: Record<string, Variant> = {
 }
 
 const VARIANT_CLASSES: Record<Variant, string> = {
-  default: 'bg-gray-100 text-gray-700',
-  success: 'bg-green-100 text-green-700',
-  warning: 'bg-yellow-100 text-yellow-800',
-  danger: 'bg-red-100 text-red-700',
+  default: 'bg-gray-700 text-gray-100',
+  success: 'bg-green-900 text-green-200',
+  warning: 'bg-yellow-900 text-yellow-200',
+  danger: 'bg-red-900 text-red-200',
 }
 
 export function StatusBadge({ status, variant }: { status: string; variant?: Variant }) {

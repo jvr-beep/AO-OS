@@ -31,17 +31,17 @@ export function SidebarNav({ role, userLabel }: SidebarNavProps) {
     const active = pathname === href || (href !== '/dashboard' && pathname.startsWith(href))
     return `block px-3 py-2 rounded text-sm font-medium transition-colors ${
       active
-        ? 'bg-blue-900 text-white'
-        : 'text-blue-100 hover:bg-blue-700 hover:text-white'
+        ? 'bg-ao-primary text-ao-darker'
+        : 'text-gray-200 hover:bg-gray-700 hover:text-ao-primary'
     }`
   }
 
   return (
     <div className="flex flex-col h-full">
-      <div className="px-4 py-4 border-b border-blue-700">
-        <p className="text-white font-semibold text-sm">AO OS</p>
-        <p className="text-blue-200 text-xs mt-1 truncate">{userLabel}</p>
-        <span className="mt-1 inline-block text-xs bg-blue-900 text-blue-300 px-1.5 py-0.5 rounded">
+      <div className="px-4 py-4 border-b border-gray-700">
+        <p className="text-ao-primary font-bold text-lg">AO</p>
+        <p className="text-gray-400 text-xs mt-2 truncate font-medium">{userLabel}</p>
+        <span className="mt-2 inline-block text-xs bg-ao-primary text-ao-darker px-2 py-1 rounded font-semibold">
           {role}
         </span>
       </div>
@@ -55,7 +55,7 @@ export function SidebarNav({ role, userLabel }: SidebarNavProps) {
 
         {(role === 'operations' || role === 'admin') && (
           <>
-            <div className="pt-4 pb-1 px-3 text-xs text-blue-400 font-medium uppercase tracking-wider">
+            <div className="pt-4 pb-1 px-3 text-xs text-ao-teal font-bold uppercase tracking-wider">
               Admin
             </div>
             {ADMIN_ITEMS.map((item) => (
@@ -67,11 +67,11 @@ export function SidebarNav({ role, userLabel }: SidebarNavProps) {
         )}
       </nav>
 
-      <div className="px-3 py-4 border-t border-blue-700">
+      <div className="px-3 py-4 border-t border-gray-700">
         <form action={logout}>
           <button
             type="submit"
-            className="w-full text-left px-3 py-2 rounded text-sm text-blue-200 hover:bg-blue-700 hover:text-white transition-colors"
+            className="w-full text-left px-3 py-2 rounded text-sm text-gray-300 hover:bg-gray-700 hover:text-ao-primary transition-colors"
           >
             Sign out
           </button>

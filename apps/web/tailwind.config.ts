@@ -6,7 +6,17 @@ const config: Config = {
     './components/**/*.{ts,tsx}',
   ],
   theme: {
-    extend: {},
+    extend: {
+      colors: {
+        'ao-primary': '#14B8A6',
+        'ao-teal': '#06B6D4',
+        'ao-dark': '#0F1F1B',
+        'ao-darker': '#06130E',
+      },
+      fontFamily: {
+        sans: ['system-ui', 'sans-serif'],
+      },
+    },
   },
   plugins: [],
 }

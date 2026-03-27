@@ -6,13 +6,16 @@ export default function LoginPage({
   searchParams: { error?: string }
 }) {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="bg-white rounded-lg shadow p-8 w-full max-w-sm">
-        <h1 className="text-2xl font-semibold mb-2 text-center">AO OS</h1>
-        <p className="text-sm text-gray-500 text-center mb-6">Staff portal</p>
+    <div className="min-h-screen flex items-center justify-center bg-ao-darker">
+      <div className="card w-full max-w-sm">
+        <div className="text-center mb-8">
+          <p className="text-4xl font-black text-ao-primary mb-1">AO</p>
+          <p className="text-xs text-gray-400 uppercase tracking-widest font-semibold">Staff Portal</p>
+          <p className="text-xs text-gray-500 mt-2">Honor the body. Honor the man.</p>
+        </div>
 
         {searchParams.error && (
-          <div className="mb-4 rounded bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">
+          <div className="mb-4 rounded-lg bg-red-900 border border-red-700 px-4 py-3 text-sm text-red-200">
             Invalid email or password.
           </div>
         )}
@@ -20,7 +23,7 @@ export default function LoginPage({
         <form action={login} className="space-y-4">
           <div>
             <label
-              className="block text-sm font-medium text-gray-700 mb-1"
+              className="form-label"
               htmlFor="email"
             >
               Email
@@ -31,12 +34,12 @@ export default function LoginPage({
               type="email"
               required
               autoComplete="email"
-              className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="form-input"
             />
           </div>
           <div>
             <label
-              className="block text-sm font-medium text-gray-700 mb-1"
+              className="form-label"
               htmlFor="password"
             >
               Password
@@ -47,12 +50,12 @@ export default function LoginPage({
               type="password"
               required
               autoComplete="current-password"
-              className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="form-input"
             />
           </div>
           <button
             type="submit"
-            className="w-full bg-blue-600 text-white rounded py-2 text-sm font-medium hover:bg-blue-700 transition-colors"
+            className="w-full btn-primary"
           >
             Sign in
           </button>

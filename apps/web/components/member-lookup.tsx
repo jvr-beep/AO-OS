@@ -20,11 +20,11 @@ export function MemberLookup() {
         placeholder="Member UUID"
         value={memberId}
         onChange={(e) => setMemberId(e.target.value)}
-        className="border border-gray-300 rounded px-3 py-1.5 text-sm flex-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        className="form-input flex-1"
       />
       <button
         type="submit"
-        className="bg-blue-600 text-white rounded px-3 py-1.5 text-sm hover:bg-blue-700 transition-colors"
+        className="btn-primary"
       >
         Look up
       </button>
