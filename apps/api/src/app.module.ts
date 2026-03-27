@@ -19,6 +19,7 @@ import { FloorPlansModule } from "./floor-plans/floor-plans.module";
 import { RoomsModule } from "./rooms/rooms.module";
 import { RoomBookingsModule } from "./room-bookings/room-bookings.module";
 import { CleaningModule } from "./cleaning/cleaning.module";
+import { EventsPollingModule } from "./events-polling/events-polling.module";
 
 @Module({
   imports: [
@@ -41,7 +42,8 @@ import { CleaningModule } from "./cleaning/cleaning.module";
     FloorPlansModule,
     RoomsModule,
     RoomBookingsModule,
-    CleaningModule
+    CleaningModule,
+    EventsPollingModule
   ]
 })
 export class AppModule {}
