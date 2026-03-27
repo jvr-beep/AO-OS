@@ -18,6 +18,8 @@ export default async function LockersPage({
 }) {
   const session = await getSession()
   const lockers = await apiFetch<Locker[]>('/lockers', session.accessToken!)
+  const role = session.user?.role
+  const canEvaluatePolicy = role === 'operations' || role === 'admin'
   const okMessage = searchParams?.ok
   const errorMessage = searchParams?.error
 
@@ -52,6 +54,7 @@ export default async function LockersPage({
       <div className="grid grid-cols-1 gap-4 mb-6 lg:grid-cols-3">
         <div className="bg-white rounded-lg shadow-sm border p-4">
           <h2 className="text-sm font-semibold text-gray-700 mb-3">Evaluate Policy</h2>
+          {!canEvaluatePolicy && <p className="text-xs text-amber-700 mb-2">operations/admin only</p>}
           <form action={evaluateLockerPolicyAction} className="space-y-2">
             <input name="memberId" placeholder="Member ID" className="w-full rounded border px-2 py-1.5 text-sm font-mono" required />
             <input name="credentialId" placeholder="Credential ID" className="w-full rounded border px-2 py-1.5 text-sm font-mono" required />
@@ -66,7 +69,12 @@ export default async function LockersPage({
             <input name="requestedZoneId" placeholder="Requested zone ID (optional)" className="w-full rounded border px-2 py-1.5 text-sm font-mono" />
             <input name="requestedLockerId" placeholder="Requested locker ID (optional)" className="w-full rounded border px-2 py-1.5 text-sm font-mono" />
             <input name="staffOverrideReason" placeholder="Override reason (optional)" className="w-full rounded border px-2 py-1.5 text-sm" />
-            <button className="rounded bg-blue-700 text-white text-sm px-3 py-1.5">Evaluate</button>
+            <button
+              disabled={!canEvaluatePolicy}
+              className="rounded bg-blue-700 disabled:bg-gray-300 text-white text-sm px-3 py-1.5"
+            >
+              Evaluate
+            </button>
           </form>
         </div>
 

@@ -16,6 +16,9 @@ export default async function WristbandsPage({
 }) {
   const session = await getSession()
   const wristbands = await apiFetch<Wristband[]>('/wristbands', session.accessToken!)
+  const role = session.user?.role
+  const canManageCredentialLifecycle = role === 'operations' || role === 'admin'
+  const canActivateCredential = role === 'front_desk' || role === 'operations' || role === 'admin'
   const okMessage = searchParams?.ok
   const errorMessage = searchParams?.error
 
@@ -38,6 +41,9 @@ export default async function WristbandsPage({
       <div className="grid grid-cols-1 gap-4 mb-6 lg:grid-cols-2">
         <div className="bg-white rounded-lg shadow-sm border p-4">
           <h2 className="text-sm font-semibold text-gray-700 mb-3">Issue Credential</h2>
+          {!canManageCredentialLifecycle && (
+            <p className="text-xs text-amber-700 mb-2">operations/admin only</p>
+          )}
           <form action={issueCredentialAction} className="space-y-2">
             <input
               name="uid"
@@ -51,12 +57,18 @@ export default async function WristbandsPage({
               className="w-full rounded border px-2 py-1.5 text-sm font-mono"
               required
             />
-            <button className="rounded bg-blue-700 text-white text-sm px-3 py-1.5">Issue</button>
+            <button
+              disabled={!canManageCredentialLifecycle}
+              className="rounded bg-blue-700 disabled:bg-gray-300 text-white text-sm px-3 py-1.5"
+            >
+              Issue
+            </button>
           </form>
         </div>
 
         <div className="bg-white rounded-lg shadow-sm border p-4">
           <h2 className="text-sm font-semibold text-gray-700 mb-3">Activate Credential</h2>
+          {!canActivateCredential && <p className="text-xs text-amber-700 mb-2">front_desk/operations/admin only</p>}
           <form action={activateCredentialAction} className="space-y-2">
             <input
               name="credentialId"
@@ -64,12 +76,20 @@ export default async function WristbandsPage({
               className="w-full rounded border px-2 py-1.5 text-sm font-mono"
               required
             />
-            <button className="rounded bg-blue-700 text-white text-sm px-3 py-1.5">Activate</button>
+            <button
+              disabled={!canActivateCredential}
+              className="rounded bg-blue-700 disabled:bg-gray-300 text-white text-sm px-3 py-1.5"
+            >
+              Activate
+            </button>
           </form>
         </div>
 
         <div className="bg-white rounded-lg shadow-sm border p-4">
           <h2 className="text-sm font-semibold text-gray-700 mb-3">Suspend Credential</h2>
+          {!canManageCredentialLifecycle && (
+            <p className="text-xs text-amber-700 mb-2">operations/admin only</p>
+          )}
           <form action={suspendCredentialAction} className="space-y-2">
             <input
               name="credentialId"
@@ -77,12 +97,20 @@ export default async function WristbandsPage({
               className="w-full rounded border px-2 py-1.5 text-sm font-mono"
               required
             />
-            <button className="rounded bg-amber-700 text-white text-sm px-3 py-1.5">Suspend</button>
+            <button
+              disabled={!canManageCredentialLifecycle}
+              className="rounded bg-amber-700 disabled:bg-gray-300 text-white text-sm px-3 py-1.5"
+            >
+              Suspend
+            </button>
           </form>
         </div>
 
         <div className="bg-white rounded-lg shadow-sm border p-4">
           <h2 className="text-sm font-semibold text-gray-700 mb-3">Replace Credential</h2>
+          {!canManageCredentialLifecycle && (
+            <p className="text-xs text-amber-700 mb-2">operations/admin only</p>
+          )}
           <form action={replaceCredentialAction} className="space-y-2">
             <input
               name="oldCredentialId"
@@ -96,7 +124,12 @@ export default async function WristbandsPage({
               className="w-full rounded border px-2 py-1.5 text-sm"
               required
             />
-            <button className="rounded bg-blue-700 text-white text-sm px-3 py-1.5">Replace</button>
+            <button
+              disabled={!canManageCredentialLifecycle}
+              className="rounded bg-blue-700 disabled:bg-gray-300 text-white text-sm px-3 py-1.5"
+            >
+              Replace
+            </button>
           </form>
         </div>
       </div>

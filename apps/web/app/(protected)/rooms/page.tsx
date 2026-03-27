@@ -71,9 +71,19 @@ export default async function RoomsPage() {
                     </div>
                   </td>
                   <td className="px-4 py-3">
-                    <Link href={`/rooms/${room.id}`} className="text-xs text-blue-600 hover:underline">
-                      View →
-                    </Link>
+                    <div className="flex items-center gap-2 text-xs">
+                      <Link href={`/rooms/${room.id}`} className="text-blue-600 hover:underline">
+                        View
+                      </Link>
+                      <span className="text-gray-300">|</span>
+                      <Link href={`/bookings?roomId=${room.id}`} className="text-blue-600 hover:underline">
+                        Book
+                      </Link>
+                      <span className="text-gray-300">|</span>
+                      <Link href={`/rooms/${room.id}#log-access`} className="text-blue-600 hover:underline">
+                        Log Access
+                      </Link>
+                    </div>
                   </td>
                 </tr>
               ))

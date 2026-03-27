@@ -87,7 +87,7 @@ export default async function RoomDetailPage({
         </dl>
       </div>
 
-      <div className="bg-white rounded-lg shadow-sm border p-4 mb-4">
+      <div id="log-access" className="bg-white rounded-lg shadow-sm border p-4 mb-4">
         <h2 className="text-sm font-semibold text-gray-700 mb-3">Log Room Access Event</h2>
         <form action={createRoomAccessEventAction} className="grid grid-cols-1 gap-2 md:grid-cols-3">
           <input type="hidden" name="redirectTo" value={`/rooms/${room.id}`} />

@@ -13,7 +13,7 @@ import type { RoomBooking, Room } from '@/types/api'
 export default async function BookingsPage({
   searchParams,
 }: {
-  searchParams?: { ok?: string; error?: string }
+  searchParams?: { ok?: string; error?: string; roomId?: string; memberId?: string }
 }) {
   const session = await getSession()
   const token = session.accessToken!
@@ -29,6 +29,8 @@ export default async function BookingsPage({
   )
   const okMessage = searchParams?.ok
   const errorMessage = searchParams?.error
+  const prefilledRoomId = searchParams?.roomId
+  const prefilledMemberId = searchParams?.memberId
 
   return (
     <div className="max-w-6xl">
@@ -50,8 +52,20 @@ export default async function BookingsPage({
         <h2 className="text-sm font-semibold text-gray-700 mb-3">Create Booking</h2>
         <form action={createBookingAction} className="grid grid-cols-1 gap-2 md:grid-cols-3">
           <input type="hidden" name="redirectTo" value="/bookings" />
-          <input name="memberId" placeholder="Member ID" className="rounded border px-2 py-1.5 text-sm font-mono" required />
-          <input name="roomId" placeholder="Room ID" className="rounded border px-2 py-1.5 text-sm font-mono" required />
+          <input
+            name="memberId"
+            placeholder="Member ID"
+            defaultValue={prefilledMemberId}
+            className="rounded border px-2 py-1.5 text-sm font-mono"
+            required
+          />
+          <input
+            name="roomId"
+            placeholder="Room ID"
+            defaultValue={prefilledRoomId}
+            className="rounded border px-2 py-1.5 text-sm font-mono"
+            required
+          />
           <select name="bookingType" className="rounded border px-2 py-1.5 text-sm" defaultValue="restore">
             <option value="restore">restore</option>
             <option value="release">release</option>
