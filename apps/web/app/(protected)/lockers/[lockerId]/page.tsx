@@ -5,6 +5,8 @@ import { apiFetch } from '@/lib/api'
 import { StatusBadge } from '@/components/status-badge'
 import type { Locker, LockerAccessEvent } from '@/types/api'
 
+const HARD_BLOCKED_STATUSES = ['maintenance', 'offline', 'forced_open', 'out_of_service']
+
 export default async function LockerDetailPage({
   params,
 }: {
@@ -35,24 +37,36 @@ export default async function LockerDetailPage({
         <StatusBadge status={locker.status} />
       </div>
 
-      {locker.currentOccupant && (
+      {locker.assignedMemberId && (
         <div className="bg-white rounded-lg shadow-sm border p-4 mb-4">
           <h2 className="text-sm font-semibold text-gray-700 mb-3">Current Occupant</h2>
           <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
             <dt className="text-gray-500">Member</dt>
             <dd>
               <Link
-                href={`/members/${locker.currentOccupant.memberId}`}
+                href={`/members/${locker.assignedMemberId}`}
                 className="text-blue-600 hover:underline"
               >
-                {locker.currentOccupant.memberName}
+                {locker.assignedMemberId}
               </Link>
             </dd>
             <dt className="text-gray-500">Assigned</dt>
-            <dd>{new Date(locker.currentOccupant.assignedAt).toLocaleString()}</dd>
+            <dd>{locker.assignedAt ? new Date(locker.assignedAt).toLocaleString() : '—'}</dd>
           </dl>
         </div>
       )}
+
+      <div className="bg-white rounded-lg shadow-sm border p-4 mb-4">
+        <h2 className="text-sm font-semibold text-gray-700 mb-2">Operational Safety Rules</h2>
+        <p className="text-xs text-gray-500 mb-2">
+          The statuses below are hard-blocked for assignment and access, even under staff override.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {HARD_BLOCKED_STATUSES.map((status) => (
+            <StatusBadge key={status} status={status} />
+          ))}
+        </div>
+      </div>
 
       <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
         <div className="px-4 py-3 border-b">
@@ -75,12 +89,15 @@ export default async function LockerDetailPage({
               <th className="text-left px-4 py-2 text-xs font-semibold text-gray-600 uppercase tracking-wide">
                 Reference
               </th>
+              <th className="text-left px-4 py-2 text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                Denial
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y">
             {events.length === 0 ? (
               <tr>
-                <td colSpan={4} className="px-4 py-8 text-center text-sm text-gray-500">
+                <td colSpan={5} className="px-4 py-8 text-center text-sm text-gray-500">
                   No access events.
                 </td>
               </tr>
@@ -107,6 +124,13 @@ export default async function LockerDetailPage({
                   </td>
                   <td className="px-4 py-2 text-xs text-gray-500 font-mono">
                     {ev.sourceReference ?? '—'}
+                  </td>
+                  <td className="px-4 py-2 text-xs text-gray-600">
+                    {ev.denialReasonCode ? (
+                      <StatusBadge status={ev.denialReasonCode} variant="danger" />
+                    ) : (
+                      '—'
+                    )}
                   </td>
                 </tr>
               ))

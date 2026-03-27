@@ -48,8 +48,24 @@ export interface Subscription {
 export interface Wristband {
   id: string
   uid: string
-  status: 'inventory' | 'assigned' | 'retired'
+  status:
+    | 'inventory'
+    | 'assigned'
+    | 'retired'
+    | 'pending_activation'
+    | 'active'
+    | 'suspended'
+    | 'replaced'
   memberId?: string
+  locationId?: string | null
+  homeLocationId?: string | null
+  globalAccessFlag?: boolean
+  issuedAt?: string
+  activatedAt?: string | null
+  suspendedAt?: string | null
+  replacedFromWristbandId?: string | null
+  lastSeenLocationId?: string | null
+  lastSeenAt?: string | null
   createdAt: string
   updatedAt: string
 }
@@ -57,13 +73,35 @@ export interface Wristband {
 export interface Locker {
   id: string
   code: string
-  status: 'available' | 'occupied' | 'maintenance'
-  currentOccupant?: {
-    memberId: string
-    memberName: string
-    assignedAt: string
-    wristbandAssignmentId: string
-  }
+  locationId?: string
+  vendorLockId?: string
+  zoneId?: string
+  bankId?: string
+  wallId?: string
+  lockerLabel?: string
+  lockerSize?: string
+  lockerType?: string
+  isAccessible: boolean
+  isWetAreaRated: boolean
+  hasPower: boolean
+  tierClass?: string
+  supportsDayUse: boolean
+  supportsAssignedUse: boolean
+  active: boolean
+  status:
+    | 'available'
+    | 'reserved'
+    | 'occupied'
+    | 'out_of_service'
+    | 'cleaning'
+    | 'maintenance'
+    | 'offline'
+    | 'forced_open'
+    | 'assigned'
+  activeAssignmentId?: string
+  assignedMemberId?: string
+  wristbandAssignmentId?: string
+  assignedAt?: string
   createdAt: string
   updatedAt: string
 }
@@ -73,10 +111,35 @@ export interface LockerAccessEvent {
   lockerId: string
   wristbandId?: string
   memberId?: string
+  decision?: 'allowed' | 'denied'
+  denialReasonCode?: string
   eventType: string
   occurredAt: string
   sourceReference?: string
   createdAt: string
+}
+
+export interface LockerPolicyDecision {
+  decision: 'allow' | 'deny'
+  reasonCode: string
+  eligibleLockerIds: string[]
+  chosenLockerId?: string
+  assignmentMode: 'day_use_shared' | 'assigned' | 'premium' | 'staff_override'
+  policySnapshot: Record<string, unknown>
+}
+
+export interface LockerAssignment {
+  id: string
+  lockerId: string
+  memberId: string
+  visitSessionId?: string
+  wristbandAssignmentId?: string
+  assignmentMode: 'day_use_shared' | 'assigned' | 'premium' | 'staff_override'
+  assignedByStaffUserId?: string
+  assignedAt: string
+  unassignedAt?: string
+  unassignedReason?: string
+  active: boolean
 }
 
 export interface MemberAccountEntry {
