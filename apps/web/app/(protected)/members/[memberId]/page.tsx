@@ -39,6 +39,12 @@ export default async function MemberDetailPage({
         <h1 className="text-2xl font-semibold">
           {member.firstName} {member.lastName}
         </h1>
+        <Link
+          href={`/bookings?memberId=${member.id}`}
+          className="text-xs rounded border border-blue-200 bg-blue-50 text-blue-700 px-2 py-1 hover:bg-blue-100"
+        >
+          Create Booking →
+        </Link>
       </div>
 
       {/* Member details */}

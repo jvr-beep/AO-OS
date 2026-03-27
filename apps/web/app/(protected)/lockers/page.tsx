@@ -54,6 +54,7 @@ export default async function LockersPage({
       <div className="grid grid-cols-1 gap-4 mb-6 lg:grid-cols-3">
         <div className="bg-white rounded-lg shadow-sm border p-4">
           <h2 className="text-sm font-semibold text-gray-700 mb-3">Evaluate Policy</h2>
+          <p className="text-xs text-gray-500 mb-2">Allowed roles: operations, admin.</p>
           {!canEvaluatePolicy && <p className="text-xs text-amber-700 mb-2">operations/admin only</p>}
           <form action={evaluateLockerPolicyAction} className="space-y-2">
             <input name="memberId" placeholder="Member ID" className="w-full rounded border px-2 py-1.5 text-sm font-mono" required />
@@ -80,6 +81,7 @@ export default async function LockersPage({
 
         <div className="bg-white rounded-lg shadow-sm border p-4">
           <h2 className="text-sm font-semibold text-gray-700 mb-3">Assign Locker</h2>
+          <p className="text-xs text-gray-500 mb-2">Allowed roles: front_desk, operations, admin.</p>
           <form action={assignLockerAction} className="space-y-2">
             <input name="lockerId" placeholder="Locker ID" className="w-full rounded border px-2 py-1.5 text-sm font-mono" required />
             <input name="memberId" placeholder="Member ID" className="w-full rounded border px-2 py-1.5 text-sm font-mono" required />
@@ -100,6 +102,7 @@ export default async function LockersPage({
 
         <div className="bg-white rounded-lg shadow-sm border p-4">
           <h2 className="text-sm font-semibold text-gray-700 mb-3">Release Locker</h2>
+          <p className="text-xs text-gray-500 mb-2">Allowed roles: front_desk, operations, admin.</p>
           <form action={unassignLockerAction} className="space-y-2">
             <input name="lockerId" placeholder="Locker ID" className="w-full rounded border px-2 py-1.5 text-sm font-mono" required />
             <input

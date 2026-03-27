@@ -41,6 +41,7 @@ export default async function WristbandsPage({
       <div className="grid grid-cols-1 gap-4 mb-6 lg:grid-cols-2">
         <div className="bg-white rounded-lg shadow-sm border p-4">
           <h2 className="text-sm font-semibold text-gray-700 mb-3">Issue Credential</h2>
+          <p className="text-xs text-gray-500 mb-2">Allowed roles: operations, admin.</p>
           {!canManageCredentialLifecycle && (
             <p className="text-xs text-amber-700 mb-2">operations/admin only</p>
           )}
@@ -68,6 +69,7 @@ export default async function WristbandsPage({
 
         <div className="bg-white rounded-lg shadow-sm border p-4">
           <h2 className="text-sm font-semibold text-gray-700 mb-3">Activate Credential</h2>
+          <p className="text-xs text-gray-500 mb-2">Allowed roles: front_desk, operations, admin.</p>
           {!canActivateCredential && <p className="text-xs text-amber-700 mb-2">front_desk/operations/admin only</p>}
           <form action={activateCredentialAction} className="space-y-2">
             <input
@@ -87,6 +89,7 @@ export default async function WristbandsPage({
 
         <div className="bg-white rounded-lg shadow-sm border p-4">
           <h2 className="text-sm font-semibold text-gray-700 mb-3">Suspend Credential</h2>
+          <p className="text-xs text-gray-500 mb-2">Allowed roles: operations, admin.</p>
           {!canManageCredentialLifecycle && (
             <p className="text-xs text-amber-700 mb-2">operations/admin only</p>
           )}
@@ -108,6 +111,7 @@ export default async function WristbandsPage({
 
         <div className="bg-white rounded-lg shadow-sm border p-4">
           <h2 className="text-sm font-semibold text-gray-700 mb-3">Replace Credential</h2>
+          <p className="text-xs text-gray-500 mb-2">Allowed roles: operations, admin.</p>
           {!canManageCredentialLifecycle && (
             <p className="text-xs text-amber-700 mb-2">operations/admin only</p>
           )}

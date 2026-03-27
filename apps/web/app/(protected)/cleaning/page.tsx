@@ -32,6 +32,7 @@ export default async function CleaningPage({
       <p className="text-sm text-gray-600 mb-6">
         Front desk can view queue status. Operations and admin can start and complete tasks.
       </p>
+      <p className="text-xs text-gray-500 mb-4">Task actions (start/complete) allowed roles: operations, admin.</p>
 
       {(okMessage || errorMessage) && (
         <div

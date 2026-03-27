@@ -50,6 +50,9 @@ export default async function BookingsPage({
 
       <div className="bg-white rounded-lg shadow-sm border p-4 mb-4">
         <h2 className="text-sm font-semibold text-gray-700 mb-3">Create Booking</h2>
+        <p className="text-xs text-gray-500 mb-3">
+          Allowed roles: front_desk, operations, admin.
+        </p>
         <form action={createBookingAction} className="grid grid-cols-1 gap-2 md:grid-cols-3">
           <input type="hidden" name="redirectTo" value="/bookings" />
           <input
@@ -150,6 +153,7 @@ export default async function BookingsPage({
                     </td>
                     <td className="px-4 py-3 text-xs text-gray-600">{booking.bookingType}</td>
                     <td className="px-4 py-3">
+                      <p className="text-[11px] text-gray-500 mb-1">Check-in/check-out/cancel: front_desk, operations, admin.</p>
                       <div className="flex flex-col gap-1">
                         {booking.status === 'reserved' && (
                           <>
