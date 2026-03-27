@@ -34,23 +34,23 @@ export default async function BookingsPage({
 
   return (
     <div className="max-w-6xl">
-      <h1 className="text-2xl font-semibold mb-6">Bookings</h1>
+      <h1 className="text-2xl font-semibold mb-6 text-gray-100">Bookings</h1>
 
       {(okMessage || errorMessage) && (
         <div
           className={`mb-4 rounded-md border px-3 py-2 text-sm ${
             errorMessage
-              ? 'border-red-200 bg-red-50 text-red-700'
-              : 'border-green-200 bg-green-50 text-green-700'
+              ? 'border-red-700 bg-red-900 text-red-200'
+              : 'border-green-700 bg-green-900 text-green-200'
           }`}
         >
           {errorMessage ?? okMessage}
         </div>
       )}
 
-      <div className="bg-white rounded-lg shadow-sm border p-4 mb-4">
-        <h2 className="text-sm font-semibold text-gray-700 mb-3">Create Booking</h2>
-        <p className="text-xs text-gray-500 mb-3">
+      <div className="card p-4 mb-4">
+        <h2 className="text-sm font-semibold text-gray-200 mb-3">Create Booking</h2>
+        <p className="text-xs text-gray-400 mb-3">
           Allowed roles: front_desk, operations, admin.
         </p>
         <form action={createBookingAction} className="grid grid-cols-1 gap-2 md:grid-cols-3">
@@ -59,24 +59,24 @@ export default async function BookingsPage({
             name="memberId"
             placeholder="Member ID"
             defaultValue={prefilledMemberId}
-            className="rounded border px-2 py-1.5 text-sm font-mono"
+            className="form-input"
             required
           />
           <input
             name="roomId"
             placeholder="Room ID"
             defaultValue={prefilledRoomId}
-            className="rounded border px-2 py-1.5 text-sm font-mono"
+            className="form-input"
             required
           />
-          <select name="bookingType" className="rounded border px-2 py-1.5 text-sm" defaultValue="restore">
+          <select name="bookingType" className="form-input" defaultValue="restore">
             <option value="restore">restore</option>
             <option value="release">release</option>
             <option value="retreat">retreat</option>
           </select>
-          <input name="startsAt" type="datetime-local" className="rounded border px-2 py-1.5 text-sm" required />
-          <input name="endsAt" type="datetime-local" className="rounded border px-2 py-1.5 text-sm" required />
-          <select name="sourceType" className="rounded border px-2 py-1.5 text-sm" defaultValue="manual_staff">
+          <input name="startsAt" type="datetime-local" className="form-input" required />
+          <input name="endsAt" type="datetime-local" className="form-input" required />
+          <select name="sourceType" className="form-input" defaultValue="manual_staff">
             <option value="manual_staff">manual_staff</option>
             <option value="membership_credit">membership_credit</option>
             <option value="upgrade_credit">upgrade_credit</option>
@@ -86,35 +86,35 @@ export default async function BookingsPage({
           <input
             name="sourceReference"
             placeholder="Source reference (optional)"
-            className="rounded border px-2 py-1.5 text-sm md:col-span-2"
+            className="form-input md:col-span-2"
           />
-          <button className="rounded bg-blue-700 text-white text-sm px-3 py-1.5">Create Booking</button>
+          <button className="btn-primary">Create Booking</button>
         </form>
       </div>
 
-      <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
+      <div className="card overflow-hidden">
         <table className="w-full text-sm">
-          <thead className="bg-gray-50 border-b">
+          <thead className="bg-ao-dark border-b border-gray-700">
             <tr>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">
+              <th className="text-left px-4 py-3 text-xs font-semibold text-ao-teal uppercase tracking-wide">
                 Start
               </th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">
+              <th className="text-left px-4 py-3 text-xs font-semibold text-ao-teal uppercase tracking-wide">
                 End
               </th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">
+              <th className="text-left px-4 py-3 text-xs font-semibold text-ao-teal uppercase tracking-wide">
                 Room
               </th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">
+              <th className="text-left px-4 py-3 text-xs font-semibold text-ao-teal uppercase tracking-wide">
                 Member
               </th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">
+              <th className="text-left px-4 py-3 text-xs font-semibold text-ao-teal uppercase tracking-wide">
                 Status
               </th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">
+              <th className="text-left px-4 py-3 text-xs font-semibold text-ao-teal uppercase tracking-wide">
                 Type
               </th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">
+              <th className="text-left px-4 py-3 text-xs font-semibold text-ao-teal uppercase tracking-wide">
                 Actions
               </th>
             </tr>
@@ -122,7 +122,7 @@ export default async function BookingsPage({
           <tbody className="divide-y">
             {orderedBookings.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-sm text-gray-500">
+                <td colSpan={7} className="px-4 py-8 text-center text-sm text-gray-400">
                   No bookings found.
                 </td>
               </tr>
@@ -131,27 +131,27 @@ export default async function BookingsPage({
                 const room = roomById.get(booking.roomId)
 
                 return (
-                  <tr key={booking.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 text-xs text-gray-500">
+                  <tr key={booking.id} className="hover:bg-gray-700/40">
+                    <td className="px-4 py-3 text-xs text-gray-400">
                       {new Date(booking.startsAt).toLocaleString()}
                     </td>
-                    <td className="px-4 py-3 text-xs text-gray-500">
+                    <td className="px-4 py-3 text-xs text-gray-400">
                       {new Date(booking.endsAt).toLocaleString()}
                     </td>
                     <td className="px-4 py-3 text-xs">
-                      <Link href={`/rooms/${booking.roomId}`} className="text-blue-600 hover:underline">
+                      <Link href={`/rooms/${booking.roomId}`} className="text-ao-teal hover:text-ao-primary transition-colors">
                         {room?.code ?? booking.roomId.slice(0, 8)}
                       </Link>
                     </td>
                     <td className="px-4 py-3 text-xs">
-                      <Link href={`/members/${booking.memberId}`} className="text-blue-600 hover:underline font-mono">
+                      <Link href={`/members/${booking.memberId}`} className="text-ao-teal hover:text-ao-primary transition-colors font-mono">
                         {booking.memberId.slice(0, 8)}…
                       </Link>
                     </td>
                     <td className="px-4 py-3">
                       <StatusBadge status={booking.status} />
                     </td>
-                    <td className="px-4 py-3 text-xs text-gray-600">{booking.bookingType}</td>
+                    <td className="px-4 py-3 text-xs text-gray-400">{booking.bookingType}</td>
                     <td className="px-4 py-3">
                       <p className="text-[11px] text-gray-500 mb-1">Check-in/check-out/cancel: front_desk, operations, admin.</p>
                       <div className="flex flex-col gap-1">
@@ -160,7 +160,7 @@ export default async function BookingsPage({
                             <form action={checkInBookingAction}>
                               <input type="hidden" name="redirectTo" value="/bookings" />
                               <input type="hidden" name="bookingId" value={booking.id} />
-                              <button className="rounded bg-blue-700 text-white text-xs px-2 py-1">
+                              <button className="btn-primary text-xs px-2 py-1">
                                 Check In
                               </button>
                             </form>
@@ -171,9 +171,9 @@ export default async function BookingsPage({
                                 type="text"
                                 name="reason"
                                 placeholder="cancel reason"
-                                className="rounded border px-2 py-1 text-xs mb-1"
+                                className="form-input text-xs mb-1"
                               />
-                              <button className="rounded bg-red-700 text-white text-xs px-2 py-1">
+                              <button className="btn-secondary text-xs px-2 py-1">
                                 Cancel
                               </button>
                             </form>
@@ -183,7 +183,7 @@ export default async function BookingsPage({
                           <form action={checkOutBookingAction}>
                             <input type="hidden" name="redirectTo" value="/bookings" />
                             <input type="hidden" name="bookingId" value={booking.id} />
-                            <button className="rounded bg-amber-700 text-white text-xs px-2 py-1">
+                            <button className="btn-secondary text-xs px-2 py-1">
                               Check Out
                             </button>
                           </form>

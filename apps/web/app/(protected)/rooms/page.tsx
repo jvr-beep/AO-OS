@@ -12,25 +12,25 @@ export default async function RoomsPage() {
 
   return (
     <div className="max-w-5xl">
-      <h1 className="text-2xl font-semibold mb-6">Rooms</h1>
+      <h1 className="text-2xl font-semibold mb-6 text-gray-100">Rooms</h1>
 
-      <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
+      <div className="card overflow-hidden">
         <table className="w-full text-sm">
-          <thead className="bg-gray-50 border-b">
+          <thead className="bg-ao-dark border-b border-gray-700">
             <tr>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">
+              <th className="text-left px-4 py-3 text-xs font-semibold text-ao-teal uppercase tracking-wide">
                 Code
               </th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">
+              <th className="text-left px-4 py-3 text-xs font-semibold text-ao-teal uppercase tracking-wide">
                 Name
               </th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">
+              <th className="text-left px-4 py-3 text-xs font-semibold text-ao-teal uppercase tracking-wide">
                 Type
               </th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">
+              <th className="text-left px-4 py-3 text-xs font-semibold text-ao-teal uppercase tracking-wide">
                 Status
               </th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">
+              <th className="text-left px-4 py-3 text-xs font-semibold text-ao-teal uppercase tracking-wide">
                 Flags
               </th>
               <th className="px-4 py-3" />
@@ -39,32 +39,32 @@ export default async function RoomsPage() {
           <tbody className="divide-y">
             {orderedRooms.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-sm text-gray-500">
+                <td colSpan={6} className="px-4 py-8 text-center text-sm text-gray-400">
                   No rooms found.
                 </td>
               </tr>
             ) : (
               orderedRooms.map((room) => (
-                <tr key={room.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 font-mono text-xs">{room.code}</td>
-                  <td className="px-4 py-3 font-medium">{room.name}</td>
-                  <td className="px-4 py-3 text-xs text-gray-600">{room.roomType}</td>
+              <tr key={room.id} className="hover:bg-gray-700/40">
+                <td className="px-4 py-3 font-mono text-xs text-gray-300">{room.code}</td>
+                <td className="px-4 py-3 font-medium text-gray-100">{room.name}</td>
+                <td className="px-4 py-3 text-xs text-gray-400">{room.roomType}</td>
                   <td className="px-4 py-3">
                     <StatusBadge status={room.status} />
                   </td>
                   <td className="px-4 py-3 text-xs text-gray-600">
                     <div className="flex gap-1.5 flex-wrap">
                       {room.bookable ? (
-                        <span className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        <span className="px-2 py-0.5 rounded bg-green-900 text-green-200 border border-green-700">
                           bookable
                         </span>
                       ) : (
-                        <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-600 border border-gray-200">
+                        <span className="px-2 py-0.5 rounded bg-gray-700 text-gray-300 border border-gray-600">
                           not-bookable
                         </span>
                       )}
                       {room.cleaningRequired && (
-                        <span className="px-2 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200">
+                        <span className="px-2 py-0.5 rounded bg-amber-900 text-amber-200 border border-amber-700">
                           cleaning-required
                         </span>
                       )}
@@ -72,15 +72,15 @@ export default async function RoomsPage() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2 text-xs">
-                      <Link href={`/rooms/${room.id}`} className="text-blue-600 hover:underline">
+                      <Link href={`/rooms/${room.id}`} className="text-ao-teal hover:text-ao-primary transition-colors">
                         View
                       </Link>
-                      <span className="text-gray-300">|</span>
-                      <Link href={`/bookings?roomId=${room.id}`} className="text-blue-600 hover:underline">
+                      <span className="text-gray-600">|</span>
+                      <Link href={`/bookings?roomId=${room.id}`} className="text-ao-teal hover:text-ao-primary transition-colors">
                         Book
                       </Link>
-                      <span className="text-gray-300">|</span>
-                      <Link href={`/rooms/${room.id}#log-access`} className="text-blue-600 hover:underline">
+                      <span className="text-gray-600">|</span>
+                      <Link href={`/rooms/${room.id}#log-access`} className="text-ao-teal hover:text-ao-primary transition-colors">
                         Log Access
                       </Link>
                     </div>

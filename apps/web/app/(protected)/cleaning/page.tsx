@@ -28,8 +28,8 @@ export default async function CleaningPage({
 
   return (
     <div className="max-w-6xl">
-      <h1 className="text-2xl font-semibold mb-2">Cleaning</h1>
-      <p className="text-sm text-gray-600 mb-6">
+      <h1 className="text-2xl font-semibold mb-2 text-gray-100">Cleaning</h1>
+      <p className="text-sm text-gray-400 mb-6">
         Front desk can view queue status. Operations and admin can start and complete tasks.
       </p>
       <p className="text-xs text-gray-500 mb-4">Task actions (start/complete) allowed roles: operations, admin.</p>
@@ -38,34 +38,34 @@ export default async function CleaningPage({
         <div
           className={`mb-4 rounded-md border px-3 py-2 text-sm ${
             errorMessage
-              ? 'border-red-200 bg-red-50 text-red-700'
-              : 'border-green-200 bg-green-50 text-green-700'
+              ? 'border-red-700 bg-red-900 text-red-200'
+              : 'border-green-700 bg-green-900 text-green-200'
           }`}
         >
           {errorMessage ?? okMessage}
         </div>
       )}
 
-      <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
+      <div className="card overflow-hidden">
         <table className="w-full text-sm">
-          <thead className="bg-gray-50 border-b">
+          <thead className="bg-ao-dark border-b border-gray-700">
             <tr>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">
+              <th className="text-left px-4 py-3 text-xs font-semibold text-ao-teal uppercase tracking-wide">
                 Created
               </th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">
+              <th className="text-left px-4 py-3 text-xs font-semibold text-ao-teal uppercase tracking-wide">
                 Room
               </th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">
+              <th className="text-left px-4 py-3 text-xs font-semibold text-ao-teal uppercase tracking-wide">
                 Task Type
               </th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">
+              <th className="text-left px-4 py-3 text-xs font-semibold text-ao-teal uppercase tracking-wide">
                 Status
               </th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">
+              <th className="text-left px-4 py-3 text-xs font-semibold text-ao-teal uppercase tracking-wide">
                 Notes
               </th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">
+              <th className="text-left px-4 py-3 text-xs font-semibold text-ao-teal uppercase tracking-wide">
                 Actions
               </th>
             </tr>
@@ -73,7 +73,7 @@ export default async function CleaningPage({
           <tbody className="divide-y">
             {orderedTasks.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-sm text-gray-500">
+                <td colSpan={6} className="px-4 py-8 text-center text-sm text-gray-400">
                   No cleaning tasks.
                 </td>
               </tr>
@@ -82,20 +82,20 @@ export default async function CleaningPage({
                 const room = roomById.get(task.roomId)
 
                 return (
-                  <tr key={task.id} className="hover:bg-gray-50 align-top">
-                    <td className="px-4 py-3 text-xs text-gray-500">
+                  <tr key={task.id} className="hover:bg-gray-700/40 align-top">
+                    <td className="px-4 py-3 text-xs text-gray-400">
                       {new Date(task.createdAt).toLocaleString()}
                     </td>
                     <td className="px-4 py-3 text-xs">
-                      <Link href={`/rooms/${task.roomId}`} className="text-blue-600 hover:underline">
+                      <Link href={`/rooms/${task.roomId}`} className="text-ao-teal hover:text-ao-primary transition-colors">
                         {room ? `${room.code} (${room.name})` : task.roomId.slice(0, 8)}
                       </Link>
                     </td>
-                    <td className="px-4 py-3 text-xs text-gray-600">{task.taskType}</td>
+                    <td className="px-4 py-3 text-xs text-gray-400">{task.taskType}</td>
                     <td className="px-4 py-3">
                       <StatusBadge status={task.status} />
                     </td>
-                    <td className="px-4 py-3 text-xs text-gray-600 max-w-xs">{task.notes ?? '—'}</td>
+                    <td className="px-4 py-3 text-xs text-gray-400 max-w-xs">{task.notes ?? '—'}</td>
                     <td className="px-4 py-3">
                       {canManageTasks && task.status === 'open' && (
                         <form action={startCleaningTaskAction} className="flex items-center gap-2">
@@ -105,11 +105,11 @@ export default async function CleaningPage({
                             type="text"
                             name="occurredAt"
                             placeholder="occurredAt (optional)"
-                            className="h-8 px-2 text-xs border rounded w-36"
+                            className="form-input h-8 text-xs w-36"
                           />
                           <button
                             type="submit"
-                            className="h-8 px-3 text-xs font-medium rounded bg-blue-600 text-white hover:bg-blue-700"
+                            className="btn-primary h-8 px-3 text-xs"
                           >
                             Start
                           </button>
@@ -123,11 +123,11 @@ export default async function CleaningPage({
                             type="text"
                             name="notes"
                             placeholder="completion note"
-                            className="h-8 px-2 text-xs border rounded w-36"
+                            className="form-input h-8 text-xs w-36"
                           />
                           <button
                             type="submit"
-                            className="h-8 px-3 text-xs font-medium rounded bg-emerald-600 text-white hover:bg-emerald-700"
+                            className="btn-primary h-8 px-3 text-xs"
                           >
                             Complete
                           </button>
