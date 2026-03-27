@@ -1,57 +1,20 @@
 import Link from 'next/link'
-import { revalidatePath } from 'next/cache'
 import { getSession } from '@/lib/session'
 import { apiFetch } from '@/lib/api'
 import { StatusBadge } from '@/components/status-badge'
+import { completeCleaningTaskAction, startCleaningTaskAction } from '@/app/actions/operators'
 import type { CleaningTask, Room } from '@/types/api'
 
-async function startTaskAction(formData: FormData) {
-  'use server'
-
-  const session = await getSession()
-  const taskId = String(formData.get('taskId') ?? '')
-  const notesValue = formData.get('notes')
-  const notes = typeof notesValue === 'string' ? notesValue.trim() : ''
-
-  if (!session.accessToken || !session.user) return
-  if (session.user.role === 'front_desk' || !taskId) return
-
-  await apiFetch(`/cleaning/tasks/${taskId}/start`, session.accessToken, {
-    method: 'POST',
-    body: JSON.stringify({
-      assignedToStaffUserId: session.user.id,
-      notes: notes || undefined,
-    }),
-  })
-
-  revalidatePath('/cleaning')
-}
-
-async function completeTaskAction(formData: FormData) {
-  'use server'
-
-  const session = await getSession()
-  const taskId = String(formData.get('taskId') ?? '')
-  const notesValue = formData.get('notes')
-  const notes = typeof notesValue === 'string' ? notesValue.trim() : ''
-
-  if (!session.accessToken || !session.user) return
-  if (session.user.role === 'front_desk' || !taskId) return
-
-  await apiFetch(`/cleaning/tasks/${taskId}/complete`, session.accessToken, {
-    method: 'POST',
-    body: JSON.stringify({
-      notes: notes || undefined,
-    }),
-  })
-
-  revalidatePath('/cleaning')
-}
-
-export default async function CleaningPage() {
+export default async function CleaningPage({
+  searchParams,
+}: {
+  searchParams?: { ok?: string; error?: string }
+}) {
   const session = await getSession()
   const token = session.accessToken!
   const canManageTasks = session.user?.role === 'operations' || session.user?.role === 'admin'
+  const okMessage = searchParams?.ok
+  const errorMessage = searchParams?.error
 
   const [tasks, rooms] = await Promise.all([
     apiFetch<CleaningTask[]>('/cleaning/tasks', token),
@@ -69,6 +32,18 @@ export default async function CleaningPage() {
       <p className="text-sm text-gray-600 mb-6">
         Front desk can view queue status. Operations and admin can start and complete tasks.
       </p>
+
+      {(okMessage || errorMessage) && (
+        <div
+          className={`mb-4 rounded-md border px-3 py-2 text-sm ${
+            errorMessage
+              ? 'border-red-200 bg-red-50 text-red-700'
+              : 'border-green-200 bg-green-50 text-green-700'
+          }`}
+        >
+          {errorMessage ?? okMessage}
+        </div>
+      )}
 
       <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
         <table className="w-full text-sm">
@@ -122,12 +97,13 @@ export default async function CleaningPage() {
                     <td className="px-4 py-3 text-xs text-gray-600 max-w-xs">{task.notes ?? '—'}</td>
                     <td className="px-4 py-3">
                       {canManageTasks && task.status === 'open' && (
-                        <form action={startTaskAction} className="flex items-center gap-2">
+                        <form action={startCleaningTaskAction} className="flex items-center gap-2">
+                          <input type="hidden" name="redirectTo" value="/cleaning" />
                           <input type="hidden" name="taskId" value={task.id} />
                           <input
                             type="text"
-                            name="notes"
-                            placeholder="start note"
+                            name="occurredAt"
+                            placeholder="occurredAt (optional)"
                             className="h-8 px-2 text-xs border rounded w-36"
                           />
                           <button
@@ -139,7 +115,8 @@ export default async function CleaningPage() {
                         </form>
                       )}
                       {canManageTasks && task.status === 'in_progress' && (
-                        <form action={completeTaskAction} className="flex items-center gap-2">
+                        <form action={completeCleaningTaskAction} className="flex items-center gap-2">
+                          <input type="hidden" name="redirectTo" value="/cleaning" />
                           <input type="hidden" name="taskId" value={task.id} />
                           <input
                             type="text"

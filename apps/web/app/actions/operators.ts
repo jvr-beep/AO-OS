@@ -22,6 +22,22 @@ function readOptional(formData: FormData, key: string): string | undefined {
   return trimmed.length > 0 ? trimmed : undefined
 }
 
+function readRedirectTarget(formData: FormData, fallbackPath: string): string {
+  const value = formData.get('redirectTo')
+  if (typeof value !== 'string') return fallbackPath
+  const trimmed = value.trim()
+  return trimmed.startsWith('/') ? trimmed : fallbackPath
+}
+
+function toIsoOrNow(input: string | undefined): string {
+  if (!input) return new Date().toISOString()
+  const parsed = new Date(input)
+  if (Number.isNaN(parsed.getTime())) {
+    throw new Error('Invalid timestamp value')
+  }
+  return parsed.toISOString()
+}
+
 async function postWithAuth(path: string, body: Record<string, unknown>, accessToken: string) {
   const res = await fetch(`${API_BASE}${path}`, {
     method: 'POST',
@@ -223,5 +239,162 @@ export async function unassignLockerAction(formData: FormData) {
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Release failed'
     redirect(`/lockers?error=${encodeURIComponent(message)}`)
+  }
+}
+
+export async function createBookingAction(formData: FormData) {
+  const redirectTo = readRedirectTarget(formData, '/bookings')
+
+  try {
+    const session = await withSession()
+    const memberId = readRequired(formData, 'memberId')
+    const roomId = readRequired(formData, 'roomId')
+    const bookingType = readRequired(formData, 'bookingType')
+    const startsAt = toIsoOrNow(readRequired(formData, 'startsAt'))
+    const endsAt = toIsoOrNow(readRequired(formData, 'endsAt'))
+    const sourceType = readRequired(formData, 'sourceType')
+    const sourceReference = readOptional(formData, 'sourceReference')
+
+    await postWithAuth(
+      '/bookings',
+      { memberId, roomId, bookingType, startsAt, endsAt, sourceType, sourceReference },
+      session.accessToken!,
+    )
+
+    revalidatePath('/bookings')
+    revalidatePath(`/rooms/${roomId}`)
+    redirect(`${redirectTo}?ok=${encodeURIComponent('Booking created')}`)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Create booking failed'
+    redirect(`${redirectTo}?error=${encodeURIComponent(message)}`)
+  }
+}
+
+export async function checkInBookingAction(formData: FormData) {
+  const redirectTo = readRedirectTarget(formData, '/bookings')
+
+  try {
+    const session = await withSession()
+    const bookingId = readRequired(formData, 'bookingId')
+    const occurredAt = toIsoOrNow(readOptional(formData, 'occurredAt'))
+
+    await postWithAuth(`/bookings/${bookingId}/check-in`, { occurredAt }, session.accessToken!)
+
+    revalidatePath('/bookings')
+    revalidatePath('/rooms')
+    redirect(`${redirectTo}?ok=${encodeURIComponent('Booking checked in')}`)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Check-in failed'
+    redirect(`${redirectTo}?error=${encodeURIComponent(message)}`)
+  }
+}
+
+export async function checkOutBookingAction(formData: FormData) {
+  const redirectTo = readRedirectTarget(formData, '/bookings')
+
+  try {
+    const session = await withSession()
+    const bookingId = readRequired(formData, 'bookingId')
+    const occurredAt = toIsoOrNow(readOptional(formData, 'occurredAt'))
+
+    await postWithAuth(`/bookings/${bookingId}/check-out`, { occurredAt }, session.accessToken!)
+
+    revalidatePath('/bookings')
+    revalidatePath('/rooms')
+    redirect(`${redirectTo}?ok=${encodeURIComponent('Booking checked out')}`)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Check-out failed'
+    redirect(`${redirectTo}?error=${encodeURIComponent(message)}`)
+  }
+}
+
+export async function cancelBookingAction(formData: FormData) {
+  const redirectTo = readRedirectTarget(formData, '/bookings')
+
+  try {
+    const session = await withSession()
+    const bookingId = readRequired(formData, 'bookingId')
+    const occurredAt = toIsoOrNow(readOptional(formData, 'occurredAt'))
+    const reason = readOptional(formData, 'reason')
+
+    await postWithAuth(`/bookings/${bookingId}/cancel`, { occurredAt, reason }, session.accessToken!)
+
+    revalidatePath('/bookings')
+    revalidatePath('/rooms')
+    redirect(`${redirectTo}?ok=${encodeURIComponent('Booking cancelled')}`)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Cancel failed'
+    redirect(`${redirectTo}?error=${encodeURIComponent(message)}`)
+  }
+}
+
+export async function startCleaningTaskAction(formData: FormData) {
+  const redirectTo = readRedirectTarget(formData, '/cleaning')
+
+  try {
+    const session = await withSession()
+    const taskId = readRequired(formData, 'taskId')
+    const occurredAt = toIsoOrNow(readOptional(formData, 'occurredAt'))
+
+    await postWithAuth(
+      `/cleaning/tasks/${taskId}/start`,
+      { occurredAt, assignedToStaffUserId: session.user?.id },
+      session.accessToken!,
+    )
+
+    revalidatePath('/cleaning')
+    redirect(`${redirectTo}?ok=${encodeURIComponent('Cleaning task started')}`)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Task start failed'
+    redirect(`${redirectTo}?error=${encodeURIComponent(message)}`)
+  }
+}
+
+export async function completeCleaningTaskAction(formData: FormData) {
+  const redirectTo = readRedirectTarget(formData, '/cleaning')
+
+  try {
+    const session = await withSession()
+    const taskId = readRequired(formData, 'taskId')
+    const occurredAt = toIsoOrNow(readOptional(formData, 'occurredAt'))
+    const notes = readOptional(formData, 'notes')
+
+    await postWithAuth(
+      `/cleaning/tasks/${taskId}/complete`,
+      { occurredAt, notes },
+      session.accessToken!,
+    )
+
+    revalidatePath('/cleaning')
+    redirect(`${redirectTo}?ok=${encodeURIComponent('Cleaning task completed')}`)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Task complete failed'
+    redirect(`${redirectTo}?error=${encodeURIComponent(message)}`)
+  }
+}
+
+export async function createRoomAccessEventAction(formData: FormData) {
+  const roomId = readRequired(formData, 'roomId')
+  const redirectTo = readRedirectTarget(formData, `/rooms/${roomId}`)
+
+  try {
+    const session = await withSession()
+    const wristbandId = readRequired(formData, 'wristbandId')
+    const eventType = readRequired(formData, 'eventType')
+    const occurredAt = toIsoOrNow(readOptional(formData, 'occurredAt'))
+    const sourceType = readOptional(formData, 'sourceType') ?? 'staff_console'
+    const sourceReference = readOptional(formData, 'sourceReference')
+
+    await postWithAuth(
+      '/rooms/access',
+      { roomId, wristbandId, eventType, occurredAt, sourceType, sourceReference },
+      session.accessToken!,
+    )
+
+    revalidatePath(`/rooms/${roomId}`)
+    redirect(`${redirectTo}?ok=${encodeURIComponent('Room access event recorded')}`)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Room access event failed'
+    redirect(`${redirectTo}?error=${encodeURIComponent(message)}`)
   }
 }

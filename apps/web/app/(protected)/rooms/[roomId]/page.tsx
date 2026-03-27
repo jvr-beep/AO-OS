@@ -3,12 +3,15 @@ import Link from 'next/link'
 import { getSession } from '@/lib/session'
 import { apiFetch, ApiError } from '@/lib/api'
 import { StatusBadge } from '@/components/status-badge'
+import { createRoomAccessEventAction } from '@/app/actions/operators'
 import type { Room, RoomBooking, RoomAccessEvent } from '@/types/api'
 
 export default async function RoomDetailPage({
   params,
+  searchParams,
 }: {
   params: { roomId: string }
+  searchParams?: { ok?: string; error?: string }
 }) {
   const session = await getSession()
   const token = session.accessToken!
@@ -39,6 +42,8 @@ export default async function RoomDetailPage({
           (a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime(),
         )
       : []
+  const okMessage = searchParams?.ok
+  const errorMessage = searchParams?.error
 
   return (
     <div className="max-w-5xl">
@@ -49,6 +54,18 @@ export default async function RoomDetailPage({
         <h1 className="text-2xl font-semibold">{room.name}</h1>
         <StatusBadge status={room.status} />
       </div>
+
+      {(okMessage || errorMessage) && (
+        <div
+          className={`mb-4 rounded-md border px-3 py-2 text-sm ${
+            errorMessage
+              ? 'border-red-200 bg-red-50 text-red-700'
+              : 'border-green-200 bg-green-50 text-green-700'
+          }`}
+        >
+          {errorMessage ?? okMessage}
+        </div>
+      )}
 
       <div className="bg-white rounded-lg shadow-sm border p-4 mb-4">
         <h2 className="text-sm font-semibold text-gray-700 mb-3">Room Details</h2>
@@ -68,6 +85,44 @@ export default async function RoomDetailPage({
           <dt className="text-gray-500">Floor Plan Area</dt>
           <dd className="font-mono text-xs break-all">{room.floorPlanAreaId}</dd>
         </dl>
+      </div>
+
+      <div className="bg-white rounded-lg shadow-sm border p-4 mb-4">
+        <h2 className="text-sm font-semibold text-gray-700 mb-3">Log Room Access Event</h2>
+        <form action={createRoomAccessEventAction} className="grid grid-cols-1 gap-2 md:grid-cols-3">
+          <input type="hidden" name="redirectTo" value={`/rooms/${room.id}`} />
+          <input type="hidden" name="roomId" value={room.id} />
+          <input
+            name="wristbandId"
+            placeholder="Wristband ID"
+            className="rounded border px-2 py-1.5 text-sm font-mono"
+            required
+          />
+          <select name="eventType" className="rounded border px-2 py-1.5 text-sm" defaultValue="unlock">
+            <option value="unlock">unlock</option>
+            <option value="lock">lock</option>
+            <option value="open">open</option>
+            <option value="close">close</option>
+            <option value="check_in_gate">check_in_gate</option>
+            <option value="check_out_gate">check_out_gate</option>
+          </select>
+          <select name="sourceType" className="rounded border px-2 py-1.5 text-sm" defaultValue="staff_console">
+            <option value="staff_console">staff_console</option>
+            <option value="wristband_reader">wristband_reader</option>
+            <option value="system">system</option>
+          </select>
+          <input
+            name="sourceReference"
+            placeholder="source reference (optional)"
+            className="rounded border px-2 py-1.5 text-sm"
+          />
+          <input
+            name="occurredAt"
+            type="datetime-local"
+            className="rounded border px-2 py-1.5 text-sm"
+          />
+          <button className="rounded bg-blue-700 text-white text-sm px-3 py-1.5">Record Event</button>
+        </form>
       </div>
 
       <div className="bg-white rounded-lg shadow-sm border overflow-hidden mb-4">
