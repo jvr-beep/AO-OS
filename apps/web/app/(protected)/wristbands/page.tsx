@@ -24,14 +24,15 @@ export default async function WristbandsPage({
 
   return (
     <div className="max-w-4xl">
-      <h1 className="text-2xl font-semibold mb-6">Wristbands</h1>
+      <h1 className="text-3xl font-bold mb-2">Wristbands</h1>
+      <p className="text-gray-400 mb-6">Credential lifecycle management</p>
 
       {(okMessage || errorMessage) && (
         <div
-          className={`mb-4 rounded-md border px-3 py-2 text-sm ${
+          className={`mb-4 rounded-lg border px-4 py-3 text-sm ${
             errorMessage
-              ? 'border-red-200 bg-red-50 text-red-700'
-              : 'border-green-200 bg-green-50 text-green-700'
+              ? 'border-red-700 bg-red-900 text-red-200'
+              : 'border-green-700 bg-green-900 text-green-200'
           }`}
         >
           {errorMessage ?? okMessage}
@@ -39,98 +40,88 @@ export default async function WristbandsPage({
       )}
 
       <div className="grid grid-cols-1 gap-4 mb-6 lg:grid-cols-2">
-        <div className="bg-white rounded-lg shadow-sm border p-4">
-          <h2 className="text-sm font-semibold text-gray-700 mb-3">Issue Credential</h2>
-          <p className="text-xs text-gray-500 mb-2">Allowed roles: operations, admin.</p>
-          {!canManageCredentialLifecycle && (
-            <p className="text-xs text-amber-700 mb-2">operations/admin only</p>
-          )}
-          <form action={issueCredentialAction} className="space-y-2">
+        <div className="card">
+          <h2 className="text-sm font-semibold text-ao-primary mb-3 uppercase tracking-wide">Issue Credential</h2>
+          <p className="text-xs text-gray-400 mb-3">Allowed roles: operations, admin.</p>
+          <form action={issueCredentialAction} className="space-y-3">
             <input
               name="uid"
               placeholder="New wristband UID"
-              className="w-full rounded border px-2 py-1.5 text-sm"
+              className="form-input"
               required
             />
             <input
               name="memberId"
               placeholder="Member ID"
-              className="w-full rounded border px-2 py-1.5 text-sm font-mono"
+              className="form-input"
               required
             />
             <button
               disabled={!canManageCredentialLifecycle}
-              className="rounded bg-blue-700 disabled:bg-gray-300 text-white text-sm px-3 py-1.5"
+              className={!canManageCredentialLifecycle ? 'btn-secondary opacity-50 cursor-not-allowed' : 'btn-primary'}
             >
               Issue
             </button>
           </form>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm border p-4">
-          <h2 className="text-sm font-semibold text-gray-700 mb-3">Activate Credential</h2>
-          <p className="text-xs text-gray-500 mb-2">Allowed roles: front_desk, operations, admin.</p>
-          {!canActivateCredential && <p className="text-xs text-amber-700 mb-2">front_desk/operations/admin only</p>}
-          <form action={activateCredentialAction} className="space-y-2">
+        <div className="card">
+          <h2 className="text-sm font-semibold text-ao-primary mb-3 uppercase tracking-wide">Activate Credential</h2>
+          <p className="text-xs text-gray-400 mb-3">Allowed roles: front_desk, operations, admin.</p>
+          <form action={activateCredentialAction} className="space-y-3">
             <input
               name="credentialId"
               placeholder="Credential ID"
-              className="w-full rounded border px-2 py-1.5 text-sm font-mono"
+              className="form-input"
               required
             />
             <button
               disabled={!canActivateCredential}
-              className="rounded bg-blue-700 disabled:bg-gray-300 text-white text-sm px-3 py-1.5"
+              className={!canActivateCredential ? 'btn-secondary opacity-50 cursor-not-allowed' : 'btn-primary'}
             >
               Activate
             </button>
           </form>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm border p-4">
-          <h2 className="text-sm font-semibold text-gray-700 mb-3">Suspend Credential</h2>
-          <p className="text-xs text-gray-500 mb-2">Allowed roles: operations, admin.</p>
-          {!canManageCredentialLifecycle && (
-            <p className="text-xs text-amber-700 mb-2">operations/admin only</p>
-          )}
-          <form action={suspendCredentialAction} className="space-y-2">
+        <div className="card">
+          <h2 className="text-sm font-semibold text-ao-primary mb-3 uppercase tracking-wide">Suspend Credential</h2>
+          <p className="text-xs text-gray-400 mb-3">Allowed roles: operations, admin.</p>
+          <form action={suspendCredentialAction} className="space-y-3">
             <input
               name="credentialId"
               placeholder="Credential ID"
-              className="w-full rounded border px-2 py-1.5 text-sm font-mono"
+              className="form-input"
               required
             />
             <button
               disabled={!canManageCredentialLifecycle}
-              className="rounded bg-amber-700 disabled:bg-gray-300 text-white text-sm px-3 py-1.5"
+              className={!canManageCredentialLifecycle ? 'btn-secondary opacity-50 cursor-not-allowed' : 'btn-primary'}
             >
               Suspend
             </button>
           </form>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm border p-4">
-          <h2 className="text-sm font-semibold text-gray-700 mb-3">Replace Credential</h2>
-          <p className="text-xs text-gray-500 mb-2">Allowed roles: operations, admin.</p>
-          {!canManageCredentialLifecycle && (
-            <p className="text-xs text-amber-700 mb-2">operations/admin only</p>
-          )}
-          <form action={replaceCredentialAction} className="space-y-2">
+        <div className="card">
+          <h2 className="text-sm font-semibold text-ao-primary mb-3 uppercase tracking-wide">Replace Credential</h2>
+          <p className="text-xs text-gray-400 mb-3">Allowed roles: operations, admin.</p>
+          <form action={replaceCredentialAction} className="space-y-3">
             <input
               name="oldCredentialId"
               placeholder="Old credential ID"
-              className="w-full rounded border px-2 py-1.5 text-sm font-mono"
+              className="form-input"
               required
             />
             <input
               name="newCredentialUid"
               placeholder="New wristband UID"
-              className="w-full rounded border px-2 py-1.5 text-sm"
+              className="form-input"
               required
             />
             <button
               disabled={!canManageCredentialLifecycle}
-              className="rounded bg-blue-700 disabled:bg-gray-300 text-white text-sm px-3 py-1.5"
+              className={!canManageCredentialLifecycle ? 'btn-secondary opacity-50 cursor-not-allowed' : 'btn-primary'}
             >
               Replace
             </button>
@@ -138,25 +129,25 @@ export default async function WristbandsPage({
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
+      <div className="card overflow-hidden">
         <table className="w-full text-sm">
-          <thead className="bg-gray-50 border-b">
+          <thead className="border-b border-gray-600 bg-ao-dark">
             <tr>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">
+              <th className="text-left px-4 py-3 text-xs font-semibold text-ao-teal uppercase tracking-wide">
                 UID
               </th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">
+              <th className="text-left px-4 py-3 text-xs font-semibold text-ao-teal uppercase tracking-wide">
                 Status
               </th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">
+              <th className="text-left px-4 py-3 text-xs font-semibold text-ao-teal uppercase tracking-wide">
                 Member ID
               </th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">
+              <th className="text-left px-4 py-3 text-xs font-semibold text-ao-teal uppercase tracking-wide">
                 Created
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y">
+          <tbody className="divide-y divide-gray-700">
             {wristbands.length === 0 ? (
               <tr>
                 <td colSpan={4} className="px-4 py-8 text-center text-sm text-gray-500">
@@ -165,15 +156,15 @@ export default async function WristbandsPage({
               </tr>
             ) : (
               wristbands.map((wb) => (
-                <tr key={wb.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 font-mono text-xs">{wb.uid}</td>
+                <tr key={wb.id} className="hover:bg-gray-700 hover:bg-opacity-30">
+                  <td className="px-4 py-3 font-mono text-xs text-gray-200">{wb.uid}</td>
                   <td className="px-4 py-3">
                     <StatusBadge status={wb.status} />
                   </td>
-                  <td className="px-4 py-3 font-mono text-xs text-gray-500">
+                  <td className="px-4 py-3 font-mono text-xs text-gray-400">
                     {wb.memberId ?? '—'}
                   </td>
-                  <td className="px-4 py-3 text-xs text-gray-500">
+                  <td className="px-4 py-3 text-xs text-gray-400">
                     {new Date(wb.createdAt).toLocaleDateString()}
                   </td>
                 </tr>
