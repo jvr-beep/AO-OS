@@ -21,7 +21,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://REPLACE-WITH-PUBLIC-AO-OS-API/v1/auth/login",
+        "url": "https://api.aosanctuary.com/v1/auth/login",
         "sendBody": true,
         "bodyParameters": {
           "parameters": [
