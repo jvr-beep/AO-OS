@@ -1,0 +1,139 @@
+{
+  "name": "AO OS - Auth Healthcheck",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 30
+            }
+          ]
+        }
+      },
+      "id": "a1b2c3d4-0001-0001-0001-000000000001",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://REPLACE-WITH-PUBLIC-AO-OS-API/v1/auth/login",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "email",
+              "value": "REPLACE-WITH-STAFF-EMAIL"
+            },
+            {
+              "name": "password",
+              "value": "REPLACE-WITH-STAFF-PASSWORD"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "a1b2c3d4-0002-0002-0002-000000000002",
+      "name": "Auth Login",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "create",
+        "databaseId": {
+          "__rl": true,
+          "value": "REPLACE_WITH_AUTOMATION_LOG_DB_ID",
+          "mode": "id"
+        },
+        "title": "=AO OS Auth Healthcheck — {{ $now.format('yyyy-MM-dd HH:mm') }}",
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Status|select",
+              "selectValue": "Success"
+            },
+            {
+              "key": "Token Present|checkbox",
+              "checkboxValue": "={{ $json.accessToken !== undefined }}"
+            },
+            {
+              "key": "Checked At|date",
+              "dateValue": "={{ $now.toISO() }}"
+            },
+            {
+              "key": "Notes|rich_text",
+              "textValue": "={{ 'Auth login returned HTTP 200. accessToken present: ' + ($json.accessToken !== undefined ? 'yes' : 'no') }}"
+            }
+          ]
+        }
+      },
+      "id": "a1b2c3d4-0003-0003-0003-000000000003",
+      "name": "Log Success",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [680, 300],
+      "credentials": {
+        "notionApi": {
+          "id": "REPLACE_WITH_NOTION_CREDENTIAL_ID",
+          "name": "REPLACE_WITH_NOTION_CREDENTIAL_NAME"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Auth Login",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Auth Login": {
+      "main": [
+        [
+          {
+            "node": "Log Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": ""
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "n8nVersion": "2.13.3"
+  },
+  "tags": [
+    {
+      "createdAt": "2026-03-27T00:00:00.000Z",
+      "updatedAt": "2026-03-27T00:00:00.000Z",
+      "id": "ao-os-healthcheck",
+      "name": "ao-os-healthcheck"
+    }
+  ]
+}
