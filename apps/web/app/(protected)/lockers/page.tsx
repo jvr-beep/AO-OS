@@ -25,23 +25,24 @@ export default async function LockersPage({
 
   return (
     <div className="max-w-4xl">
-      <h1 className="text-2xl font-semibold mb-6">Lockers</h1>
+      <h1 className="text-3xl font-bold mb-2">Lockers</h1>
+      <p className="text-gray-400 mb-6">Policy evaluation, assignment, and access management</p>
 
       {(okMessage || errorMessage) && (
         <div
-          className={`mb-4 rounded-md border px-3 py-2 text-sm ${
+          className={`mb-4 rounded-lg border px-4 py-3 text-sm ${
             errorMessage
-              ? 'border-red-200 bg-red-50 text-red-700'
-              : 'border-green-200 bg-green-50 text-green-700'
+              ? 'border-red-700 bg-red-900 text-red-200'
+              : 'border-green-700 bg-green-900 text-green-200'
           }`}
         >
           {errorMessage ?? okMessage}
         </div>
       )}
 
-      <div className="bg-white rounded-lg shadow-sm border p-4 mb-4">
-        <h2 className="text-sm font-semibold text-gray-700 mb-2">Hard-Blocked Locker Statuses</h2>
-        <p className="text-xs text-gray-500 mb-2">
+      <div className="card mb-4">
+        <h2 className="text-sm font-semibold text-ao-primary mb-2 uppercase tracking-wide">Hard-Blocked Locker Statuses</h2>
+        <p className="text-xs text-gray-400 mb-2">
           Staff override can bypass business-policy restrictions but cannot bypass operational safety blocks.
         </p>
         <div className="flex flex-wrap gap-2">
@@ -52,89 +53,93 @@ export default async function LockersPage({
       </div>
 
       <div className="grid grid-cols-1 gap-4 mb-6 lg:grid-cols-3">
-        <div className="bg-white rounded-lg shadow-sm border p-4">
-          <h2 className="text-sm font-semibold text-gray-700 mb-3">Evaluate Policy</h2>
-          <p className="text-xs text-gray-500 mb-2">Allowed roles: operations, admin.</p>
-          {!canEvaluatePolicy && <p className="text-xs text-amber-700 mb-2">operations/admin only</p>}
+        <div className="card">
+          <h2 className="text-sm font-semibold text-ao-primary mb-3 uppercase tracking-wide">Evaluate Policy</h2>
+          <p className="text-xs text-gray-400 mb-2">Allowed roles: operations, admin.</p>
+          {!canEvaluatePolicy && <p className="text-xs text-amber-500 mb-2">operations/admin only</p>}
           <form action={evaluateLockerPolicyAction} className="space-y-2">
-            <input name="memberId" placeholder="Member ID" className="w-full rounded border px-2 py-1.5 text-sm font-mono" required />
-            <input name="credentialId" placeholder="Credential ID" className="w-full rounded border px-2 py-1.5 text-sm font-mono" required />
-            <input name="siteId" placeholder="Site/Location ID" className="w-full rounded border px-2 py-1.5 text-sm font-mono" required />
-            <input name="sessionId" placeholder="Session ID" className="w-full rounded border px-2 py-1.5 text-sm font-mono" required />
-            <select name="requestMode" className="w-full rounded border px-2 py-1.5 text-sm" defaultValue="day_use_shared">
+            <input name="memberId" placeholder="Member ID" className="form-input" required />
+            <input name="credentialId" placeholder="Credential ID" className="form-input" required />
+            <input name="siteId" placeholder="Site/Location ID" className="form-input" required />
+            <input name="sessionId" placeholder="Session ID" className="form-input" required />
+            <select name="requestMode" className="form-input" defaultValue="day_use_shared">
               <option value="day_use_shared">day_use_shared</option>
               <option value="assigned">assigned</option>
               <option value="premium">premium</option>
               <option value="staff_override">staff_override</option>
             </select>
-            <input name="requestedZoneId" placeholder="Requested zone ID (optional)" className="w-full rounded border px-2 py-1.5 text-sm font-mono" />
-            <input name="requestedLockerId" placeholder="Requested locker ID (optional)" className="w-full rounded border px-2 py-1.5 text-sm font-mono" />
-            <input name="staffOverrideReason" placeholder="Override reason (optional)" className="w-full rounded border px-2 py-1.5 text-sm" />
+            <input name="requestedZoneId" placeholder="Requested zone ID (optional)" className="form-input" />
+            <input name="requestedLockerId" placeholder="Requested locker ID (optional)" className="form-input" />
+            <input name="staffOverrideReason" placeholder="Override reason (optional)" className="form-input" />
             <button
               disabled={!canEvaluatePolicy}
-              className="rounded bg-blue-700 disabled:bg-gray-300 text-white text-sm px-3 py-1.5"
+              className={
+                !canEvaluatePolicy
+                  ? 'btn-secondary w-full opacity-50 cursor-not-allowed'
+                  : 'btn-primary w-full'
+              }
             >
               Evaluate
             </button>
           </form>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm border p-4">
-          <h2 className="text-sm font-semibold text-gray-700 mb-3">Assign Locker</h2>
-          <p className="text-xs text-gray-500 mb-2">Allowed roles: front_desk, operations, admin.</p>
+        <div className="card">
+          <h2 className="text-sm font-semibold text-ao-primary mb-3 uppercase tracking-wide">Assign Locker</h2>
+          <p className="text-xs text-gray-400 mb-2">Allowed roles: front_desk, operations, admin.</p>
           <form action={assignLockerAction} className="space-y-2">
-            <input name="lockerId" placeholder="Locker ID" className="w-full rounded border px-2 py-1.5 text-sm font-mono" required />
-            <input name="memberId" placeholder="Member ID" className="w-full rounded border px-2 py-1.5 text-sm font-mono" required />
-            <input name="siteId" placeholder="Site/Location ID (optional)" className="w-full rounded border px-2 py-1.5 text-sm font-mono" />
-            <input name="visitSessionId" placeholder="Visit session ID (optional)" className="w-full rounded border px-2 py-1.5 text-sm font-mono" />
-            <select name="assignmentMode" className="w-full rounded border px-2 py-1.5 text-sm" defaultValue="assigned">
+            <input name="lockerId" placeholder="Locker ID" className="form-input" required />
+            <input name="memberId" placeholder="Member ID" className="form-input" required />
+            <input name="siteId" placeholder="Site/Location ID (optional)" className="form-input" />
+            <input name="visitSessionId" placeholder="Visit session ID (optional)" className="form-input" />
+            <select name="assignmentMode" className="form-input" defaultValue="assigned">
               <option value="assigned">assigned</option>
               <option value="day_use_shared">day_use_shared</option>
               <option value="premium">premium</option>
               <option value="staff_override">staff_override</option>
             </select>
-            <input name="requestedZoneId" placeholder="Requested zone ID (optional)" className="w-full rounded border px-2 py-1.5 text-sm font-mono" />
-            <input name="requestedLockerId" placeholder="Requested locker ID (optional)" className="w-full rounded border px-2 py-1.5 text-sm font-mono" />
-            <input name="staffOverrideReason" placeholder="Override reason (optional)" className="w-full rounded border px-2 py-1.5 text-sm" />
-            <button className="rounded bg-blue-700 text-white text-sm px-3 py-1.5">Assign</button>
+            <input name="requestedZoneId" placeholder="Requested zone ID (optional)" className="form-input" />
+            <input name="requestedLockerId" placeholder="Requested locker ID (optional)" className="form-input" />
+            <input name="staffOverrideReason" placeholder="Override reason (optional)" className="form-input" />
+            <button className="btn-primary w-full">Assign</button>
           </form>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm border p-4">
-          <h2 className="text-sm font-semibold text-gray-700 mb-3">Release Locker</h2>
-          <p className="text-xs text-gray-500 mb-2">Allowed roles: front_desk, operations, admin.</p>
+        <div className="card">
+          <h2 className="text-sm font-semibold text-ao-primary mb-3 uppercase tracking-wide">Release Locker</h2>
+          <p className="text-xs text-gray-400 mb-2">Allowed roles: front_desk, operations, admin.</p>
           <form action={unassignLockerAction} className="space-y-2">
-            <input name="lockerId" placeholder="Locker ID" className="w-full rounded border px-2 py-1.5 text-sm font-mono" required />
+            <input name="lockerId" placeholder="Locker ID" className="form-input" required />
             <input
               name="unassignedReason"
               placeholder="Reason (e.g. visit_complete)"
-              className="w-full rounded border px-2 py-1.5 text-sm"
+              className="form-input"
             />
-            <button className="rounded bg-amber-700 text-white text-sm px-3 py-1.5">Release</button>
+            <button className="btn-secondary w-full">Release</button>
           </form>
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
+      <div className="card overflow-hidden">
         <table className="w-full text-sm">
-          <thead className="bg-gray-50 border-b">
+          <thead className="bg-ao-dark border-b border-gray-700">
             <tr>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">
+              <th className="text-left px-4 py-3 text-xs font-semibold text-ao-teal uppercase tracking-wide">
                 Code
               </th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">
+              <th className="text-left px-4 py-3 text-xs font-semibold text-ao-teal uppercase tracking-wide">
                 Status
               </th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">
+              <th className="text-left px-4 py-3 text-xs font-semibold text-ao-teal uppercase tracking-wide">
                 Occupant
               </th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">
+              <th className="text-left px-4 py-3 text-xs font-semibold text-ao-teal uppercase tracking-wide">
                 Since
               </th>
               <th className="px-4 py-3" />
             </tr>
           </thead>
-          <tbody className="divide-y">
+          <tbody className="divide-y divide-gray-700">
             {lockers.length === 0 ? (
               <tr>
                 <td colSpan={5} className="px-4 py-8 text-center text-sm text-gray-500">
@@ -143,15 +148,15 @@ export default async function LockersPage({
               </tr>
             ) : (
               lockers.map((locker) => (
-                <tr key={locker.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 font-medium">{locker.code}</td>
+                <tr key={locker.id} className="hover:bg-gray-700/40">
+                  <td className="px-4 py-3 font-medium text-white">{locker.code}</td>
                   <td className="px-4 py-3">
                     <StatusBadge status={locker.status} />
                   </td>
-                  <td className="px-4 py-3 text-xs text-gray-600">
+                  <td className="px-4 py-3 text-xs text-gray-300">
                     {locker.assignedMemberId ?? '—'}
                   </td>
-                  <td className="px-4 py-3 text-xs text-gray-500">
+                  <td className="px-4 py-3 text-xs text-gray-400">
                     {locker.assignedAt
                       ? new Date(locker.assignedAt).toLocaleDateString()
                       : '—'}
@@ -159,7 +164,7 @@ export default async function LockersPage({
                   <td className="px-4 py-3">
                     <Link
                       href={`/lockers/${locker.id}`}
-                      className="text-xs text-blue-600 hover:underline"
+                      className="text-xs text-ao-teal hover:text-ao-primary transition-colors"
                     >
                       View →
                     </Link>
