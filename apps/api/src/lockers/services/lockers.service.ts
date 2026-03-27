@@ -109,7 +109,12 @@ export class LockersService {
       throw new ConflictException("LOCKER_ALREADY_ASSIGNED");
     }
 
-    if (locker.status === "out_of_service" || locker.status === "maintenance" || locker.status === "offline") {
+    if (
+      locker.status === "out_of_service" ||
+      locker.status === "maintenance" ||
+      locker.status === "offline" ||
+      locker.status === "forced_open"
+    ) {
       throw new ConflictException("LOCKER_OUT_OF_SERVICE");
     }
 
@@ -240,7 +245,12 @@ export class LockersService {
     let wristbandId: string | null = wristband?.id ?? null;
     let lockerAssignmentId: string | null = activeLockerAssignment?.id ?? null;
 
-    if (locker.status === "out_of_service" || locker.status === "maintenance" || locker.status === "offline") {
+    if (
+      locker.status === "out_of_service" ||
+      locker.status === "maintenance" ||
+      locker.status === "offline" ||
+      locker.status === "forced_open"
+    ) {
       decision = "denied";
       denialReasonCode = "LOCKER_OUT_OF_SERVICE";
     } else if (!wristband) {

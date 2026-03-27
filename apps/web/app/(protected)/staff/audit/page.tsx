@@ -50,18 +50,30 @@ export default async function StaffAuditPage() {
             ) : (
               events.map((ev) => (
                 <tr key={ev.id} className="hover:bg-gray-50">
+                  {(() => {
+                    const actorEmailSnapshot = (
+                      ev as AuditEvent & { actorEmailSnapshot?: string }
+                    ).actorEmailSnapshot
+                    const actorDisplay =
+                      ev.staffUser?.fullName ??
+                      actorEmailSnapshot ??
+                      (ev.staffUserId ? `${ev.staffUserId.slice(0, 8)}…` : 'System')
+
+                    return (
+                      <>
                   <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">
                     {new Date(ev.createdAt).toLocaleString()}
                   </td>
-                  <td className="px-4 py-3 text-xs">
-                    {ev.staffUser?.fullName ?? `${ev.staffUserId.slice(0, 8)}…`}
-                  </td>
+                  <td className="px-4 py-3 text-xs">{actorDisplay}</td>
                   <td className="px-4 py-3 font-mono text-xs">{ev.action}</td>
                   <td className="px-4 py-3 text-xs text-gray-500">
                     {ev.targetType
                       ? `${ev.targetType}${ev.targetId ? ` / ${ev.targetId.slice(0, 8)}…` : ''}`
                       : '—'}
                   </td>
+                      </>
+                    )
+                  })()}
                 </tr>
               ))
             )}

@@ -19,6 +19,7 @@ interface EvaluateInput {
 
 const ACTIVE_CREDENTIAL_STATUSES: WristbandStatus[] = ["active", "assigned", "pending_activation"];
 const ASSIGNABLE_STATUSES: LockerStatus[] = ["available", "reserved", "assigned"];
+const HARD_BLOCKED_STATUSES: LockerStatus[] = ["maintenance", "offline", "forced_open", "out_of_service"];
 
 @Injectable()
 export class LockerPolicyService {
@@ -120,10 +121,8 @@ export class LockerPolicyService {
       }
     }
 
-    // Keep wet-area/accessibility checks AO-owned and simple for V1.
-    if (!input.staffOverride) {
-      filtered = filtered.filter((locker) => locker.status !== "maintenance" && locker.status !== "out_of_service");
-    }
+    // staffOverride can bypass business-policy restrictions, but never hard safety/operational states.
+    filtered = filtered.filter((locker) => !HARD_BLOCKED_STATUSES.includes(locker.status));
 
     const sorted = [...filtered].sort((a, b) => {
       const aPremium = a.tierClass === "premium" ? 0 : 1;
@@ -140,9 +139,10 @@ export class LockerPolicyService {
     });
 
     if (sorted.length === 0) {
+      const reasonCode = input.staffOverride ? "LOCKER_HARD_BLOCKED_STATUS" : "NO_ELIGIBLE_LOCKERS";
       return this.logAndReturn(input, {
         decision: "deny",
-        reasonCode: "NO_ELIGIBLE_LOCKERS",
+        reasonCode,
         eligibleLockerIds: [],
         assignmentMode: input.requestMode,
         policySnapshot: this.snapshot(input, member, credential, [])
