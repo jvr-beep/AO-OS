@@ -1,0 +1,125 @@
+name: Postman Regression
+
+on:
+  workflow_dispatch:
+
+jobs:
+  regression:
+    name: Run Postman collections with Newman
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/ao_os
+      PORT: 4000
+      AUTH_JWT_SECRET: ci-jwt-secret
+      AUTH_SEED_ADMIN_EMAIL: admin@ao-os.dev
+      AUTH_SEED_ADMIN_PASSWORD: ${{ secrets.AUTH_SEED_ADMIN_PASSWORD }}
+      AUTH_SEED_ADMIN_NAME: Seed Admin
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: ao_os
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.32.1
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Validate required secret
+        run: |
+          if [ -z "${AUTH_SEED_ADMIN_PASSWORD}" ]; then
+            echo "Missing required secret: AUTH_SEED_ADMIN_PASSWORD"
+            echo "Set it in GitHub: Settings -> Secrets and variables -> Actions -> New repository secret"
+            exit 1
+          fi
+
+      - name: Generate Prisma client
+        run: pnpm prisma:generate
+
+      - name: Apply migrations
+        run: pnpm prisma migrate deploy --schema prisma/schema.prisma
+
+      - name: Seed base data
+        run: pnpm prisma db execute --file prisma/seed.sql --schema prisma/schema.prisma
+
+      - name: Build API
+        run: pnpm --filter api build
+
+      - name: Start API
+        run: |
+          node apps/api/dist/main.js > /tmp/api.log 2>&1 &
+          echo $! > /tmp/api.pid
+
+          sleep 1
+          if ! kill -0 "$(cat /tmp/api.pid)" 2>/dev/null; then
+            echo "API process exited early"
+            cat /tmp/api.log || true
+            exit 1
+          fi
+
+      - name: Wait for API health
+        run: |
+          for i in {1..30}; do
+            if curl -fsS http://localhost:4000/v1/health >/dev/null; then
+              echo "API is healthy"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "API did not become healthy in time"
+          cat /tmp/api.log
+          exit 1
+
+      - name: Run staff-users regression
+        run: |
+          npx --yes newman run postman/collections/staff-users-verification.postman_collection.json \
+            --env-var "baseUrl=http://localhost:4000/v1" \
+            --env-var "adminEmail=${AUTH_SEED_ADMIN_EMAIL}" \
+            --env-var "adminPassword=${AUTH_SEED_ADMIN_PASSWORD}" \
+            --reporters cli \
+            --bail
+
+      - name: Run locker-credential regression
+        run: |
+          npx newman run postman/collections/locker-credential-regression.postman_collection.json \
+            --env-var "baseUrl=http://localhost:4000/v1" \
+            --env-var "adminEmail=${AUTH_SEED_ADMIN_EMAIL}" \
+            --env-var "adminPassword=${AUTH_SEED_ADMIN_PASSWORD}" \
+            --reporters cli \
+            --bail
+
+      - name: Show API log on failure
+        if: failure()
+        run: cat /tmp/api.log
+
+      - name: Stop API
+        if: always()
+        run: |
+          if [ -f /tmp/api.pid ]; then
+            kill "$(cat /tmp/api.pid)" || true
+          fi

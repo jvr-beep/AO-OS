@@ -170,3 +170,26 @@ Use:
 - Postman for endpoint verification
 - GitHub for commits and checkpoints
 - ChatGPT for architecture, sequencing, debugging, and prompt drafting
+
+---
+
+## Toolchain Integration Status
+
+All tools are connected through this repository as the orchestration layer.
+
+| Tool | Integration | Status |
+|------|-------------|--------|
+| **GitHub** | CI workflows in `.github/workflows/` | Active |
+| **VS Code** | Tasks in `.vscode/tasks.json`, extensions in `.vscode/extensions.json` | Active |
+| **Swagger/OpenAPI** | `openapi/ao-os.openapi.yaml` — all endpoints documented | Active |
+| **Postman** | Collections in `postman/collections/`, synced via `.postman/resources.yaml` | Active |
+| **Notion** | Upstream for product decisions → GitHub Issues → code | Manual |
+| **Gmail** | External communication only → action items logged as Issues | Manual |
+| **ChatGPT** | Planning and spec drafting → outputs committed to repo | Manual |
+
+### CI Workflows
+- `locker-credential-smoke.yml` — locker/credential smoke test (manual dispatch)
+- `openapi-validate.yml` — OpenAPI spec lint on push/PR to `openapi/`
+- `postman-regression.yml` — Newman regression against all collections (manual dispatch)
+
+### Full toolchain documentation: `docs/TOOLCHAIN.md`

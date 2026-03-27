@@ -147,3 +147,30 @@ A task is done when:
 - endpoint paths match expectations
 - Postman can exercise the new endpoint successfully
 - no unrelated files were changed without reason
+
+---
+
+## Toolchain Integration
+
+AO OS is the **source of truth and orchestration layer** for all connected tools.
+
+### Tool Roles
+| Tool | Role |
+|------|------|
+| **AO OS (this repo)** | Source of truth — all contracts, instructions, and state live here |
+| **GitHub** | Code, issues, PRs, release history — CI enforces the contract |
+| **VS Code** | Implementation surface — use `.vscode/tasks.json` for local workflow |
+| **Swagger/OpenAPI** | Contract surface — `openapi/ao-os.openapi.yaml` is updated with every new endpoint |
+| **Postman** | Verification surface — collections in `postman/collections/` verify the contract |
+| **Notion** | Decisions, product context, vendor requirements, rollout plans |
+| **Gmail** | External communication only — action items must be logged as GitHub Issues |
+| **ChatGPT** | Planning, spec drafting, implementation guidance, verification prompts |
+
+### Contract-First Rule
+When adding a new endpoint:
+1. Update `openapi/ao-os.openapi.yaml` first
+2. Implement the endpoint to match the spec
+3. Add or update the Postman collection to verify it
+4. Commit everything in the same PR
+
+### Full toolchain documentation: `docs/TOOLCHAIN.md`
