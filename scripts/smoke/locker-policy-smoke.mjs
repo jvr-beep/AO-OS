@@ -7,6 +7,12 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 const BASE = process.env.AO_SMOKE_BASE_URL ?? "http://localhost:4000/v1";
+const ADMIN_EMAIL = process.env.AUTH_SEED_ADMIN_EMAIL ?? "admin@ao-os.dev";
+const ADMIN_PASSWORD = process.env.AUTH_SEED_ADMIN_PASSWORD;
+if (!ADMIN_PASSWORD) {
+  console.error("FATAL: AUTH_SEED_ADMIN_PASSWORD environment variable is not set");
+  process.exit(1);
+}
 const TS = Date.now();
 
 async function request(method, path, body, token) {
@@ -83,8 +89,8 @@ async function main() {
   const siteId = await resolveSiteId();
 
   const loginRes = await post("/auth/login", {
-    email: "admin@ao-os.dev",
-    password: "AdminPass123!"
+    email: ADMIN_EMAIL,
+    password: ADMIN_PASSWORD
   });
 
   if (loginRes.status !== 200 && loginRes.status !== 201) {
