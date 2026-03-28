@@ -252,6 +252,24 @@ Polled At: = $now.toIso()
 
 ### If Test Fails
 
+**n8n.cloud returns 403 (Cloudflare block)**:
+- Cloudflare is blocking access to n8n.io because it has detected suspicious activity from your IP address
+- This is n8n.io's own security layer — it is separate from the AO OS API and unrelated to JWT/auth setup
+- Resolution: Contact n8n.io support directly at [n8n.io/contact](https://n8n.io/contact) with:
+  - Your Cloudflare Ray ID (shown on the 403 page, e.g. `9e3273a45b7bbd24`)
+  - Your public IP address (e.g. `20.52.126.10`) — find it at [whatismyip.com](https://www.whatismyip.com)
+  - A description of what you were doing when the block occurred (e.g. "Signing in to app.n8n.cloud to configure a workflow")
+- Alternative: Use [self-hosted n8n](https://docs.n8n.io/hosting/) to avoid Cloudflare blocking entirely:
+  ```bash
+  # Run n8n locally with Docker
+  docker run -it --rm \
+    --name n8n \
+    -p 5678:5678 \
+    -v ~/.n8n:/home/node/.n8n \
+    docker.n8n.io/n8nio/n8n
+  # Access at http://localhost:5678
+  ```
+
 **HTTP Request returns 401 (Unauthorized)**:
 - JWT token is invalid or expired
 - Solution: Get fresh token by logging into web UI, checking browser dev tools
@@ -291,12 +309,37 @@ Polled At: = $now.toIso()
 
 | Problem | Cause | Solution |
 |---------|-------|----------|
+| **403 from Cloudflare on n8n.cloud** | n8n.io's Cloudflare WAF is blocking your IP as suspicious | Contact n8n.io support (see below) or switch to self-hosted n8n |
 | No events in Notion | API has no new events since last poll | Manually trigger from web UI to generate events, then re-run N8N |
 | Events duplicating in Notion | N8N running too frequently | Reduce frequency or check polling cursor is updating |
 | Gmail not sending | Gmail account not authorized | Re-auth at N8N Credentials page |
 | Workflow stuck on "running" | HTTP timeout or API slow | Increase HTTP timeout to 60s, or check API server |
 | "Invalid Bearer token" | Token expired | Generate new JWT by logging into web UI |
 | Notion field errors | Field name typo or wrong type | Double-check field names match exactly from Notion database |
+
+### Resolving a 403 Cloudflare Block on n8n.cloud
+
+If you see a Cloudflare 403 error when trying to access [app.n8n.cloud](https://app.n8n.cloud) or [n8n.io](https://n8n.io), Cloudflare is blocking your IP address. This is unrelated to your AO OS configuration.
+
+**Steps to unblock:**
+1. Note the **Cloudflare Ray ID** shown on the 403 page (e.g. `9e3273a45b7bbd24`)
+2. Note your **public IP address** (shown on the 403 page or at [whatismyip.com](https://www.whatismyip.com), e.g. `20.52.126.10`)
+3. Contact n8n.io support at [community.n8n.io](https://community.n8n.io) or [n8n.io/contact](https://n8n.io/contact) with:
+   - The Cloudflare Ray ID
+   - Your public IP address
+   - What you were doing when the block occurred
+
+**Alternative — use self-hosted n8n to avoid the block entirely:**
+```bash
+# Run n8n locally with Docker (no Cloudflare in the path)
+docker run -it --rm \
+  --name n8n \
+  -p 5678:5678 \
+  -v ~/.n8n:/home/node/.n8n \
+  docker.n8n.io/n8nio/n8n
+# Access the UI at http://localhost:5678
+```
+See [n8n self-hosting docs](https://docs.n8n.io/hosting/) for production deployment options.
 
 ---
 
