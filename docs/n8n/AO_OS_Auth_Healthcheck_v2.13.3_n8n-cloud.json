@@ -23,6 +23,7 @@
         "method": "POST",
         "url": "https://api.aosanctuary.com/v1/auth/login",
         "sendBody": true,
+        "contentType": "json",
         "bodyParameters": {
           "parameters": [
             {
@@ -31,7 +32,7 @@
             },
             {
               "name": "password",
-              "value": "REPLACE-WITH-STAFF-PASSWORD"
+              "value": "TestPassword123!"
             }
           ]
         },
@@ -171,6 +172,7 @@
       "type": "n8n-nodes-base.notion",
       "typeVersion": 2.2,
       "position": [900, 400],
+      "disabled": true,
       "credentials": {
         "notionApi": {
           "id": "REPLACE_WITH_NOTION_CREDENTIAL_ID",
