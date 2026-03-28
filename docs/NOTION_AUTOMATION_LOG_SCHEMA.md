@@ -17,9 +17,10 @@ Create the following fields in Notion (**+ Add a property**):
 | **Workflow Name** | Text | Name of the n8n workflow that wrote the entry |
 | **Status** | Select | Options: `Success`, `Failure` |
 | **Timestamp** | Date (with time) | ISO 8601 datetime of the run |
-| **Trigger** | Text | What triggered the run (e.g. "Scheduled (30 min)") |
-| **Raw Payload** | Text | Full JSON response body (Success runs only) |
-| **Error Details** | Text | Error message or description (Failure runs only) |
+| **Trigger** | Text | What triggered the run (e.g. "Schedule every 5 minutes") |
+| **Raw Payload** | Text | Full JSON response body — truncated to 1800 chars (Success runs) |
+| **Error Message** | Text | Error message from the response body, if any (Success runs — empty string when absent) |
+| **Error Details** | Text | Full error description (Failure runs only) |
 
 ---
 
@@ -37,7 +38,7 @@ Add each field listed in the table above:
 
 - **Status** → type `Select` → add options `Success` (Green) and `Failure` (Red)
 - **Timestamp** → type `Date` → enable "Include time"
-- **Workflow Name**, **Trigger**, **Raw Payload**, **Error Details** → type `Text`
+- **Workflow Name**, **Trigger**, **Raw Payload**, **Error Message**, **Error Details** → type `Text`
 
 ### 3. Get the Database ID
 
@@ -67,10 +68,10 @@ Add each field listed in the table above:
 
 ## Sample Entry
 
-| Name | Workflow Name | Status | Timestamp | Trigger | Raw Payload | Error Details |
-|------|--------------|--------|-----------|---------|-------------|---------------|
-| AO OS Auth Healthcheck — 2026-03-27 23:30 | AO OS Auth Healthcheck | Success | 2026-03-27T23:30:00Z | Scheduled (30 min) | `{"accessToken":"eyJ..."}` | — |
-| AO OS Auth Healthcheck — 2026-03-27 23:00 | AO OS Auth Healthcheck | Failure | 2026-03-27T23:00:00Z | Scheduled (30 min) | — | Login failed: accessToken not returned |
+| Name | Workflow Name | Status | Timestamp | Trigger | Raw Payload | Error Message | Error Details |
+|------|--------------|--------|-----------|---------|-------------|---------------|---------------|
+| AO OS Auth Healthcheck — 2026-03-27 23:30 | AO OS Auth Healthcheck | Success | 2026-03-27T23:30:00Z | Schedule every 5 minutes | `{"accessToken":"eyJ..."}` | — | — |
+| AO OS Auth Healthcheck — 2026-03-27 23:25 | AO OS Auth Healthcheck | Failure | 2026-03-27T23:25:00Z | Schedule every 5 minutes | — | — | Login failed: accessToken not returned |
 
 ---
 

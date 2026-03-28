@@ -7,7 +7,7 @@
           "interval": [
             {
               "field": "minutes",
-              "minutesInterval": 30
+              "minutesInterval": 5
             }
           ]
         }
@@ -27,7 +27,7 @@
           "parameters": [
             {
               "name": "email",
-              "value": "REPLACE-WITH-STAFF-EMAIL"
+              "value": "staff@ao-os.local"
             },
             {
               "name": "password",
@@ -106,11 +106,15 @@
             },
             {
               "key": "Trigger|rich_text",
-              "textValue": "Scheduled (30 min)"
+              "textValue": "Schedule every 5 minutes"
             },
             {
               "key": "Raw Payload|rich_text",
-              "textValue": "={{ JSON.stringify($json) }}"
+              "textValue": "={{ JSON.stringify($json).slice(0, 1800) }}"
+            },
+            {
+              "key": "Error Message|rich_text",
+              "textValue": "={{ $json.message || '' }}"
             }
           ]
         }
@@ -153,7 +157,7 @@
             },
             {
               "key": "Trigger|rich_text",
-              "textValue": "Scheduled (30 min)"
+              "textValue": "Schedule every 5 minutes"
             },
             {
               "key": "Error Details|rich_text",
