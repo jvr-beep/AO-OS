@@ -17,7 +17,14 @@
 #   5. In Cloudflare dashboard → Zero Trust → Tunnels, add the two DNS records:
 #        api.aosanctuary.com         → CNAME <TUNNEL_ID>.cfargotunnel.com
 #        api-staging.aosanctuary.com → CNAME <TUNNEL_ID>.cfargotunnel.com  (optional)
-#   6. Run the tunnel: cloudflared tunnel run ao-os-api
+#   6. Install and enable as a systemd service (recommended for production):
+#        sudo cloudflared service install
+#        sudo systemctl enable cloudflared
+#        sudo systemctl start cloudflared
+#      Day-to-day operations:
+#        sudo systemctl restart cloudflared   # after editing this config
+#        sudo systemctl status cloudflared    # verify the tunnel is healthy
+#      Or run ad-hoc (foreground, dev only): cloudflared tunnel run ao-os-api
 #
 # Do NOT store app secrets in Cloudflare. This file routes traffic only.
 # =============================================================
