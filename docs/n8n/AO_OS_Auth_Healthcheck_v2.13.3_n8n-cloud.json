@@ -55,17 +55,17 @@
           "value": "REPLACE_WITH_AUTOMATION_LOG_DB_ID",
           "mode": "id"
         },
-        "title": "AO OS auth health check",
+        "title": "={{$json.accessToken ? 'AO OS auth health check - Success' : 'AO OS auth health check - Failed'}}",
         "simple": false,
         "propertiesUi": {
           "propertyValues": [
             {
               "key": "Workflow Name|rich_text",
-              "textContent": "AO OS auth health check"
+              "textContent": "={{$json.accessToken ? 'AO OS auth health check - Success' : 'AO OS auth health check - Failed'}}"
             },
             {
               "key": "Status|select",
-              "selectValue": "Success"
+              "selectValue": "={{$json.accessToken ? 'Success' : 'Failed'}}"
             },
             {
               "key": "Timestamp|date",
@@ -76,7 +76,7 @@
         "options": {}
       },
       "id": "af8459f9-6914-4230-84df-eecfd4e5c7ea",
-      "name": "Log Success",
+      "name": "Log Result",
       "type": "n8n-nodes-base.notion",
       "typeVersion": 2.2,
       "position": [
@@ -107,7 +107,7 @@
       "main": [
         [
           {
-            "node": "Log Success",
+            "node": "Log Result",
             "type": "main",
             "index": 0
           }
