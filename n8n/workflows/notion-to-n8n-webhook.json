@@ -1,0 +1,316 @@
+{
+  "name": "AO OS Notion → n8n Webhook",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ao-os/notion-event",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Notion Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "ao-os-notion-event"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "secret-check",
+              "leftValue": "={{ $json.headers['x-notion-secret'] }}",
+              "rightValue": "={{ $env.NOTION_WEBHOOK_SECRET }}",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "validate-secret",
+      "name": "Validate Secret",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"error\": \"Unauthorized\" }",
+        "options": {
+          "responseCode": 401
+        }
+      },
+      "id": "respond-unauthorized",
+      "name": "Respond Unauthorized",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [680, 440]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract the Notion automation payload\nconst body = $input.first().json.body;\n\n// Determine the event type and route accordingly\nconst eventType = body.eventType || body.type || 'unknown';\nconst pageId = body.pageId || body.page?.id || null;\nconst databaseId = body.databaseId || body.database?.id || null;\nconst properties = body.properties || {};\n\nreturn [{\n  json: {\n    eventType,\n    pageId,\n    databaseId,\n    properties,\n    receivedAt: new Date().toISOString(),\n    raw: body\n  }\n}];\n"
+      },
+      "id": "parse-payload",
+      "name": "Parse Notion Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 180]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "needs-api-action",
+              "leftValue": "={{ $json.eventType }}",
+              "rightValue": "api_action",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "route-event",
+      "name": "Route Event",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [900, 180]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.AO_OS_API_BASE }}/auth/login",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "email",
+              "value": "={{ $env.AO_OS_STAFF_EMAIL }}"
+            },
+            {
+              "name": "password",
+              "value": "={{ $env.AO_OS_STAFF_PASSWORD }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "get-token",
+      "name": "Get Auth Token",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1120, 100]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.AO_OS_API_BASE }}/events/ingest",
+        "authentication": "genericCredentialType",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $node['Get Auth Token'].json.accessToken }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "source",
+              "value": "notion"
+            },
+            {
+              "name": "eventType",
+              "value": "={{ $node['Parse Notion Payload'].json.eventType }}"
+            },
+            {
+              "name": "pageId",
+              "value": "={{ $node['Parse Notion Payload'].json.pageId }}"
+            },
+            {
+              "name": "properties",
+              "value": "={{ JSON.stringify($node['Parse Notion Payload'].json.properties) }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "post-to-api",
+      "name": "POST to AO OS API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1340, 100]
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": {
+          "__rl": true,
+          "value": "={{ $node['Parse Notion Payload'].json.pageId }}",
+          "mode": "id"
+        },
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Status|select",
+              "selectValue": "processed"
+            }
+          ]
+        }
+      },
+      "id": "update-notion-status",
+      "name": "Update Notion Status",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [1340, 260]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"status\": \"ok\", \"receivedAt\": \"{{ $now }}\" }",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "respond-ok",
+      "name": "Respond OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1560, 180]
+    }
+  ],
+  "connections": {
+    "Notion Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validate Secret",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Secret": {
+      "main": [
+        [
+          {
+            "node": "Parse Notion Payload",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Unauthorized",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Notion Payload": {
+      "main": [
+        [
+          {
+            "node": "Route Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Event": {
+      "main": [
+        [
+          {
+            "node": "Get Auth Token",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Notion Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Auth Token": {
+      "main": [
+        [
+          {
+            "node": "POST to AO OS API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST to AO OS API": {
+      "main": [
+        [
+          {
+            "node": "Respond OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Notion Status": {
+      "main": [
+        [
+          {
+            "node": "Respond OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "createdAt": "2026-03-28T00:00:00.000Z",
+      "updatedAt": "2026-03-28T00:00:00.000Z",
+      "id": "notion-webhook",
+      "name": "notion-webhook"
+    }
+  ],
+  "triggerCount": 0,
+  "updatedAt": "2026-03-28T00:00:00.000Z",
+  "versionId": "1"
+}

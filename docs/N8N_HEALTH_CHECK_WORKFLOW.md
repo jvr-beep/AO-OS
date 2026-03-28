@@ -29,9 +29,15 @@ A minimal workflow to validate that the AO OS API authentication endpoint is rea
 |-------|-------|
 | **Node type** | HTTP Request |
 | **Method** | POST |
-| **URL** | `https://api.aosanctuary.com/v1/auth/login` |
+| **URL** | `={{ $env.AO_OS_API_BASE }}/auth/login` |
 | **Send Body** | JSON |
-| **Body** | `{"email": "staff@ao-os.local", "password": "TestPassword123!"}` |
+| **Body email** | `={{ $env.AO_OS_STAFF_EMAIL }}` |
+| **Body password** | `={{ $env.AO_OS_STAFF_PASSWORD }}` |
+
+Set the environment variables in n8n to:
+- `AO_OS_API_BASE` = `https://api.aosanctuary.com/v1`
+- `AO_OS_STAFF_EMAIL` = `staff@ao-os.local`
+- `AO_OS_STAFF_PASSWORD` = (your staff password)
 
 **Expected response** (HTTP 200):
 ```json
@@ -74,13 +80,10 @@ Keep this node **disabled** (`disabled: true`) during initial setup and testing 
 ## Setup Steps
 
 1. Import `n8n/workflows/health-check.json` into n8n (or build manually).
-2. Open the **Auth Login** node and confirm the body matches:
-   ```json
-   {
-     "email": "staff@ao-os.local",
-     "password": "TestPassword123!"
-   }
-   ```
+2. Open the **Auth Login** node and confirm the URL and body use environment variables:
+   - **URL**: `={{ $env.AO_OS_API_BASE }}/auth/login`
+   - **email**: `={{ $env.AO_OS_STAFF_EMAIL }}`
+   - **password**: `={{ $env.AO_OS_STAFF_PASSWORD }}`
 3. Execute **Auth Login** by itself → confirm HTTP 200 and `accessToken` in output.
 4. Open **Log Success (Notion)** → re-select the Notion Database from the dropdown.
 5. Delete any old mapped properties, then add the 4 properties listed above.
@@ -94,6 +97,9 @@ Keep this node **disabled** (`disabled: true`) during initial setup and testing 
 Set in n8n credentials manager:
 
 ```env
+AO_OS_API_BASE=https://api.aosanctuary.com/v1
+AO_OS_STAFF_EMAIL=staff@ao-os.local
+AO_OS_STAFF_PASSWORD=<your-staff-password>
 NOTION_HEALTH_CHECK_DB_ID=<your-notion-database-id>
 ```
 

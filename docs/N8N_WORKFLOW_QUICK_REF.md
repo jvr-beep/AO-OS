@@ -1,6 +1,13 @@
 # N8N Workflow Quick Reference
 
-## Visual Flow
+> **Connector config**: [`n8n/connector.config.json`](../n8n/connector.config.json)  
+> **Full connector guide**: [`docs/N8N_CONNECTOR_SETUP.md`](N8N_CONNECTOR_SETUP.md)
+
+---
+
+## Direction 1: n8n → Notion (Outbound Polling)
+
+### Visual Flow
 
 ```
 ┌─────────────────┐
@@ -9,7 +16,7 @@
          │
          ▼
 ┌──────────────────────────┐
-│  HTTP GET                │ http://localhost:4000/v1/events/poll
+│  HTTP GET                │ https://api.aosanctuary.com/v1/events/poll
 │  Bearer: <JWT-token>     │
 └────────┬─────────────────┘
          │
@@ -38,6 +45,41 @@
 │(Alert) │  │(Append DB item)│
 └────────┘  └────────────────┘
 ```
+
+---
+
+## Direction 2: Notion → n8n (Inbound Webhook)
+
+### Visual Flow
+
+```
+[Notion Automation]
+       ↓  POST with x-notion-secret header
+[n8n Webhook]  https://ao-os.app.n8n.cloud/webhook/ao-os/notion-event
+       ↓
+[Validate Secret]
+       ↓
+[Parse Notion Payload]
+       ↓
+  ┌────┴────────────────────┐
+api_action              other event
+  ↓                         ↓
+[Get Auth Token]    [Update Notion Status]
+  ↓
+[POST to AO OS API]
+  ↓
+[Respond 200 OK]
+```
+
+### Webhook Endpoint
+
+```
+Method: POST
+URL: https://ao-os.app.n8n.cloud/webhook/ao-os/notion-event
+Header: x-notion-secret: <NOTION_WEBHOOK_SECRET>
+```
+
+---
 
 ## Key Values Reference
 

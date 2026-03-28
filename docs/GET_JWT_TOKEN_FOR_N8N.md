@@ -52,7 +52,7 @@ curl -X POST https://api.aosanctuary.com/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{
     "email": "staff@ao-os.local",
-    "password": "TestPassword123!"
+    "password": "<your-staff-password>"
   }'
 
 # Or against a local instance
@@ -60,7 +60,7 @@ curl -X POST http://localhost:4000/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{
     "email": "staff@ao-os.local",
-    "password": "your-staff-password"
+    "password": "<your-staff-password>"
   }'
 ```
 

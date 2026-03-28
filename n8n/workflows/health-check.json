@@ -12,17 +12,17 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://api.aosanctuary.com/v1/auth/login",
+        "url": "={{ $env.AO_OS_API_BASE }}/auth/login",
         "sendBody": true,
         "bodyParameters": {
           "parameters": [
             {
               "name": "email",
-              "value": "staff@ao-os.local"
+              "value": "={{ $env.AO_OS_STAFF_EMAIL }}"
             },
             {
               "name": "password",
-              "value": "TestPassword123!"
+              "value": "={{ $env.AO_OS_STAFF_PASSWORD }}"
             }
           ]
         },
