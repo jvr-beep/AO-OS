@@ -1,5 +1,5 @@
 {
-  "name": "AO OS - Auth Healthcheck",
+  "name": "AO OS Auth Health Check - n8n Cloud v2.13.3",
   "nodes": [
     {
       "parameters": {
@@ -12,11 +12,14 @@
           ]
         }
       },
-      "id": "a1b2c3d4-0001-0001-0001-000000000001",
-      "name": "Schedule Trigger",
+      "id": "3a4f6e9f-a16d-44b2-8f20-5c826f8a8d11",
+      "name": "Every 5 Minutes",
       "type": "n8n-nodes-base.scheduleTrigger",
-      "typeVersion": 1.1,
-      "position": [240, 300]
+      "typeVersion": 1.2,
+      "position": [
+        220,
+        280
+      ]
     },
     {
       "parameters": {
@@ -24,62 +27,24 @@
         "url": "https://api.aosanctuary.com/v1/auth/login",
         "sendBody": true,
         "contentType": "json",
-        "bodyParameters": {
-          "parameters": [
-            {
-              "name": "email",
-              "value": "staff@ao-os.local"
-            },
-            {
-              "name": "password",
-              "value": "TestPassword123!"
-            }
-          ]
-        },
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"email\": \"staff@ao-os.local\",\n  \"password\": \"TestPassword123!\"\n}",
         "options": {
           "response": {
             "response": {
-              "responseFormat": "json"
+              "neverError": true
             }
           }
         }
       },
-      "id": "a1b2c3d4-0002-0002-0002-000000000002",
+      "id": "5ec8f681-f793-4f68-b7e1-2f7d2e0d2426",
       "name": "Auth Login",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [460, 300],
-      "continueOnFail": true
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "loose"
-          },
-          "conditions": [
-            {
-              "id": "a1b2c3d4-cond-0001",
-              "leftValue": "={{ $json.accessToken }}",
-              "rightValue": "",
-              "operator": {
-                "type": "string",
-                "operation": "exists",
-                "singleValue": true
-              }
-            }
-          ],
-          "combinator": "and"
-        },
-        "options": {}
-      },
-      "id": "a1b2c3d4-0004-0004-0004-000000000004",
-      "name": "Check Token Exists",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2,
-      "position": [680, 300]
+      "position": [
+        460,
+        280
+      ]
     },
     {
       "parameters": {
@@ -90,12 +55,13 @@
           "value": "REPLACE_WITH_AUTOMATION_LOG_DB_ID",
           "mode": "id"
         },
-        "title": "=AO OS Auth Healthcheck — {{ $now.format('yyyy-MM-dd HH:mm') }}",
+        "title": "AO OS auth health check",
+        "simple": false,
         "propertiesUi": {
           "propertyValues": [
             {
               "key": "Workflow Name|rich_text",
-              "textValue": "AO OS Auth Healthcheck"
+              "textContent": "AO OS auth health check"
             },
             {
               "key": "Status|select",
@@ -103,76 +69,20 @@
             },
             {
               "key": "Timestamp|date",
-              "dateValue": "={{ $now.toISO() }}"
-            },
-            {
-              "key": "Trigger|rich_text",
-              "textValue": "Schedule every 5 minutes"
-            },
-            {
-              "key": "Raw Payload|rich_text",
-              "textValue": "={{ JSON.stringify($json).slice(0, 1800) }}"
-            },
-            {
-              "key": "Error Message|rich_text",
-              "textValue": "={{ $json.message || '' }}"
+              "date": "={{$now}}"
             }
           ]
-        }
+        },
+        "options": {}
       },
-      "id": "a1b2c3d4-0003-0003-0003-000000000003",
+      "id": "af8459f9-6914-4230-84df-eecfd4e5c7ea",
       "name": "Log Success",
       "type": "n8n-nodes-base.notion",
       "typeVersion": 2.2,
-      "position": [900, 200],
-      "credentials": {
-        "notionApi": {
-          "id": "REPLACE_WITH_NOTION_CREDENTIAL_ID",
-          "name": "REPLACE_WITH_NOTION_CREDENTIAL_NAME"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "resource": "databasePage",
-        "operation": "create",
-        "databaseId": {
-          "__rl": true,
-          "value": "REPLACE_WITH_AUTOMATION_LOG_DB_ID",
-          "mode": "id"
-        },
-        "title": "=AO OS Auth Healthcheck — {{ $now.format('yyyy-MM-dd HH:mm') }}",
-        "propertiesUi": {
-          "propertyValues": [
-            {
-              "key": "Workflow Name|rich_text",
-              "textValue": "AO OS Auth Healthcheck"
-            },
-            {
-              "key": "Status|select",
-              "selectValue": "Failure"
-            },
-            {
-              "key": "Timestamp|date",
-              "dateValue": "={{ $now.toISO() }}"
-            },
-            {
-              "key": "Trigger|rich_text",
-              "textValue": "Schedule every 5 minutes"
-            },
-            {
-              "key": "Error Details|rich_text",
-              "textValue": "={{ $json.error?.message || $json.message || 'Login failed: accessToken not returned' }}"
-            }
-          ]
-        }
-      },
-      "id": "a1b2c3d4-0005-0005-0005-000000000005",
-      "name": "Log Failure",
-      "type": "n8n-nodes-base.notion",
-      "typeVersion": 2.2,
-      "position": [900, 400],
-      "disabled": true,
+      "position": [
+        700,
+        280
+      ],
       "credentials": {
         "notionApi": {
           "id": "REPLACE_WITH_NOTION_CREDENTIAL_ID",
@@ -182,7 +92,7 @@
     }
   ],
   "connections": {
-    "Schedule Trigger": {
+    "Every 5 Minutes": {
       "main": [
         [
           {
@@ -197,49 +107,20 @@
       "main": [
         [
           {
-            "node": "Check Token Exists",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Check Token Exists": {
-      "main": [
-        [
-          {
             "node": "Log Success",
             "type": "main",
             "index": 0
           }
-        ],
-        [
-          {
-            "node": "Log Failure",
-            "type": "main",
-            "index": 0
-          }
         ]
       ]
     }
   },
-  "active": false,
+  "pinData": {},
   "settings": {
-    "executionOrder": "v1",
-    "saveManualExecutions": true,
-    "callerPolicy": "workflowsFromSameOwner",
-    "errorWorkflow": ""
+    "executionOrder": "v1"
   },
+  "staticData": null,
   "meta": {
-    "templateCredsSetupCompleted": false,
-    "n8nVersion": "2.13.3"
-  },
-  "tags": [
-    {
-      "createdAt": "2026-03-27T00:00:00.000Z",
-      "updatedAt": "2026-03-27T00:00:00.000Z",
-      "id": "ao-os-healthcheck",
-      "name": "ao-os-healthcheck"
-    }
-  ]
+    "templateCredsSetupCompleted": false
+  }
 }
