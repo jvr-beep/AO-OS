@@ -53,7 +53,7 @@
 
 ### API Request
 ```
-URL: http://localhost:4000/v1/events/poll
+URL: https://api.aosanctuary.com/v1/events/poll
 Method: GET
 Auth: Bearer <JWT-token>
 ```
@@ -97,6 +97,19 @@ Polled At → $now.toIso()
 ---
 
 ## Setup Checklist
+
+### Health Check Workflow (Run First)
+
+- [ ] Import `n8n/workflows/health-check.json` (or create manually)
+- [ ] Auth Login node: POST `https://api.aosanctuary.com/v1/auth/login`
+- [ ] Auth Login body: `{"email": "staff@ao-os.local", "password": "TestPassword123!"}`
+- [ ] Execute Auth Login → confirm HTTP 200 + `accessToken` in output
+- [ ] Log Success (Notion): re-select DB from dropdown
+- [ ] Log Success: add only 4 properties (Name, Workflow Name, Status, Timestamp)
+- [ ] Log Failure (Notion): keep **disabled**
+- [ ] Execute workflow → confirm 1 row in Notion
+
+### Polling Workflow (After Health Check Passes)
 
 - [ ] Notion database created: "AO OS - Operational Log"
 - [ ] All 12 fields added to Notion
