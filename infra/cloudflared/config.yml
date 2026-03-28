@@ -1,11 +1,39 @@
-# Cloudflare Tunnel configuration for AO OS API
-# Tunnel: ao-os-api
-# Public hostname: api.aosanctuary.com → http://localhost:4000
+# =============================================================
+# Cloudflare Tunnel — AO OS API
+# Zone: aosanctuary.com
+#
+# Hostname alignment (all three must match):
+#   API  env:  APP_BASE_URL=https://api.aosanctuary.com
+#   Web  env:  API_BASE_URL=https://api.aosanctuary.com/v1
+#   Google:    GOOGLE_REDIRECT_URI=https://api.aosanctuary.com/v1/auth/google/callback
+#
+# Setup:
+#   1. Install cloudflared on the API host machine.
+#   2. Authenticate: cloudflared tunnel login
+#   3. Create the tunnel (first time only):
+#        cloudflared tunnel create ao-os-api
+#      This writes the credentials JSON to ~/.cloudflared/<TUNNEL_ID>.json
+#   4. Set credentials-file below to that path.
+#   5. In Cloudflare dashboard → Zero Trust → Tunnels, add the two DNS records:
+#        api.aosanctuary.com         → CNAME <TUNNEL_ID>.cfargotunnel.com
+#        api-staging.aosanctuary.com → CNAME <TUNNEL_ID>.cfargotunnel.com  (optional)
+#   6. Run the tunnel: cloudflared tunnel run ao-os-api
+#
+# Do NOT store app secrets in Cloudflare. This file routes traffic only.
+# =============================================================
 
-tunnel: 3a12c58b-3dad-4cfc-af2b-2b69a7c36ab3
-credentials-file: C:\Users\<YOUR_WINDOWS_USERNAME>\.cloudflared\3a12c58b-3dad-4cfc-af2b-2b69a7c36ab3.json
+tunnel: <TUNNEL_ID>
+# Example tunnel ID format: 3a12c58b-3dad-4cfc-af2b-2b69a7c36ab3
+credentials-file: /home/<YOUR_USER>/.cloudflared/<TUNNEL_ID>.json
 
 ingress:
+  # Production API
   - hostname: api.aosanctuary.com
     service: http://localhost:4000
+
+  # Staging API (optional — remove if not used)
+  - hostname: api-staging.aosanctuary.com
+    service: http://localhost:4000
+
+  # Catch-all: return 404 for any unmatched hostname
   - service: http_status:404

@@ -4,7 +4,7 @@ export const envSchema = z.object({
   // Core runtime
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   PORT: z.coerce.number().int().positive().default(4000),
-  APP_BASE_URL: z.string().min(1).default("http://localhost:4000"),
+  APP_BASE_URL: z.string().min(1).default("http://localhost:4000"), // dev default; production must override
   DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
 
   // Auth / JWT
