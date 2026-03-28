@@ -1,6 +1,14 @@
 # AO-OS
 AO OS monorepo for membership, wristbands, access control, bookings, transactions, and operations tooling.
 
+## Integration Guides
+
+- **SmartBear SwaggerHub**: `docs/SMARTBEAR_SWAGGERHUB_SETUP.md` — Import the OpenAPI spec, sync with GitHub, and test endpoints interactively
+- **N8N Cloud + Notion**: `docs/N8N_CLOUD_NOTION_SETUP.md` — Poll AO OS events and log them to Notion with Gmail alerts
+- **JWT Tokens**: `docs/GET_JWT_TOKEN_FOR_N8N.md` — How to obtain a Bearer token for API access
+
+---
+
 ## Locker Policy Smoke Harness
 
 Use the repo-owned smoke script for locker-policy and credential-lifecycle regression checks:
