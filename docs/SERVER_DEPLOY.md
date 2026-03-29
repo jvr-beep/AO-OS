@@ -24,12 +24,26 @@ The server in these examples is named `ao-os-api`.
 > SSH is recommended for servers.
 
 ```bash
-# Generate an SSH key on the server (press Enter to accept defaults)
 ssh-keygen -t ed25519 -C "ao-os-api-deploy"
+```
 
-# Print the public key — copy this entire output
+`ssh-keygen` will ask three questions — press **Enter** for each to accept the defaults:
+
+```
+Enter file in which to save the key (/home/jvr/.ssh/id_ed25519):  ← press Enter
+Enter passphrase (empty for no passphrase):                        ← press Enter
+Enter same passphrase again:                                       ← press Enter
+```
+
+> No passphrase is correct for a server deploy key — it lets git pull/clone run without manual interaction.
+
+Once keygen finishes, print your public key and copy the **entire** output:
+
+```bash
 cat ~/.ssh/id_ed25519.pub
 ```
+
+Add it to GitHub:
 
 1. Go to **GitHub → Settings → SSH and GPG keys → New SSH key**
 2. Title: `ao-os-api`
@@ -41,7 +55,7 @@ Test the connection:
 
 ```bash
 ssh -T git@github.com
-# Expected: Hi jvr-beep! You've successfully authenticated...
+# Expected: Hi jvr-beep! You've successfully authenticated, but GitHub does not provide shell access.
 ```
 
 ---
