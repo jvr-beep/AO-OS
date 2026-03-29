@@ -80,12 +80,20 @@ if ssh -T git@github.com 2>&1 | grep -q "successfully authenticated"; then
 else
   echo "⛔ SSH key not registered with GitHub."
   echo ""
-  echo "   Copy the line below and add it at: github.com/settings/keys"
-  echo "   ---------------------------------------------------------------"
-  cat ~/.ssh/id_ed25519.pub 2>/dev/null || echo "   [no key found — run ssh-keygen first (see step 1)]"
-  echo "   ---------------------------------------------------------------"
-  echo ""
-  echo "   Then re-run this block."
+  _KEY=$(cat ~/.ssh/id_ed25519.pub 2>/dev/null)
+  if [ -z "$_KEY" ]; then
+    echo "   No key file found. Run ssh-keygen first (see step 1), then re-run this block."
+  elif ! echo "$_KEY" | grep -qE '^(ssh-|ecdsa-|sk-)'; then
+    echo "   ~/.ssh/id_ed25519.pub exists but does not look like a public key."
+    echo "   Delete it and re-run ssh-keygen -t ed25519 -C \"ao-os-api-deploy\" (see step 1)."
+  else
+    echo "   Copy the line below — it starts with ssh-ed25519 — and add it at: github.com/settings/keys"
+    echo "   ---------------------------------------------------------------"
+    echo "$_KEY"
+    echo "   ---------------------------------------------------------------"
+    echo ""
+    echo "   Then re-run this block."
+  fi
 fi
 ```
 
@@ -166,6 +174,7 @@ docker compose up -d --build
 |---|---|---|
 | `Password authentication is not supported` | Using HTTPS with a plain password | Switch to SSH (step 1–2) or use a PAT |
 | `Permission denied (publickey)` | SSH key not added to GitHub (or wrong key on this machine) | 1. Run `cat ~/.ssh/id_ed25519.pub` and copy the full output. 2. Go to **GitHub → Settings → SSH and GPG keys → New SSH key**, paste it, and save. 3. Run `ssh -T git@github.com` — it must say `Hi jvr-beep!` before you clone. |
+| `Key is invalid. You must supply a key in OpenSSH public key format` | Pasted empty text, private key, or corrupt file | Run `cat ~/.ssh/id_ed25519.pub` — the output **must start with `ssh-ed25519`**. If the file is missing or the content looks wrong, delete any existing key files (`rm -f ~/.ssh/id_ed25519 ~/.ssh/id_ed25519.pub`) and re-run `ssh-keygen -t ed25519 -C "ao-os-api-deploy"` (step 1). |
 | `docker: command not found` | Docker not installed | `sudo apt install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin` |
 | API returns 502 via Cloudflare | API container not running | `docker compose ps` and `docker compose logs api` |
 | `cloudflared` service failed | Config or credentials issue | `sudo journalctl -u cloudflared -n 50` |
