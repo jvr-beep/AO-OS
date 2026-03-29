@@ -55,12 +55,22 @@ Test the connection:
 
 ```bash
 ssh -T git@github.com
-# Expected: Hi jvr-beep! You've successfully authenticated, but GitHub does not provide shell access.
 ```
+
+Expected output (it is normal for GitHub to say "does not provide shell access"):
+
+```
+Hi jvr-beep! You've successfully authenticated, but GitHub does not provide shell access.
+```
+
+> ⚠️ **Do not proceed to step 2 until you see the `Hi jvr-beep!` message above.**  
+> If you get `Permission denied (publickey)`, the key has **not** been added to GitHub yet — go back and complete the GitHub Settings step, then run `ssh -T git@github.com` again.
 
 ---
 
 ## 2. Clone the repository
+
+> **Prerequisite:** `ssh -T git@github.com` must return `Hi jvr-beep! You've successfully authenticated…` before this step will work.
 
 ```bash
 # Use SSH (not HTTPS) — this avoids the username/password prompt entirely
@@ -144,7 +154,7 @@ docker compose up -d --build
 | Error | Cause | Fix |
 |---|---|---|
 | `Password authentication is not supported` | Using HTTPS with a plain password | Switch to SSH (step 1–2) or use a PAT |
-| `Permission denied (publickey)` | SSH key not added to GitHub | Run `cat ~/.ssh/id_ed25519.pub` and add to GitHub Settings |
+| `Permission denied (publickey)` | SSH key not added to GitHub (or wrong key on this machine) | 1. Run `cat ~/.ssh/id_ed25519.pub` and copy the full output. 2. Go to **GitHub → Settings → SSH and GPG keys → New SSH key**, paste it, and save. 3. Run `ssh -T git@github.com` — it must say `Hi jvr-beep!` before you clone. |
 | `docker: command not found` | Docker not installed | `sudo apt install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin` |
 | API returns 502 via Cloudflare | API container not running | `docker compose ps` and `docker compose logs api` |
 | `cloudflared` service failed | Config or credentials issue | `sudo journalctl -u cloudflared -n 50` |
