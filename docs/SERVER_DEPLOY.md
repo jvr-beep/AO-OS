@@ -142,11 +142,24 @@ curl http://localhost:4000/v1/health
 
 ## 5. Set up the Cloudflare Tunnel
 
-See [`infra/cloudflared/README.md`](../infra/cloudflared/README.md) for the full tunnel setup.  
+See [`infra/cloudflared/README.md`](../infra/cloudflared/README.md) for the full tunnel setup.
+
+If your tunnel was created in the **Cloudflare Zero Trust dashboard**, run it with the token the dashboard provides:
+
+```bash
+# Store the token in an env var — never hard-code or commit it
+export TUNNEL_TOKEN=<paste token from Cloudflare Zero Trust dashboard>
+
+# Install as a persistent systemd service
+sudo cloudflared service install "$TUNNEL_TOKEN"
+sudo systemctl enable cloudflared
+sudo systemctl start cloudflared
+```
+
 Quick reference for day-to-day service management:
 
 ```bash
-# Restart the tunnel (e.g. after editing infra/cloudflared/config.yml)
+# Restart the tunnel (e.g. after a config change)
 sudo systemctl restart cloudflared
 
 # Check that the tunnel is healthy
@@ -178,3 +191,4 @@ docker compose up -d --build
 | `docker: command not found` | Docker not installed | `sudo apt install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin` |
 | API returns 502 via Cloudflare | API container not running | `docker compose ps` and `docker compose logs api` |
 | `cloudflared` service failed | Config or credentials issue | `sudo journalctl -u cloudflared -n 50` |
+| `Invalid token` / `failed to parse token` | Tunnel token truncated or pasted incorrectly | Copy the full token again from Cloudflare Zero Trust dashboard and re-run `sudo cloudflared service install "$TUNNEL_TOKEN"` |
