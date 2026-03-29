@@ -79,9 +79,13 @@ if ssh -T git@github.com 2>&1 | grep -q "successfully authenticated"; then
   cd AO-OS
 else
   echo "⛔ SSH key not registered with GitHub."
-  echo "   Run: cat ~/.ssh/id_ed25519.pub"
-  echo "   Then add the output at: github.com/settings/keys"
-  echo "   Re-run this block after adding the key."
+  echo ""
+  echo "   Copy the line below and add it at: github.com/settings/keys"
+  echo "   ---------------------------------------------------------------"
+  cat ~/.ssh/id_ed25519.pub 2>/dev/null || echo "   [no key found — run ssh-keygen first (see step 1)]"
+  echo "   ---------------------------------------------------------------"
+  echo ""
+  echo "   Then re-run this block."
 fi
 ```
 
