@@ -73,9 +73,16 @@ Hi jvr-beep! You've successfully authenticated, but GitHub does not provide shel
 > **Prerequisite:** `ssh -T git@github.com` must return `Hi jvr-beep! You've successfully authenticated…` before this step will work.
 
 ```bash
-# Use SSH (not HTTPS) — this avoids the username/password prompt entirely
-git clone git@github.com:jvr-beep/AO-OS.git
-cd AO-OS
+# Verifies SSH auth before cloning — aborts with an explanation if the key is not yet added
+if ssh -T git@github.com 2>&1 | grep -q "successfully authenticated"; then
+  git clone git@github.com:jvr-beep/AO-OS.git
+  cd AO-OS
+else
+  echo "⛔ SSH key not registered with GitHub."
+  echo "   Run: cat ~/.ssh/id_ed25519.pub"
+  echo "   Then add the output at: github.com/settings/keys"
+  echo "   Re-run this block after adding the key."
+fi
 ```
 
 > **If you prefer HTTPS with a PAT instead of SSH:**  
