@@ -3,7 +3,7 @@ import { PrismaService } from "../../prisma/prisma.service";
 
 export type PollEvent = {
   id: string;
-  type: "LockerAccessEvent" | "LockerPolicyDecisionEvent" | "AccessAttempt" | "PresenceEvent" | "RoomAccessEvent" | "StaffAuditEvent" | "CleaningTask" | "RoomBooking";
+  type: "LockerAccessEvent" | "LockerPolicyDecisionEvent" | "AccessAttempt" | "PresenceEvent" | "RoomAccessEvent" | "StaffAuditEvent" | "CleaningTask" | "RoomBooking" | "GuestAccessEvent" | "SystemException" | "AuthEvent";
   occurredAt: string;
   data: Record<string, unknown>;
 };
@@ -43,7 +43,10 @@ export class EventsPollingService {
       RoomAccessEvent: 0,
       StaffAuditEvent: 0,
       CleaningTask: 0,
-      RoomBooking: 0
+      RoomBooking: 0,
+      GuestAccessEvent: 0,
+      SystemException: 0,
+      AuthEvent: 0
     };
 
     // Poll each event type
@@ -78,6 +81,18 @@ export class EventsPollingService {
     const roomBookings = await this._pollRoomBookings(sinceDate);
     events.push(...roomBookings);
     eventCounts.RoomBooking = roomBookings.length;
+
+    const guestAccessEvents = await this._pollGuestAccessEvents(sinceDate);
+    events.push(...guestAccessEvents);
+    eventCounts.GuestAccessEvent = guestAccessEvents.length;
+
+    const systemExceptions = await this._pollSystemExceptions(sinceDate);
+    events.push(...systemExceptions);
+    eventCounts.SystemException = systemExceptions.length;
+
+    const authEvents = await this._pollAuthEvents(sinceDate);
+    events.push(...authEvents);
+    eventCounts.AuthEvent = authEvents.length;
 
     // Update polling cursors
     const now = new Date();
@@ -237,29 +252,30 @@ export class EventsPollingService {
   }
 
   private async _pollCleaningTasks(since: Date): Promise<PollEvent[]> {
-    const events = await (this.prisma as any).cleaningTask.findMany({
-      where: { filledUpdatedAt: { gte: since } },
-      orderBy: { updatedAt: "desc" },
+    const events = await this.prisma.cleaningTask.findMany({
+      where: { createdAt: { gte: since } },
+      orderBy: { createdAt: "desc" },
       take: 100
     });
 
     return events.map((e: any) => ({
       id: e.id,
       type: "CleaningTask" as const,
-      occurredAt: new Date(e.updatedAt).toISOString(),
+      occurredAt: new Date(e.createdAt).toISOString(),
       data: {
         roomId: e.roomId,
         bookingId: e.bookingId,
         taskType: e.taskType,
         status: e.status,
         assignedToStaffUserId: e.assignedToStaffUserId,
-        notes: e.notes
+        notes: e.notes,
+        completedAt: e.completedAt
       }
     }));
   }
 
   private async _pollRoomBookings(since: Date): Promise<PollEvent[]> {
-    const events = await (this.prisma as any).booking.findMany({
+    const events = await this.prisma.roomBooking.findMany({
       where: { updatedAt: { gte: since } },
       orderBy: { updatedAt: "desc" },
       take: 100
@@ -271,10 +287,84 @@ export class EventsPollingService {
       occurredAt: new Date(e.updatedAt).toISOString(),
       data: {
         memberId: e.memberId,
-        accessZoneId: e.accessZoneId,
+        roomId: e.roomId,
+        bookingType: e.bookingType,
+        status: e.status,
         startsAt: new Date(e.startsAt).toISOString(),
-        endsAt: new Date(e.endsAt).toISOString(),
-        status: e.status
+        endsAt: new Date(e.endsAt).toISOString()
+      }
+    }));
+  }
+
+  private async _pollGuestAccessEvents(since: Date): Promise<PollEvent[]> {
+    const events = await (this.prisma as any).guestAccessEvent.findMany({
+      where: { eventTime: { gte: since } },
+      orderBy: { eventTime: "desc" },
+      take: 100
+    });
+
+    return events.map((e: any) => ({
+      id: e.id,
+      type: "GuestAccessEvent" as const,
+      occurredAt: new Date(e.eventTime).toISOString(),
+      data: {
+        visitId: e.visitId,
+        wristbandId: e.wristbandId,
+        readerId: e.readerId,
+        zoneCode: e.zoneCode,
+        accessResult: e.accessResult,
+        denialReason: e.denialReason
+      }
+    }));
+  }
+
+  private async _pollSystemExceptions(since: Date): Promise<PollEvent[]> {
+    const events = await (this.prisma as any).systemException.findMany({
+      where: { createdAt: { gte: since } },
+      orderBy: { createdAt: "desc" },
+      take: 100
+    });
+
+    return events.map((e: any) => ({
+      id: e.id,
+      type: "SystemException" as const,
+      occurredAt: new Date(e.createdAt).toISOString(),
+      data: {
+        exceptionType: e.exceptionType,
+        severity: e.severity,
+        status: e.status,
+        visitId: e.visitId,
+        bookingId: e.bookingId,
+        folioId: e.folioId,
+        resourceId: e.resourceId,
+        wristbandId: e.wristbandId,
+        payload: e.payload
+      }
+    }));
+  }
+
+  private async _pollAuthEvents(since: Date): Promise<PollEvent[]> {
+    const events = await (this.prisma as any).authEvent.findMany({
+      where: { occurredAt: { gte: since } },
+      orderBy: { occurredAt: "desc" },
+      take: 100
+    });
+
+    return events.map((e: any) => ({
+      id: e.id,
+      type: "AuthEvent" as const,
+      occurredAt: new Date(e.occurredAt).toISOString(),
+      data: {
+        eventType: e.eventType,
+        authMethod: e.authMethod,
+        outcome: e.outcome,
+        memberId: e.memberId,
+        sessionId: e.sessionId,
+        failureReasonCode: e.failureReasonCode,
+        attemptedEmail: e.attemptedEmail,
+        ipAddress: e.ipAddress,
+        userAgent: e.userAgent,
+        metadataJson: e.metadataJson
       }
     }));
   }

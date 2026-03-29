@@ -10,6 +10,8 @@ import { AccessAttemptsModule } from "./access-attempts/access-attempts.module";
 import { VisitSessionsModule } from "./visit-sessions/visit-sessions.module";
 import { PresenceEventsModule } from "./presence-events/presence-events.module";
 import { AuthModule } from "./auth/auth.module";
+import { ExternalAuthModule } from "./external-auth/external-auth.module";
+import { IdentityModule } from "./identity/identity.module";
 import { StaffUsersModule } from "./staff-users/staff-users.module";
 import { StaffAuditModule } from "./staff-audit/staff-audit.module";
 import { WristbandTransactionsModule } from "./wristband-transactions/wristband-transactions.module";
@@ -20,6 +22,16 @@ import { RoomsModule } from "./rooms/rooms.module";
 import { RoomBookingsModule } from "./room-bookings/room-bookings.module";
 import { CleaningModule } from "./cleaning/cleaning.module";
 import { EventsPollingModule } from "./events-polling/events-polling.module";
+import { GuestsModule } from "./guests/guests.module";
+import { WaiversModule } from "./waivers/waivers.module";
+import { CatalogModule } from "./catalog/catalog.module";
+import { InventoryModule } from "./inventory/inventory.module";
+import { BookingsModule } from "./bookings/bookings.module";
+import { VisitsModule } from "./visits/visits.module";
+import { FoliosModule } from "./folios/folios.module";
+import { OrchestratorsModule } from "./orchestrators/orchestrators.module";
+import { GuestAccessModule } from "./guest-access/guest-access.module";
+import { OpsModule } from "./ops/ops.module";
 
 @Module({
   imports: [
@@ -34,6 +46,8 @@ import { EventsPollingModule } from "./events-polling/events-polling.module";
     VisitSessionsModule,
     PresenceEventsModule,
     AuthModule,
+    ExternalAuthModule,
+    IdentityModule,
     StaffUsersModule,
     StaffAuditModule,
     WristbandTransactionsModule,
@@ -43,7 +57,17 @@ import { EventsPollingModule } from "./events-polling/events-polling.module";
     RoomsModule,
     RoomBookingsModule,
     CleaningModule,
-    EventsPollingModule
+    EventsPollingModule,
+    GuestsModule,
+    WaiversModule,
+    CatalogModule,
+    InventoryModule,
+    BookingsModule,
+    VisitsModule,
+    FoliosModule,
+    OrchestratorsModule,
+    GuestAccessModule,
+    OpsModule
   ]
 })
 export class AppModule {}

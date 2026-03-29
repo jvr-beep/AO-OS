@@ -1,0 +1,9 @@
+-- This migration was generated before the member auth base tables existed in
+-- local history, which made shadow database replays fail because it tried to
+-- alter and reference auth tables out of order.
+--
+-- External auth, sessions, and follow-up auth event storage are recreated in a
+-- later migration after the base member auth schema exists.
+--
+-- This placeholder intentionally remains a no-op to preserve timestamp order
+-- without mutating fresh databases out of sequence.

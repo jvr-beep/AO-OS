@@ -12,13 +12,16 @@ export interface StaffUser {
 
 export interface Member {
   id: string
+  publicMemberNumber?: string
   firstName: string
   lastName: string
+  displayName?: string | null
   email: string
-  phone?: string
+  phone?: string | null
+  status?: string
   profileNotes?: string
   createdAt: string
-  updatedAt: string
+  updatedAt?: string
 }
 
 export interface MembershipPlan {

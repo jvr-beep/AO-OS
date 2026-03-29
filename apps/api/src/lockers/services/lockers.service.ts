@@ -19,6 +19,7 @@ import { LockerAssignmentResponseDto } from "../dto/locker-assignment.response.d
 import { LockerPolicyEventResponseDto } from "../dto/locker-policy-event.response.dto";
 import { LockerPolicyDecisionResponseDto } from "../dto/locker-policy-decision.response.dto";
 import { LockerResponseDto } from "../dto/locker.response.dto";
+import { MoveLockerDto } from "../dto/move-locker.dto";
 import { UnassignLockerDto } from "../dto/unassign-locker.dto";
 import { LockerPolicyService } from "./locker-policy.service";
 
@@ -368,6 +369,102 @@ export class LockersService {
       correlationId: row.correlationId ?? undefined,
       createdAt: row.createdAt.toISOString()
     }));
+  }
+
+  async moveLocker(input: MoveLockerDto): Promise<LockerAssignmentResponseDto> {
+    const currentAssignment = await this.prisma.lockerAssignment.findFirst({
+      where: { lockerId: input.fromLockerId, memberId: input.memberId, active: true }
+    });
+
+    if (!currentAssignment) {
+      throw new NotFoundException("NO_ACTIVE_LOCKER_ASSIGNMENT");
+    }
+
+    const newLocker = await this.prisma.locker.findUnique({ where: { id: input.toLockerId } });
+    if (!newLocker) {
+      throw new NotFoundException("LOCKER_NOT_FOUND");
+    }
+
+    if (newLocker.status !== "available") {
+      throw new ConflictException("LOCKER_ALREADY_ASSIGNED");
+    }
+
+    const activeNewAssignment = await this.prisma.lockerAssignment.findFirst({
+      where: { lockerId: input.toLockerId, active: true }
+    });
+
+    if (activeNewAssignment) {
+      throw new ConflictException("LOCKER_ALREADY_ASSIGNED");
+    }
+
+    await this.prisma.lockerAssignment.update({
+      where: { id: currentAssignment.id },
+      data: {
+        active: false,
+        unassignedAt: new Date(),
+        unassignedReason: `moved_to:${input.toLockerId}`
+      }
+    });
+
+    await this.prisma.locker.update({
+      where: { id: input.fromLockerId },
+      data: { status: "available" }
+    });
+
+    const newAssignment = await this.prisma.lockerAssignment.create({
+      data: {
+        lockerId: input.toLockerId,
+        memberId: input.memberId,
+        visitSessionId: currentAssignment.visitSessionId,
+        wristbandAssignmentId: currentAssignment.wristbandAssignmentId,
+        assignmentMode: currentAssignment.assignmentMode,
+        policySnapshot: currentAssignment.policySnapshot as Prisma.InputJsonValue,
+        assignedByStaffUserId: input.staffUserId ?? null,
+        active: true
+      }
+    });
+
+    await this.prisma.locker.update({
+      where: { id: input.toLockerId },
+      data: { status: "occupied" }
+    });
+
+    return this.toLockerAssignmentResponse(newAssignment);
+  }
+
+  async resolveAbandonedLockers(siteId?: string): Promise<{ released: number }> {
+    const staleAssignments = await this.prisma.lockerAssignment.findMany({
+      where: {
+        active: true,
+        visitSession: {
+          status: { in: ["checked_out"] }
+        },
+        ...(siteId
+          ? {
+              locker: { locationId: siteId }
+            }
+          : {})
+      },
+      select: { id: true, lockerId: true }
+    });
+
+    for (const assignment of staleAssignments) {
+      await this.prisma.lockerAssignment.update({
+        where: { id: assignment.id },
+        data: {
+          active: false,
+          unassignedAt: new Date(),
+          unassignedReason: "abandoned_session_gc"
+        }
+      });
+
+      await this.prisma.locker.update({
+        where: { id: assignment.lockerId },
+        data: { status: "available" }
+      });
+    }
+
+    return { released: staleAssignments.length };
   }
 
   private buildAccessEventWhere(query: ListLockerAccessEventsQueryDto): {

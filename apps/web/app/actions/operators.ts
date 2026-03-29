@@ -242,6 +242,54 @@ export async function unassignLockerAction(formData: FormData) {
   }
 }
 
+export async function moveLockerAction(formData: FormData) {
+  const fromLockerId = formData.get('fromLockerId') as string
+  try {
+    const session = await withSession()
+    const memberId = readRequired(formData, 'memberId')
+    const toLockerId = readRequired(formData, 'toLockerId')
+
+    await postWithAuth(
+      '/lockers/move',
+      {
+        fromLockerId,
+        toLockerId,
+        memberId,
+        staffUserId: session.user?.id,
+      },
+      session.accessToken!,
+    )
+
+    revalidatePath('/lockers')
+    revalidatePath(`/lockers/${fromLockerId}`)
+    revalidatePath(`/lockers/${toLockerId}`)
+    redirect(`/lockers/${toLockerId}?ok=Locker+moved`)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Move failed'
+    redirect(`/lockers/${fromLockerId}?error=${encodeURIComponent(message)}`)
+  }
+}
+
+export async function resolveAbandonedLockersAction(formData: FormData) {
+  try {
+    const session = await withSession()
+    const siteId = readOptional(formData, 'siteId')
+
+    const result = await postWithAuth(
+      '/lockers/resolve-abandoned',
+      { siteId },
+      session.accessToken!,
+    )
+
+    const released = typeof result.released === 'number' ? result.released : 0
+    revalidatePath('/lockers')
+    redirect(`/lockers?ok=${encodeURIComponent(`Released ${released} abandoned locker(s)`)}`)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Resolve failed'
+    redirect(`/lockers?error=${encodeURIComponent(message)}`)
+  }
+}
+
 export async function createBookingAction(formData: FormData) {
   const redirectTo = readRedirectTarget(formData, '/bookings')
 

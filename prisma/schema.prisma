@@ -14,6 +14,27 @@ enum MemberStatus {
   banned
 }
 
+enum MemberType {
+  anonymous
+  registered
+}
+
+enum AuthTokenType {
+  password_reset
+  email_verify
+  invite_set_password
+}
+
+enum ExternalAuthProvider {
+  google
+}
+
+enum AuthMethod {
+  password
+  google
+  admin_invite
+}
+
 enum SubscriptionStatus {
   trialing
   active
@@ -231,17 +252,25 @@ enum CleaningTaskStatus {
 model Member {
   id                   String                   @id @default(uuid())
   publicMemberNumber   String                   @unique
-  email                String                   @unique
-  firstName            String
-  lastName             String
+  type                 MemberType               @default(registered)
+  email                String?                  @unique
+  emailVerifiedAt      DateTime?                @map("email_verified_at")
+  firstName            String?
+  lastName             String?
+  alias                String?
   displayName          String?
   phone                String?
   status               MemberStatus             @default(pending)
+  createdByStaffId     String?                  @map("created_by_staff_id")
   createdAt            DateTime                 @default(now())
   updatedAt            DateTime                 @updatedAt
 
   profile              MemberProfile?
-  authIdentities       AuthIdentity[]
+  authAccount          AuthAccount?
+  authTokens           AuthToken[]
+  externalAuths        ExternalAuthIdentity[]
+  authSessions         AuthSession[]
+  authEvents           AuthEvent[]
   subscriptions        MembershipSubscription[]
   paymentMethods       PaymentMethodToken[]
   wristbandAssignments WristbandAssignment[]
@@ -274,16 +303,94 @@ model MemberProfile {
   member                 Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
 }
 
-model AuthIdentity {
-  id              String   @id @default(uuid())
-  memberId        String
-  provider        String
-  providerUserId  String
-  createdAt       DateTime @default(now())
+model ExternalAuthIdentity {
+  id               String               @id @default(uuid())
+  memberId         String               @map("member_id")
+  provider         ExternalAuthProvider
+  providerSubject  String               @map("provider_subject")
+  emailAtProvider  String?              @map("email_at_provider")
+  profileJson      Json?                @map("profile_json")
+  createdAt        DateTime             @default(now()) @map("created_at")
+  updatedAt        DateTime             @updatedAt @map("updated_at")
 
-  member          Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  member           Member               @relation(fields: [memberId], references: [id], onDelete: Cascade)
 
-  @@unique([provider, providerUserId])
+  @@unique([provider, providerSubject])
+  @@index([memberId])
+  @@map("external_auth_identities")
+}
+
+model AuthAccount {
+  id             String    @id @default(uuid())
+  memberId       String    @unique @map("member_id")
+  passwordHash   String    @map("password_hash")
+  failedAttempts Int       @default(0) @map("failed_attempts")
+  lockedUntil    DateTime? @map("locked_until")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  member         Member    @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@map("auth_accounts")
+}
+
+model AuthToken {
+  id          String        @id @default(uuid())
+  memberId    String        @map("member_id")
+  type        AuthTokenType
+  tokenHash   String        @map("token_hash")
+  expiresAt   DateTime      @map("expires_at")
+  consumedAt  DateTime?     @map("consumed_at")
+  createdAt   DateTime      @default(now()) @map("created_at")
+
+  member      Member        @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([tokenHash])
+  @@index([memberId, type, consumedAt])
+  @@map("auth_tokens")
+}
+
+model AuthSession {
+  id                String      @id @default(uuid())
+  memberId          String      @map("member_id")
+  authMethod        AuthMethod  @map("auth_method")
+  refreshTokenHash  String?     @map("refresh_token_hash")
+  ipAddress         String?     @map("ip_address")
+  userAgent         String?     @map("user_agent")
+  expiresAt         DateTime    @map("expires_at")
+  revokedAt         DateTime?   @map("revoked_at")
+  createdAt         DateTime    @default(now()) @map("created_at")
+
+  member            Member      @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  authEvents        AuthEvent[]
+
+  @@index([memberId])
+  @@index([expiresAt])
+  @@map("auth_sessions")
+}
+
+model AuthEvent {
+  id                String      @id @default(uuid())
+  memberId          String?     @map("member_id")
+  sessionId         String?     @map("session_id")
+  eventType         String      @map("event_type")
+  authMethod        AuthMethod? @map("auth_method")
+  outcome           String
+  failureReasonCode String?     @map("failure_reason_code")
+  attemptedEmail    String?     @map("attempted_email")
+  ipAddress         String?     @map("ip_address")
+  userAgent         String?     @map("user_agent")
+  metadataJson      Json?       @map("metadata_json")
+  occurredAt        DateTime    @default(now()) @map("occurred_at")
+  createdAt         DateTime    @default(now()) @map("created_at")
+
+  member            Member?     @relation(fields: [memberId], references: [id], onDelete: SetNull)
+  session           AuthSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+
+  @@index([occurredAt])
+  @@index([eventType, occurredAt])
+  @@index([memberId, occurredAt])
+  @@map("auth_events")
 }
 
 model StaffUser {
@@ -402,6 +509,11 @@ model Wristband {
   wristbandTransactions WristbandTransaction[]
   lockerAccessEvents    LockerAccessEvent[]
   roomAccessEvents      RoomAccessEvent[]
+  // New guest-visit domain relations
+  wristbandLinks        WristbandLink[]
+  accessPermissions     AccessPermission[]
+  guestAccessEvents     GuestAccessEvent[]
+  systemExceptions      SystemException[]
 }
 
 model WristbandAssignment {
@@ -801,7 +913,7 @@ model CleaningTask {
   status                CleaningTaskStatus @default(open)
   createdAt             DateTime           @default(now())
   startedAt             DateTime?
-  completedAt           DateTime?
+  completedAt             DateTime?
   assignedToStaffUserId String?
   notes                 String?
 
@@ -812,3 +924,560 @@ model CleaningTask {
   @@index([roomId, status])
   @@index([status, createdAt])
 }
+
+model StaffAuditEvent {
+  id                  String   @id
+  eventType           String
+  occurredAt          DateTime @default(now())
+  actorStaffUserId    String
+  actorEmailSnapshot  String
+  actorRoleSnapshot   String
+  targetStaffUserId   String?
+  targetEmailSnapshot String?
+  outcome             String
+  reasonCode          String?
+  metadataJson        Json?
+
+  @@index([occurredAt])
+  @@index([targetStaffUserId])
+}
+
+model EventPollingCursor {
+  id          String   @id
+  eventType   String   @unique
+  lastPolledAt DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([eventType])
+}
+// ============================================================
+// AO-OS Guest / Visit / Inventory / Folio domains
+// ============================================================
+
+enum GuestMembershipStatus {
+  none
+  basic
+  premium
+}
+
+enum GuestRiskFlagStatus {
+  clear
+  flagged
+  banned
+}
+
+enum VisitSourceType {
+  booking
+  walk_in
+}
+
+enum GuestVisitStatus {
+  initiated
+  awaiting_identity
+  awaiting_waiver
+  awaiting_payment
+  ready_for_assignment
+  paid_pending_assignment
+  checked_in
+  active
+  extended
+  checked_out
+  cancelled
+}
+
+enum GuestBookingStatus {
+  reserved
+  confirmed
+  checked_in
+  completed
+  cancelled
+  no_show
+}
+
+enum GuestBookingChannel {
+  web
+  kiosk
+  staff
+}
+
+enum CheckInChannel {
+  web
+  kiosk
+  staff
+}
+
+enum CheckOutChannel {
+  kiosk
+  staff
+  system
+}
+
+enum ProductType {
+  locker
+  room
+}
+
+enum ResourceAvailabilityStatus {
+  available
+  held
+  occupied
+  cleaning
+  out_of_service
+}
+
+enum HoldScope {
+  resource
+  tier_pool
+}
+
+enum HoldStatus {
+  active
+  released
+  expired
+  converted
+}
+
+enum WristbandLinkStatus {
+  active
+  inactive
+  revoked
+}
+
+enum FolioPaymentStatus {
+  unpaid
+  partially_paid
+  paid
+  failed
+  refunded
+  comped
+}
+
+enum PaymentTransactionType {
+  authorize
+  capture
+  sale
+  refund
+  void
+  comp
+}
+
+enum AccessPermissionStatus {
+  granted
+  revoked
+}
+
+enum AccessResult {
+  granted
+  denied
+}
+
+enum ActorType {
+  staff
+  kiosk
+  system
+  guest
+}
+
+enum ExceptionSeverity {
+  info
+  warning
+  critical
+}
+
+enum ExceptionStatus {
+  open
+  acknowledged
+  resolved
+}
+
+model Guest {
+  id                String                @id @default(uuid()) @db.Uuid
+  firstName         String                @map("first_name")
+  lastName          String?               @map("last_name")
+  phone             String?               @unique
+  email             String?               @unique
+  dateOfBirth       DateTime?             @map("date_of_birth") @db.Date
+  preferredLanguage String                @default("en") @map("preferred_language")
+  membershipStatus  GuestMembershipStatus @default(none) @map("membership_status")
+  riskFlagStatus    GuestRiskFlagStatus   @default(clear) @map("risk_flag_status")
+  marketingOptIn    Boolean               @default(false) @map("marketing_opt_in")
+  version           Int                   @default(1)
+  createdAt         DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime              @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  waivers           GuestWaiver[]
+  guestBookings     GuestBooking[]
+  visits            Visit[]
+  wristbandLinks    WristbandLink[]
+
+  @@map("guests")
+}
+
+model GuestWaiver {
+  id              String   @id @default(uuid()) @db.Uuid
+  guestId         String   @map("guest_id") @db.Uuid
+  waiverVersion   String   @map("waiver_version")
+  acceptedChannel String   @map("accepted_channel")
+  signatureText   String?  @map("signature_text")
+  isCurrent       Boolean  @default(true) @map("is_current")
+  acceptedAt      DateTime @default(now()) @map("accepted_at") @db.Timestamptz(6)
+
+  guest           Guest    @relation(fields: [guestId], references: [id])
+
+  @@index([guestId, isCurrent])
+  @@map("guest_waivers")
+}
+
+model Tier {
+  id                String             @id @default(uuid()) @db.Uuid
+  productType       ProductType        @map("product_type")
+  code              String             @unique
+  name              String
+  publicDescription String?            @map("public_description")
+  upgradeRank       Int                @default(0) @map("upgrade_rank")
+  basePriceCents    Int                @map("base_price_cents")
+  active            Boolean            @default(true)
+  createdAt         DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime           @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  durationOptions   TierDurationOption[]
+  resources         Resource[]
+  guestBookings     GuestBooking[]
+  visits            Visit[]
+
+  @@map("tiers")
+}
+
+model TierDurationOption {
+  id              String   @id @default(uuid()) @db.Uuid
+  tierId          String   @map("tier_id") @db.Uuid
+  durationMinutes Int      @map("duration_minutes")
+  priceCents      Int      @map("price_cents")
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  tier            Tier     @relation(fields: [tierId], references: [id])
+
+  @@map("tier_duration_options")
+}
+
+model Resource {
+  id                    String                     @id @default(uuid()) @db.Uuid
+  resourceType          ProductType                @map("resource_type")
+  displayLabel          String                     @map("display_label")
+  tierId                String                     @map("tier_id") @db.Uuid
+  zoneCode              String                     @map("zone_code")
+  status                ResourceAvailabilityStatus @default(available)
+  cleaningBufferMinutes Int                        @default(30) @map("cleaning_buffer_minutes")
+  currentVisitId        String?                    @map("current_visit_id") @db.Uuid
+  version               Int                        @default(1)
+  createdAt             DateTime                   @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime                   @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  tier                  Tier                       @relation(fields: [tierId], references: [id])
+  stateHistory          ResourceStateHistory[]
+  holds                 ResourceHold[]
+  assignedVisits        Visit[]                    @relation("VisitAssignedResource")
+  exceptions            SystemException[]
+
+  @@index([resourceType, status, tierId], map: "idx_resources_type_status_tier")
+  @@map("resources")
+}
+
+model ResourceStateHistory {
+  id               String     @id @default(uuid()) @db.Uuid
+  resourceId       String     @map("resource_id") @db.Uuid
+  previousStatus   String?    @map("previous_status")
+  newStatus        String     @map("new_status")
+  reasonCode       String?    @map("reason_code")
+  reasonText       String?    @map("reason_text")
+  changedByUserId  String?    @map("changed_by_user_id")
+  visitId          String?    @map("visit_id") @db.Uuid
+  changedAt        DateTime   @default(now()) @map("changed_at") @db.Timestamptz(6)
+
+  resource         Resource   @relation(fields: [resourceId], references: [id])
+
+  @@index([resourceId, changedAt(sort: Desc)], map: "idx_resource_state_history_resource_time")
+  @@map("resource_state_history")
+}
+
+model ResourceHold {
+  id            String     @id @default(uuid()) @db.Uuid
+  resourceId    String     @map("resource_id") @db.Uuid
+  visitId       String?    @map("visit_id") @db.Uuid
+  holdScope     HoldScope  @map("hold_scope")
+  status        HoldStatus @default(active)
+  expiresAt     DateTime   @map("expires_at") @db.Timestamptz(6)
+  releasedAt    DateTime?  @map("released_at") @db.Timestamptz(6)
+  releaseReason String?    @map("release_reason")
+  createdAt     DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  resource      Resource   @relation(fields: [resourceId], references: [id])
+  visit         Visit?     @relation(fields: [visitId], references: [id])
+
+  @@index([resourceId, status, expiresAt], map: "idx_resource_holds_active")
+  @@map("resource_holds")
+}
+
+model GuestBooking {
+  id                  String              @id @default(uuid()) @db.Uuid
+  guestId             String              @map("guest_id") @db.Uuid
+  tierId              String              @map("tier_id") @db.Uuid
+  bookingChannel      GuestBookingChannel @default(web) @map("booking_channel")
+  productType         ProductType         @map("product_type")
+  bookingDate         DateTime            @map("booking_date") @db.Date
+  arrivalWindowStart  DateTime            @map("arrival_window_start") @db.Timestamptz(6)
+  arrivalWindowEnd    DateTime            @map("arrival_window_end") @db.Timestamptz(6)
+  durationMinutes     Int                 @map("duration_minutes")
+  status              GuestBookingStatus  @default(reserved)
+  quotedPriceCents    Int                 @default(0) @map("quoted_price_cents")
+  paidAmountCents     Int                 @default(0) @map("paid_amount_cents")
+  balanceDueCents     Int                 @default(0) @map("balance_due_cents")
+  bookingCode         String              @unique @map("booking_code")
+  qrToken             String?             @unique @map("qr_token")
+  expectsExistingBand Boolean             @default(false) @map("expects_existing_band")
+  version             Int                 @default(1)
+  createdAt           DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime            @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  guest               Guest               @relation(fields: [guestId], references: [id])
+  tier                Tier                @relation(fields: [tierId], references: [id])
+  addOns              GuestBookingAddOn[]
+  visits              Visit[]
+  exceptions          SystemException[]
+
+  @@index([guestId, status], map: "idx_guest_bookings_guest_status")
+  @@index([arrivalWindowStart, status], map: "idx_guest_bookings_arrival_status")
+  @@map("guest_bookings")
+}
+
+model GuestBookingAddOn {
+  id              String       @id @default(uuid()) @db.Uuid
+  bookingId       String       @map("booking_id") @db.Uuid
+  addOnCode       String       @map("add_on_code")
+  quantity        Int          @default(1)
+  unitPriceCents  Int          @default(0) @map("unit_price_cents")
+  totalPriceCents Int          @default(0) @map("total_price_cents")
+
+  booking         GuestBooking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@map("guest_booking_add_ons")
+}
+
+model Visit {
+  id                 String             @id @default(uuid()) @db.Uuid
+  guestId            String             @map("guest_id") @db.Uuid
+  bookingId          String?            @map("booking_id") @db.Uuid
+  sourceType         VisitSourceType    @map("source_type")
+  productType        ProductType        @map("product_type")
+  tierId             String             @map("tier_id") @db.Uuid
+  durationMinutes    Int                @map("duration_minutes")
+  status             GuestVisitStatus   @default(initiated)
+  startTime          DateTime?          @map("start_time") @db.Timestamptz(6)
+  scheduledEndTime   DateTime?          @map("scheduled_end_time") @db.Timestamptz(6)
+  actualEndTime      DateTime?          @map("actual_end_time") @db.Timestamptz(6)
+  assignedResourceId String?            @map("assigned_resource_id") @db.Uuid
+  assignedBandId     String?            @map("assigned_band_id") @db.Uuid
+  waiverRequired     Boolean            @default(true) @map("waiver_required")
+  waiverCompleted    Boolean            @default(false) @map("waiver_completed")
+  paymentStatus      FolioPaymentStatus @default(unpaid) @map("payment_status")
+  checkInChannel     CheckInChannel?    @map("check_in_channel")
+  checkOutChannel    CheckOutChannel?   @map("check_out_channel")
+  version            Int                @default(1)
+  createdAt          DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime           @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  guest              Guest              @relation(fields: [guestId], references: [id])
+  booking            GuestBooking?      @relation(fields: [bookingId], references: [id])
+  tier               Tier               @relation(fields: [tierId], references: [id])
+  assignedResource   Resource?          @relation("VisitAssignedResource", fields: [assignedResourceId], references: [id])
+  statusHistory      VisitStatusHistory[]
+  wristbandLinks     WristbandLink[]
+  holds              ResourceHold[]
+  folio              Folio?
+  paymentTransactions PaymentTransaction[]
+  accessPermissions  AccessPermission[]
+  guestAccessEvents  GuestAccessEvent[]
+  exceptions         SystemException[]
+
+  @@index([guestId, status], map: "idx_visits_guest_status")
+  @@index([status, createdAt(sort: Desc)], map: "idx_visits_status_created")
+  @@map("visits")
+}
+
+model VisitStatusHistory {
+  id              String   @id @default(uuid()) @db.Uuid
+  visitId         String   @map("visit_id") @db.Uuid
+  previousStatus  String?  @map("previous_status")
+  newStatus       String   @map("new_status")
+  reasonCode      String?  @map("reason_code")
+  reasonText      String?  @map("reason_text")
+  changedByUserId String?  @map("changed_by_user_id")
+  changedAt       DateTime @default(now()) @map("changed_at") @db.Timestamptz(6)
+
+  visit           Visit    @relation(fields: [visitId], references: [id])
+
+  @@index([visitId, changedAt(sort: Desc)], map: "idx_visit_status_history_visit_time")
+  @@map("visit_status_history")
+}
+
+model WristbandLink {
+  id           String              @id @default(uuid()) @db.Uuid
+  wristbandId  String              @map("wristband_id")
+  guestId      String              @map("guest_id") @db.Uuid
+  visitId      String              @map("visit_id") @db.Uuid
+  linkStatus   WristbandLinkStatus @default(active) @map("link_status")
+  reasonCode   String?             @map("reason_code")
+  createdAt    DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime            @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  wristband    Wristband           @relation(fields: [wristbandId], references: [id])
+  guest        Guest               @relation(fields: [guestId], references: [id])
+  visit        Visit               @relation(fields: [visitId], references: [id])
+
+  @@index([wristbandId, linkStatus], map: "idx_wristband_links_band_status")
+  @@index([visitId, linkStatus], map: "idx_wristband_links_visit_status")
+  @@map("wristband_links")
+}
+
+model Folio {
+  id                   String             @id @default(uuid()) @db.Uuid
+  visitId              String             @unique @map("visit_id") @db.Uuid
+  subtotalCents        Int                @default(0) @map("subtotal_cents")
+  taxesCents           Int                @default(0) @map("taxes_cents")
+  feesCents            Int                @default(0) @map("fees_cents")
+  wristbandChargeCents Int                @default(0) @map("wristband_charge_cents")
+  addOnTotalCents      Int                @default(0) @map("add_on_total_cents")
+  discountsCents       Int                @default(0) @map("discounts_cents")
+  totalDueCents        Int                @default(0) @map("total_due_cents")
+  amountPaidCents      Int                @default(0) @map("amount_paid_cents")
+  balanceDueCents      Int                @default(0) @map("balance_due_cents")
+  paymentStatus        FolioPaymentStatus @default(unpaid) @map("payment_status")
+  version              Int                @default(1)
+  createdAt            DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime           @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  visit                Visit              @relation(fields: [visitId], references: [id])
+  lineItems            FolioLineItem[]
+  paymentTransactions  PaymentTransaction[]
+  exceptions           SystemException[]
+
+  @@map("folios")
+}
+
+model FolioLineItem {
+  id               String   @id @default(uuid()) @db.Uuid
+  folioId          String   @map("folio_id") @db.Uuid
+  lineType         String   @map("line_type")
+  referenceCode    String?  @map("reference_code")
+  description      String
+  quantity         Int      @default(1)
+  unitAmountCents  Int      @map("unit_amount_cents")
+  totalAmountCents Int      @map("total_amount_cents")
+  metadata         Json     @default("{}")
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  folio            Folio    @relation(fields: [folioId], references: [id], onDelete: Cascade)
+
+  @@map("folio_line_items")
+}
+
+model PaymentTransaction {
+  id                      String                 @id @default(uuid()) @db.Uuid
+  folioId                 String                 @map("folio_id") @db.Uuid
+  visitId                 String                 @map("visit_id") @db.Uuid
+  paymentProvider         String                 @map("payment_provider")
+  providerPaymentIntentId String?                @map("provider_payment_intent_id")
+  transactionType         PaymentTransactionType @map("transaction_type")
+  amountCents             Int                    @map("amount_cents")
+  status                  String
+  cardBrand               String?                @map("card_brand")
+  cardLast4               String?                @map("card_last4")
+  idempotencyKey          String?                @unique(map: "uq_payment_idempotency_key") @map("idempotency_key")
+  providerResponse        Json?                  @map("provider_response")
+  createdAt               DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  folio                   Folio                  @relation(fields: [folioId], references: [id])
+  visit                   Visit                  @relation(fields: [visitId], references: [id])
+
+  @@map("payment_transactions")
+}
+
+model AccessPermission {
+  id               String                @id @default(uuid()) @db.Uuid
+  wristbandId      String                @map("wristband_id")
+  visitId          String                @map("visit_id") @db.Uuid
+  zoneCode         String                @map("zone_code")
+  permissionStatus AccessPermissionStatus @default(granted) @map("permission_status")
+  validFrom        DateTime              @map("valid_from") @db.Timestamptz(6)
+  validUntil       DateTime              @map("valid_until") @db.Timestamptz(6)
+  revokedAt        DateTime?             @map("revoked_at") @db.Timestamptz(6)
+  createdAt        DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  wristband        Wristband             @relation(fields: [wristbandId], references: [id])
+  visit            Visit                 @relation(fields: [visitId], references: [id])
+
+  @@index([wristbandId, zoneCode, permissionStatus], map: "idx_access_permissions_band_zone")
+  @@map("access_permissions")
+}
+
+model GuestAccessEvent {
+  id           String       @id @default(uuid()) @db.Uuid
+  wristbandId  String?      @map("wristband_id")
+  visitId      String?      @map("visit_id") @db.Uuid
+  readerId     String       @map("reader_id")
+  zoneCode     String       @map("zone_code")
+  accessResult AccessResult @map("access_result")
+  denialReason String?      @map("denial_reason")
+  eventTime    DateTime     @map("event_time") @db.Timestamptz(6)
+  rawPayload   Json?        @map("raw_payload")
+
+  wristband    Wristband?   @relation(fields: [wristbandId], references: [id])
+  visit        Visit?       @relation(fields: [visitId], references: [id])
+
+  @@index([wristbandId, eventTime(sort: Desc)], map: "idx_guest_access_events_band_time")
+  @@map("guest_access_events")
+}
+
+model AuditLog {
+  id          String    @id @default(uuid()) @db.Uuid
+  actorUserId String?   @map("actor_user_id")
+  actorType   ActorType @map("actor_type")
+  entityType  String    @map("entity_type")
+  entityId    String?   @map("entity_id") @db.Uuid
+  action      String
+  reasonCode  String?   @map("reason_code")
+  reasonText  String?   @map("reason_text")
+  beforeState Json?     @map("before_state")
+  afterState  Json?     @map("after_state")
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([entityType, entityId, createdAt(sort: Desc)], map: "idx_audit_log_entity")
+  @@map("audit_log")
+}
+
+model SystemException {
+  id            String            @id @default(uuid()) @db.Uuid
+  exceptionType String            @map("exception_type")
+  severity      ExceptionSeverity
+  visitId       String?           @map("visit_id") @db.Uuid
+  bookingId     String?           @map("booking_id") @db.Uuid
+  folioId       String?           @map("folio_id") @db.Uuid
+  resourceId    String?           @map("resource_id") @db.Uuid
+  wristbandId   String?           @map("wristband_id")
+  status        ExceptionStatus   @default(open)
+  payload       Json              @default("{}")
+  createdAt     DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  resolvedAt    DateTime?         @map("resolved_at") @db.Timestamptz(6)
+
+  visit         Visit?            @relation(fields: [visitId], references: [id])
+  booking       GuestBooking?     @relation(fields: [bookingId], references: [id])
+  folio         Folio?            @relation(fields: [folioId], references: [id])
+  resource      Resource?         @relation(fields: [resourceId], references: [id])
+  wristband     Wristband?        @relation(fields: [wristbandId], references: [id])
+
+  @@index([status, severity, createdAt(sort: Desc)], map: "idx_system_exceptions_status")
+  @@map("system_exceptions")
+}
+

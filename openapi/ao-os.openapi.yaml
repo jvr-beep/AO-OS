@@ -1,5 +1,1201 @@
 openapi: 3.1.0
 info:
   title: AO OS API
-  version: 0.1.0
-paths: {}
+  version: 0.2.0
+  description: |
+    Operations platform API for AO Sanctuary.
+    All endpoints require Bearer JWT authentication unless noted.
+    Roles: `front_desk`, `operations`, `admin`.
+
+servers:
+  - url: https://api.aosanctuary.com/v1
+    description: Production
+  - url: http://localhost:4000/v1
+    description: Local development
+
+security:
+  - bearerAuth: []
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    # ── Common ──────────────────────────────────────────────────────────────
+    Error:
+      type: object
+      properties:
+        statusCode: { type: integer }
+        message: { type: string }
+        error: { type: string }
+
+    # ── Guests ──────────────────────────────────────────────────────────────
+    Guest:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        first_name: { type: string }
+        last_name: { type: string, nullable: true }
+        phone: { type: string, nullable: true }
+        email: { type: string, nullable: true }
+        membership_status:
+          type: string
+          enum: [none, basic, premium]
+        risk_flag_status:
+          type: string
+          enum: [clear, flagged, banned]
+        version: { type: integer }
+        created_at: { type: string, format: date-time }
+
+    # ── Waivers ─────────────────────────────────────────────────────────────
+    GuestWaiver:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        guest_id: { type: string, format: uuid }
+        waiver_version: { type: string }
+        accepted_channel: { type: string }
+        is_current: { type: boolean }
+        accepted_at: { type: string, format: date-time }
+
+    # ── Catalog ─────────────────────────────────────────────────────────────
+    Tier:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        product_type:
+          type: string
+          enum: [locker, room]
+        code: { type: string }
+        name: { type: string }
+        base_price_cents: { type: integer }
+        active: { type: boolean }
+
+    # ── Inventory ────────────────────────────────────────────────────────────
+    ResourceHold:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        resource_id: { type: string, format: uuid }
+        visit_id: { type: string, format: uuid, nullable: true }
+        hold_scope:
+          type: string
+          enum: [resource, tier_pool]
+        status:
+          type: string
+          enum: [active, released, expired, converted]
+        expires_at: { type: string, format: date-time }
+
+    # ── Bookings ─────────────────────────────────────────────────────────────
+    GuestBooking:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        guest_id: { type: string, format: uuid }
+        tier_id: { type: string, format: uuid }
+        product_type:
+          type: string
+          enum: [locker, room]
+        booking_date: { type: string, format: date }
+        arrival_window_start: { type: string, format: date-time }
+        arrival_window_end: { type: string, format: date-time }
+        duration_minutes: { type: integer }
+        status:
+          type: string
+          enum: [reserved, confirmed, checked_in, completed, cancelled, no_show]
+        booking_code: { type: string }
+        quoted_price_cents: { type: integer }
+        balance_due_cents: { type: integer }
+
+    # ── Visits ───────────────────────────────────────────────────────────────
+    Visit:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        guest_id: { type: string, format: uuid }
+        booking_id: { type: string, format: uuid, nullable: true }
+        source_type:
+          type: string
+          enum: [booking, walk_in]
+        product_type:
+          type: string
+          enum: [locker, room]
+        tier_id: { type: string, format: uuid }
+        duration_minutes: { type: integer }
+        status:
+          type: string
+          enum: [initiated, awaiting_identity, awaiting_waiver, awaiting_payment,
+                 ready_for_assignment, paid_pending_assignment, checked_in, active,
+                 extended, checked_out, cancelled]
+        payment_status:
+          type: string
+          enum: [unpaid, partially_paid, paid, failed, refunded, comped]
+        assigned_resource_id: { type: string, format: uuid, nullable: true }
+        version: { type: integer }
+        created_at: { type: string, format: date-time }
+
+    # ── Folios ────────────────────────────────────────────────────────────────
+    Folio:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        visit_id: { type: string, format: uuid }
+        subtotal_cents: { type: integer }
+        total_due_cents: { type: integer }
+        amount_paid_cents: { type: integer }
+        balance_due_cents: { type: integer }
+        payment_status:
+          type: string
+          enum: [unpaid, partially_paid, paid, failed, refunded, comped]
+
+    # ── Orchestrators ─────────────────────────────────────────────────────────
+    OrchestratorResult:
+      type: object
+      properties:
+        flow: { type: string }
+        booking_id: { type: string, format: uuid, nullable: true }
+        visit_id: { type: string, format: uuid }
+        folio_id: { type: string, format: uuid }
+        resource_id: { type: string, format: uuid, nullable: true }
+        status: { type: string }
+
+    # ── Guest Access ──────────────────────────────────────────────────────────
+    AccessPermission:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        wristband_id: { type: string }
+        visit_id: { type: string, format: uuid }
+        zone_code: { type: string }
+        permission_status:
+          type: string
+          enum: [granted, revoked]
+        valid_from: { type: string, format: date-time }
+        valid_until: { type: string, format: date-time }
+        revoked_at: { type: string, format: date-time, nullable: true }
+
+    GuestAccessEvent:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        wristband_id: { type: string, nullable: true }
+        visit_id: { type: string, format: uuid, nullable: true }
+        reader_id: { type: string }
+        zone_code: { type: string }
+        access_result:
+          type: string
+          enum: [granted, denied]
+        denial_reason: { type: string, nullable: true }
+        event_time: { type: string, format: date-time }
+
+    # ── Ops ───────────────────────────────────────────────────────────────────
+    SystemException:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        exception_type: { type: string }
+        severity:
+          type: string
+          enum: [info, warning, critical]
+        status:
+          type: string
+          enum: [open, acknowledged, resolved]
+        visit_id: { type: string, format: uuid, nullable: true }
+        booking_id: { type: string, format: uuid, nullable: true }
+        folio_id: { type: string, format: uuid, nullable: true }
+        resource_id: { type: string, format: uuid, nullable: true }
+        wristband_id: { type: string, nullable: true }
+        payload: { type: object }
+        created_at: { type: string, format: date-time }
+        resolved_at: { type: string, format: date-time, nullable: true }
+
+    OpsSnapshot:
+      type: object
+      properties:
+        open_exceptions: { type: integer }
+        active_visits: { type: integer }
+        held_resources: { type: integer }
+        occupied_resources: { type: integer }
+
+paths:
+  # ══════════════════════════════════════════════════════════════════════════
+  # Guests
+  # ══════════════════════════════════════════════════════════════════════════
+  /guests:
+    post:
+      summary: Create a guest
+      tags: [Guests]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [first_name]
+              properties:
+                first_name: { type: string }
+                last_name: { type: string }
+                phone: { type: string }
+                email: { type: string, format: email }
+                date_of_birth: { type: string, format: date }
+      responses:
+        '201':
+          description: Guest created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Guest' }
+
+  /guests/{guestId}:
+    get:
+      summary: Get a guest by ID
+      tags: [Guests]
+      parameters:
+        - name: guestId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Guest found
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Guest' }
+        '404':
+          description: Not found
+
+    patch:
+      summary: Update a guest
+      tags: [Guests]
+      parameters:
+        - name: guestId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                first_name: { type: string }
+                last_name: { type: string }
+                phone: { type: string }
+                email: { type: string, format: email }
+      responses:
+        '200':
+          description: Guest updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Guest' }
+
+  # ══════════════════════════════════════════════════════════════════════════
+  # Waivers
+  # ══════════════════════════════════════════════════════════════════════════
+  /waivers:
+    post:
+      summary: Record a signed waiver
+      tags: [Waivers]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [guest_id, waiver_version, accepted_channel]
+              properties:
+                guest_id: { type: string, format: uuid }
+                waiver_version: { type: string }
+                accepted_channel: { type: string }
+                signature_text: { type: string }
+      responses:
+        '201':
+          description: Waiver recorded
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/GuestWaiver' }
+
+  /guests/{guestId}/waivers:
+    get:
+      summary: List waivers for a guest
+      tags: [Waivers]
+      parameters:
+        - name: guestId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: List of waivers
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/GuestWaiver' }
+
+  # ══════════════════════════════════════════════════════════════════════════
+  # Catalog (Tiers)
+  # ══════════════════════════════════════════════════════════════════════════
+  /catalog/tiers:
+    get:
+      summary: List tiers
+      tags: [Catalog]
+      parameters:
+        - name: product_type
+          in: query
+          schema:
+            type: string
+            enum: [locker, room]
+        - name: active_only
+          in: query
+          schema: { type: boolean }
+      responses:
+        '200':
+          description: List of tiers
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Tier' }
+
+    post:
+      summary: Create a tier
+      tags: [Catalog]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [product_type, code, name, base_price_cents]
+              properties:
+                product_type:
+                  type: string
+                  enum: [locker, room]
+                code: { type: string }
+                name: { type: string }
+                base_price_cents: { type: integer }
+      responses:
+        '201':
+          description: Tier created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Tier' }
+
+  /catalog/tiers/{tierId}:
+    get:
+      summary: Get a tier by ID
+      tags: [Catalog]
+      parameters:
+        - name: tierId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Tier found
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Tier' }
+
+    patch:
+      summary: Update a tier
+      tags: [Catalog]
+      parameters:
+        - name: tierId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                base_price_cents: { type: integer }
+                active: { type: boolean }
+      responses:
+        '200':
+          description: Tier updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Tier' }
+
+  # ══════════════════════════════════════════════════════════════════════════
+  # Inventory
+  # ══════════════════════════════════════════════════════════════════════════
+  /inventory/availability:
+    get:
+      summary: Search resource availability
+      tags: [Inventory]
+      parameters:
+        - name: product_type
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [locker, room]
+        - name: tier_id
+          in: query
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Availability by tier
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  product_type: { type: string }
+                  available_tiers:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        tier_id: { type: string, format: uuid }
+                        display_name: { type: string }
+                        from_price_cents: { type: integer }
+                        available_now: { type: boolean }
+
+  /inventory/holds:
+    post:
+      summary: Create a resource hold
+      tags: [Inventory]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [visit_id, tier_id, product_type, hold_scope, duration_minutes]
+              properties:
+                visit_id: { type: string, format: uuid }
+                tier_id: { type: string, format: uuid }
+                product_type:
+                  type: string
+                  enum: [locker, room]
+                hold_scope:
+                  type: string
+                  enum: [resource, tier_pool]
+                duration_minutes: { type: integer }
+      responses:
+        '201':
+          description: Hold created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ResourceHold' }
+        '409':
+          description: No resource available
+
+  /inventory/holds/{holdId}/release:
+    post:
+      summary: Release a resource hold
+      tags: [Inventory]
+      parameters:
+        - name: holdId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '204':
+          description: Hold released
+
+  /inventory/finalize-assignment:
+    post:
+      summary: Finalize a resource assignment from a hold
+      tags: [Inventory]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [visit_id, hold_id]
+              properties:
+                visit_id: { type: string, format: uuid }
+                hold_id: { type: string, format: uuid }
+                changed_by_user_id: { type: string, format: uuid }
+      responses:
+        '201':
+          description: Assignment finalized
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  visit_id: { type: string, format: uuid }
+                  resource_id: { type: string, format: uuid }
+
+  # ══════════════════════════════════════════════════════════════════════════
+  # Bookings
+  # ══════════════════════════════════════════════════════════════════════════
+  /bookings:
+    post:
+      summary: Create a guest booking
+      tags: [Bookings]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [guest_id, tier_id, product_type, booking_date,
+                         arrival_window_start, arrival_window_end, duration_minutes]
+              properties:
+                guest_id: { type: string, format: uuid }
+                tier_id: { type: string, format: uuid }
+                product_type:
+                  type: string
+                  enum: [locker, room]
+                booking_date: { type: string, format: date }
+                arrival_window_start: { type: string, format: date-time }
+                arrival_window_end: { type: string, format: date-time }
+                duration_minutes: { type: integer }
+                quoted_price_cents: { type: integer }
+      responses:
+        '201':
+          description: Booking created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/GuestBooking' }
+
+  /bookings/{bookingId}:
+    get:
+      summary: Get a booking by ID
+      tags: [Bookings]
+      parameters:
+        - name: bookingId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Booking found
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/GuestBooking' }
+
+  /bookings/code/{bookingCode}:
+    get:
+      summary: Get a booking by booking code
+      tags: [Bookings]
+      parameters:
+        - name: bookingCode
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Booking found
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/GuestBooking' }
+
+  /bookings/qr/{qrToken}:
+    get:
+      summary: Get a booking by QR token
+      tags: [Bookings]
+      parameters:
+        - name: qrToken
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Booking found
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/GuestBooking' }
+
+  /bookings/{bookingId}/status:
+    patch:
+      summary: Transition a booking status
+      tags: [Bookings]
+      parameters:
+        - name: bookingId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  type: string
+                  enum: [confirmed, cancelled, no_show]
+                reason: { type: string }
+      responses:
+        '200':
+          description: Status updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/GuestBooking' }
+        '409':
+          description: Invalid status transition
+
+  /guests/{guestId}/bookings:
+    get:
+      summary: List bookings for a guest
+      tags: [Bookings]
+      parameters:
+        - name: guestId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: List of bookings
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/GuestBooking' }
+
+  # ══════════════════════════════════════════════════════════════════════════
+  # Visits
+  # ══════════════════════════════════════════════════════════════════════════
+  /visits:
+    post:
+      summary: Initiate a visit
+      tags: [Visits]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [guest_id, source_type, product_type, tier_id, duration_minutes]
+              properties:
+                guest_id: { type: string, format: uuid }
+                booking_id: { type: string, format: uuid }
+                source_type:
+                  type: string
+                  enum: [booking, walk_in]
+                product_type:
+                  type: string
+                  enum: [locker, room]
+                tier_id: { type: string, format: uuid }
+                duration_minutes: { type: integer }
+                check_in_channel:
+                  type: string
+                  enum: [web, kiosk, staff]
+      responses:
+        '201':
+          description: Visit initiated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Visit' }
+
+  /visits/{visitId}:
+    get:
+      summary: Get a visit by ID
+      tags: [Visits]
+      parameters:
+        - name: visitId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Visit found
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Visit' }
+
+  /visits/{visitId}/status-history:
+    get:
+      summary: Get status history for a visit
+      tags: [Visits]
+      parameters:
+        - name: visitId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Status history entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id: { type: string, format: uuid }
+                    previous_status: { type: string, nullable: true }
+                    new_status: { type: string }
+                    reason_code: { type: string, nullable: true }
+                    changed_at: { type: string, format: date-time }
+
+  /visits/{visitId}/status:
+    patch:
+      summary: Transition a visit status
+      tags: [Visits]
+      parameters:
+        - name: visitId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: { type: string }
+                reason_code: { type: string }
+                changed_by_user_id: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Status updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Visit' }
+
+  /guests/{guestId}/visits:
+    get:
+      summary: List visits for a guest
+      tags: [Visits]
+      parameters:
+        - name: guestId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: status
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: List of visits
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Visit' }
+
+  # ══════════════════════════════════════════════════════════════════════════
+  # Folios
+  # ══════════════════════════════════════════════════════════════════════════
+  /folios:
+    post:
+      summary: Create a folio for a visit
+      tags: [Folios]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [visit_id]
+              properties:
+                visit_id: { type: string, format: uuid }
+      responses:
+        '201':
+          description: Folio created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Folio' }
+
+  /folios/{folioId}:
+    get:
+      summary: Get a folio by ID
+      tags: [Folios]
+      parameters:
+        - name: folioId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Folio found
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Folio' }
+
+  /visits/{visitId}/folio:
+    get:
+      summary: Get the folio for a visit
+      tags: [Folios]
+      parameters:
+        - name: visitId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Folio found
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Folio' }
+
+  /folios/{folioId}/line-items:
+    post:
+      summary: Add a line item to a folio
+      tags: [Folios]
+      parameters:
+        - name: folioId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [line_type, description, quantity, unit_amount_cents]
+              properties:
+                line_type: { type: string }
+                reference_code: { type: string }
+                description: { type: string }
+                quantity: { type: integer }
+                unit_amount_cents: { type: integer }
+                metadata: { type: object }
+      responses:
+        '201':
+          description: Line item added; folio recalculated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Folio' }
+
+  /folios/{folioId}/payments:
+    post:
+      summary: Record a payment on a folio
+      tags: [Folios]
+      parameters:
+        - name: folioId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [payment_provider, transaction_type, amount_cents, status]
+              properties:
+                payment_provider: { type: string }
+                transaction_type:
+                  type: string
+                  enum: [authorize, capture, sale, refund, void, comp]
+                amount_cents: { type: integer }
+                status: { type: string }
+                idempotency_key: { type: string }
+                provider_payment_intent_id: { type: string }
+      responses:
+        '201':
+          description: Payment recorded; folio recalculated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Folio' }
+        '409':
+          description: Duplicate idempotency key
+
+  # ══════════════════════════════════════════════════════════════════════════
+  # Orchestrators
+  # ══════════════════════════════════════════════════════════════════════════
+  /orchestrators/check-in/booking:
+    post:
+      summary: Check in a guest from a pre-existing booking
+      tags: [Orchestrators]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                booking_id: { type: string, format: uuid }
+                booking_code: { type: string }
+                changed_by_user_id: { type: string, format: uuid }
+      responses:
+        '201':
+          description: Check-in complete
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OrchestratorResult' }
+        '404':
+          description: Booking not found
+        '409':
+          description: Booking in invalid state or concurrent modification
+
+  /orchestrators/check-in/walk-in:
+    post:
+      summary: Check in a walk-in guest
+      tags: [Orchestrators]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [guest_id, tier_id, product_type, duration_minutes,
+                         quoted_price_cents, amount_paid_cents, payment_provider]
+              properties:
+                guest_id: { type: string, format: uuid }
+                tier_id: { type: string, format: uuid }
+                product_type:
+                  type: string
+                  enum: [locker, room]
+                duration_minutes: { type: integer }
+                quoted_price_cents: { type: integer }
+                amount_paid_cents: { type: integer }
+                payment_provider: { type: string }
+                changed_by_user_id: { type: string, format: uuid }
+      responses:
+        '201':
+          description: Walk-in check-in complete
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OrchestratorResult' }
+        '404':
+          description: Guest or tier not found
+        '409':
+          description: Payment incomplete or no resource available
+
+  /orchestrators/checkout:
+    post:
+      summary: Check out a guest
+      tags: [Orchestrators]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [visit_id, check_out_channel]
+              properties:
+                visit_id: { type: string, format: uuid }
+                check_out_channel:
+                  type: string
+                  enum: [kiosk, staff, system]
+                changed_by_user_id: { type: string, format: uuid }
+      responses:
+        '201':
+          description: Checkout complete
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OrchestratorResult' }
+        '404':
+          description: Visit or folio not found
+        '409':
+          description: Outstanding balance or visit already terminal or concurrent modification
+
+  # ══════════════════════════════════════════════════════════════════════════
+  # Guest Access
+  # ══════════════════════════════════════════════════════════════════════════
+  /guest-access/permissions:
+    post:
+      summary: Grant wristband access permission
+      tags: [Guest Access]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [wristband_id, visit_id, zone_code, valid_from, valid_until]
+              properties:
+                wristband_id: { type: string }
+                visit_id: { type: string, format: uuid }
+                zone_code: { type: string }
+                valid_from: { type: string, format: date-time }
+                valid_until: { type: string, format: date-time }
+      responses:
+        '201':
+          description: Permission granted
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AccessPermission' }
+        '409':
+          description: Active permission already exists for wristband and zone
+
+  /guest-access/permissions/{permissionId}/revoke:
+    post:
+      summary: Revoke a wristband access permission
+      tags: [Guest Access]
+      parameters:
+        - name: permissionId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Permission revoked
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AccessPermission' }
+
+  /guest-access/visits/{visitId}/permissions:
+    get:
+      summary: List access permissions for a visit
+      tags: [Guest Access]
+      parameters:
+        - name: visitId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: List of permissions
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/AccessPermission' }
+
+  /guest-access/events:
+    post:
+      summary: Log a guest access event from a wristband reader
+      tags: [Guest Access]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reader_id, zone_code, access_result, event_time]
+              properties:
+                wristband_id: { type: string }
+                visit_id: { type: string, format: uuid }
+                reader_id: { type: string }
+                zone_code: { type: string }
+                access_result:
+                  type: string
+                  enum: [granted, denied]
+                denial_reason: { type: string }
+                event_time: { type: string, format: date-time }
+                raw_payload: { type: object }
+      responses:
+        '201':
+          description: Event logged; denied events auto-create a system exception
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/GuestAccessEvent' }
+
+  /guest-access/visits/{visitId}/events:
+    get:
+      summary: List access events for a visit
+      tags: [Guest Access]
+      parameters:
+        - name: visitId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: List of access events
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/GuestAccessEvent' }
+
+  # ══════════════════════════════════════════════════════════════════════════
+  # Ops
+  # ══════════════════════════════════════════════════════════════════════════
+  /ops/snapshot:
+    get:
+      summary: Get current operations snapshot counts
+      tags: [Ops]
+      responses:
+        '200':
+          description: Snapshot counts
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OpsSnapshot' }
+
+  /ops/exceptions:
+    get:
+      summary: List system exceptions
+      tags: [Ops]
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [open, acknowledged, resolved]
+        - name: severity
+          in: query
+          schema:
+            type: string
+            enum: [info, warning, critical]
+        - name: limit
+          in: query
+          schema: { type: integer, default: 50, maximum: 200 }
+      responses:
+        '200':
+          description: List of exceptions
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/SystemException' }
+
+    post:
+      summary: Create a system exception
+      tags: [Ops]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [exception_type, severity]
+              properties:
+                exception_type: { type: string }
+                severity:
+                  type: string
+                  enum: [info, warning, critical]
+                visit_id: { type: string, format: uuid }
+                booking_id: { type: string, format: uuid }
+                folio_id: { type: string, format: uuid }
+                resource_id: { type: string, format: uuid }
+                wristband_id: { type: string }
+                payload: { type: object }
+      responses:
+        '201':
+          description: Exception created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SystemException' }
+
+  /ops/exceptions/{exceptionId}/status:
+    patch:
+      summary: Update system exception status
+      tags: [Ops]
+      parameters:
+        - name: exceptionId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  type: string
+                  enum: [acknowledged, resolved]
+                resolution_note: { type: string }
+      responses:
+        '200':
+          description: Status updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SystemException' }

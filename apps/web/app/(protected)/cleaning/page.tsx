@@ -8,13 +8,14 @@ import type { CleaningTask, Room } from '@/types/api'
 export default async function CleaningPage({
   searchParams,
 }: {
-  searchParams?: { ok?: string; error?: string }
+  searchParams?: { ok?: string; error?: string; q?: string }
 }) {
   const session = await getSession()
   const token = session.accessToken!
   const canManageTasks = session.user?.role === 'operations' || session.user?.role === 'admin'
   const okMessage = searchParams?.ok
   const errorMessage = searchParams?.error
+  const query = searchParams?.q?.trim().toLowerCase() ?? ''
 
   const [tasks, rooms] = await Promise.all([
     apiFetch<CleaningTask[]>('/cleaning/tasks', token),
@@ -25,6 +26,25 @@ export default async function CleaningPage({
   const orderedTasks = [...tasks].sort(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
   )
+
+  const filteredTasks = query
+    ? orderedTasks.filter((task) => {
+        const room = roomById.get(task.roomId)
+        const roomCode = room?.code.toLowerCase() ?? ''
+        const roomName = room?.name.toLowerCase() ?? ''
+        const taskType = task.taskType.toLowerCase()
+        const status = task.status.toLowerCase()
+        const notes = task.notes?.toLowerCase() ?? ''
+        return (
+          roomCode.includes(query) ||
+          roomName.includes(query) ||
+          taskType.includes(query) ||
+          status.includes(query) ||
+          notes.includes(query) ||
+          task.roomId.toLowerCase().includes(query)
+        )
+      })
+    : orderedTasks
 
   return (
     <div className="max-w-6xl">
@@ -47,6 +67,25 @@ export default async function CleaningPage({
       )}
 
       <div className="card overflow-hidden">
+        <div className="p-4 border-b border-gray-700">
+          <p className="text-xs text-gray-400 mb-2">Tip: partial matches are supported.</p>
+          <form method="get" className="flex flex-col sm:flex-row gap-2">
+            <input
+              name="q"
+              defaultValue={searchParams?.q ?? ''}
+              placeholder="Search by room, task type, status, notes, or room ID"
+              className="form-input flex-1"
+            />
+            <button type="submit" className="btn-primary">
+              Search
+            </button>
+            {searchParams?.q && (
+              <Link href="/cleaning" className="btn-secondary text-center">
+                Clear Search
+              </Link>
+            )}
+          </form>
+        </div>
         <table className="w-full text-sm">
           <thead className="bg-ao-dark border-b border-gray-700">
             <tr>
@@ -71,14 +110,14 @@ export default async function CleaningPage({
             </tr>
           </thead>
           <tbody className="divide-y">
-            {orderedTasks.length === 0 ? (
+            {filteredTasks.length === 0 ? (
               <tr>
                 <td colSpan={6} className="px-4 py-8 text-center text-sm text-gray-400">
                   No cleaning tasks.
                 </td>
               </tr>
             ) : (
-              orderedTasks.map((task) => {
+              filteredTasks.map((task) => {
                 const room = roomById.get(task.roomId)
 
                 return (

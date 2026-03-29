@@ -3,14 +3,17 @@ import Link from 'next/link'
 import { getSession } from '@/lib/session'
 import { apiFetch } from '@/lib/api'
 import { StatusBadge } from '@/components/status-badge'
+import { moveLockerAction, unassignLockerAction } from '@/app/actions/operators'
 import type { Locker, LockerAccessEvent } from '@/types/api'
 
 const HARD_BLOCKED_STATUSES = ['maintenance', 'offline', 'forced_open', 'out_of_service']
 
 export default async function LockerDetailPage({
   params,
+  searchParams,
 }: {
   params: { lockerId: string }
+  searchParams?: { ok?: string; error?: string }
 }) {
   const session = await getSession()
   const token = session.accessToken!
@@ -26,6 +29,9 @@ export default async function LockerDetailPage({
   if (!locker) notFound()
 
   const events = eventsResult.status === 'fulfilled' ? eventsResult.value : []
+  const okMessage = searchParams?.ok
+  const errorMessage = searchParams?.error
+  const isOccupied = locker.status === 'occupied' && !!locker.assignedMemberId
 
   return (
     <div className="max-w-3xl">
@@ -36,6 +42,18 @@ export default async function LockerDetailPage({
         <h1 className="text-3xl font-bold">Locker {locker.code}</h1>
         <StatusBadge status={locker.status} />
       </div>
+
+      {(okMessage || errorMessage) && (
+        <div
+          className={`mb-4 rounded-lg border px-4 py-3 text-sm ${
+            errorMessage
+              ? 'border-red-700 bg-red-900 text-red-200'
+              : 'border-green-700 bg-green-900 text-green-200'
+          }`}
+        >
+          {errorMessage ?? okMessage}
+        </div>
+      )}
 
       {locker.assignedMemberId && (
         <div className="card mb-4">
@@ -53,6 +71,37 @@ export default async function LockerDetailPage({
             <dt className="text-gray-400">Assigned</dt>
             <dd className="text-gray-200">{locker.assignedAt ? new Date(locker.assignedAt).toLocaleString() : '—'}</dd>
           </dl>
+        </div>
+      )}
+
+      {isOccupied && (
+        <div className="grid grid-cols-1 gap-4 mb-4 sm:grid-cols-2">
+          <div className="card">
+            <h2 className="text-sm font-semibold text-ao-primary mb-3 uppercase tracking-wide">Move to Another Locker</h2>
+            <p className="text-xs text-gray-400 mb-2">
+              Atomically releases this locker and assigns the member to the new one.
+            </p>
+            <form action={moveLockerAction} className="space-y-2">
+              <input type="hidden" name="fromLockerId" value={locker.id} />
+              <input type="hidden" name="memberId" value={locker.assignedMemberId!} />
+              <input name="toLockerId" placeholder="New Locker ID" className="form-input" required />
+              <button className="btn-primary w-full">Move</button>
+            </form>
+          </div>
+
+          <div className="card">
+            <h2 className="text-sm font-semibold text-ao-primary mb-3 uppercase tracking-wide">Release Locker</h2>
+            <p className="text-xs text-gray-400 mb-2">Manually release this locker assignment.</p>
+            <form action={unassignLockerAction} className="space-y-2">
+              <input type="hidden" name="lockerId" value={locker.id} />
+              <input
+                name="unassignedReason"
+                placeholder="Reason (optional)"
+                className="form-input"
+              />
+              <button className="btn-secondary w-full">Release</button>
+            </form>
+          </div>
         </div>
       )}
 

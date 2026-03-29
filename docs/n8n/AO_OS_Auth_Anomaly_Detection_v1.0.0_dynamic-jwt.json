@@ -1,0 +1,244 @@
+{
+  "name": "AO OS Auth Anomaly Detection - v1.0.0 (Dynamic JWT)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 5
+            }
+          ]
+        }
+      },
+      "id": "3d1f0c29-1192-44f8-b5ec-a15f8f85a101",
+      "name": "Every 5 Minutes",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        220,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.AO_OS_API_BASE + '/auth/login' }}",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ { \"email\": $env.AO_OS_N8N_EMAIL, \"password\": $env.AO_OS_N8N_PASSWORD } }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "ecf7b5bf-4ca8-49f8-b3e5-ae2385c21485",
+      "name": "Auth Login",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.AO_OS_API_BASE + '/events/poll' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Auth Login').first().json.accessToken }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "11f5ed4c-c341-4027-aa66-4a1938cf61a8",
+      "name": "Poll Events",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $input.first().json;\nconst events = Array.isArray(response?.events) ? response.events : [];\n\nconst threshold = Number($env.AO_OS_AUTH_FAILURE_THRESHOLD || 5);\nconst windowMinutes = Number($env.AO_OS_AUTH_ANOMALY_WINDOW_MINUTES || 15);\nconst cooldownMinutes = Number($env.AO_OS_AUTH_ALERT_COOLDOWN_MINUTES || 30);\n\nconst now = new Date();\nconst cutoff = new Date(now.getTime() - windowMinutes * 60 * 1000);\nconst polledAt = response?.lastPolledAt || now.toISOString();\n\nconst staticData = $getWorkflowStaticData('global');\nif (!staticData.authAnomalyLastAlertAt || typeof staticData.authAnomalyLastAlertAt !== 'object') {\n  staticData.authAnomalyLastAlertAt = {};\n}\nconst cooldownStore = staticData.authAnomalyLastAlertAt;\n\nconst failedAuthEvents = events.filter((event) => {\n  if (event?.type !== 'AuthEvent') return false;\n  if (event?.data?.eventType !== 'auth.login_failed') return false;\n\n  const occurredAt = new Date(event.occurredAt);\n  if (Number.isNaN(occurredAt.getTime())) return false;\n\n  return occurredAt >= cutoff;\n});\n\nconst grouped = new Map();\n\nfor (const event of failedAuthEvents) {\n  const data = event?.data || {};\n  const identityKey = String(data.memberId || data.attemptedEmail || data.ipAddress || 'unknown');\n\n  if (!grouped.has(identityKey)) {\n    grouped.set(identityKey, {\n      identityKey,\n      memberId: data.memberId || null,\n      attemptedEmail: data.attemptedEmail || null,\n      ipAddress: data.ipAddress || null,\n      count: 0,\n      reasonCounts: {},\n      recent: []\n    });\n  }\n\n  const row = grouped.get(identityKey);\n  row.count += 1;\n\n  const reason = String(data.failureReasonCode || 'UNKNOWN');\n  row.reasonCounts[reason] = (row.reasonCounts[reason] || 0) + 1;\n\n  row.recent.push({\n    id: event.id,\n    occurredAt: event.occurredAt,\n    reason,\n    ipAddress: data.ipAddress || null,\n    attemptedEmail: data.attemptedEmail || null\n  });\n}\n\nconst anomalies = Array.from(grouped.values())\n  .filter((group) => group.count >= threshold)\n  .map((group) => {\n    group.recent.sort((a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime());\n    group.recent = group.recent.slice(0, 10);\n\n    const reasonSummary = Object.entries(group.reasonCounts)\n      .map(([reason, count]) => `${reason}:${count}`)\n      .join(', ');\n\n    const title = `Auth anomaly: ${group.count} failed logins in ${windowMinutes}m (${group.identityKey})`.slice(0, 200);\n\n    const lastAlertAtRaw = cooldownStore[group.identityKey];\n    const lastAlertAt = lastAlertAtRaw ? new Date(lastAlertAtRaw) : null;\n    const withinCooldown = lastAlertAt && !Number.isNaN(lastAlertAt.getTime()) && (now.getTime() - lastAlertAt.getTime()) < cooldownMinutes * 60 * 1000;\n\n    const suppressEmail = Boolean(withinCooldown);\n    const suppressionReason = suppressEmail\n      ? `Suppressed duplicate anomaly in ${cooldownMinutes}m cooldown`\n      : null;\n\n    if (!suppressEmail) {\n      cooldownStore[group.identityKey] = now.toISOString();\n    }\n\n    return {\n      type: 'auth.login_failed.anomaly',\n      severity: 'critical',\n      status: 'open',\n      occurredAt: polledAt,\n      threshold,\n      windowMinutes,\n      cooldownMinutes,\n      failureCount: group.count,\n      identityKey: group.identityKey,\n      memberId: group.memberId,\n      attemptedEmail: group.attemptedEmail,\n      ipAddress: group.ipAddress,\n      reasonSummary,\n      recentFailures: group.recent,\n      suppressEmail,\n      suppressionReason,\n      lastAlertAt: lastAlertAtRaw || null,\n      notionPayload: {\n        parent: {\n          database_id: $env.NOTION_SECURITY_ALERT_DB_ID || $env.NOTION_OPERATIONAL_LOG_DB_ID\n        },\n        properties: {\n          Title: {\n            title: [{ text: { content: title } }]\n          },\n          'Event Type': {\n            select: { name: 'AuthEvent' }\n          },\n          Status: {\n            select: { name: suppressEmail ? 'Anomaly Suppressed' : 'Anomaly' }\n          },\n          Severity: {\n            select: { name: 'critical' }\n          },\n          Timestamp: {\n            date: { start: String(polledAt) }\n          },\n          'Member ID': {\n            rich_text: group.memberId ? [{ text: { content: String(group.memberId) } }] : []\n          },\n          'Denial Reason': {\n            rich_text: reasonSummary ? [{ text: { content: reasonSummary.slice(0, 1900) } }] : []\n          },\n          'Raw Data': {\n            rich_text: [{\n              text: {\n                content: JSON.stringify({\n                  threshold,\n                  windowMinutes,\n                  cooldownMinutes,\n                  failureCount: group.count,\n                  identityKey: group.identityKey,\n                  attemptedEmail: group.attemptedEmail,\n                  ipAddress: group.ipAddress,\n                  suppressEmail,\n                  suppressionReason,\n                  lastAlertAt: lastAlertAtRaw || null,\n                  recentFailures: group.recent\n                }).slice(0, 1900)\n              }\n            }]\n          },\n          'Polled At': {\n            date: { start: String(polledAt) }\n          }\n        }\n      },\n      emailSubject: `AO OS Auth Anomaly: ${group.count} failed logins (${group.identityKey})`,\n      emailBody: `<h2>Auth Anomaly Detected</h2>\n<table style=\"border-collapse:collapse;width:100%;font-family:sans-serif;font-size:14px\">\n  <tr><td style=\"padding:6px 12px;background:#f5f5f5;font-weight:bold\">Identity</td><td style=\"padding:6px 12px\">${group.identityKey}</td></tr>\n  <tr><td style=\"padding:6px 12px;background:#f5f5f5;font-weight:bold\">Failure Count</td><td style=\"padding:6px 12px\">${group.count}</td></tr>\n  <tr><td style=\"padding:6px 12px;background:#f5f5f5;font-weight:bold\">Window</td><td style=\"padding:6px 12px\">${windowMinutes} minutes</td></tr>\n  <tr><td style=\"padding:6px 12px;background:#f5f5f5;font-weight:bold\">Threshold</td><td style=\"padding:6px 12px\">${threshold}</td></tr>\n  <tr><td style=\"padding:6px 12px;background:#f5f5f5;font-weight:bold\">Cooldown</td><td style=\"padding:6px 12px\">${cooldownMinutes} minutes</td></tr>\n  <tr><td style=\"padding:6px 12px;background:#f5f5f5;font-weight:bold\">Reasons</td><td style=\"padding:6px 12px\">${reasonSummary || 'UNKNOWN'}</td></tr>\n</table>\n<h3>Recent failures</h3>\n<pre style=\"white-space:pre-wrap\">${JSON.stringify(group.recent, null, 2)}</pre>`\n    };\n  });\n\nreturn anomalies.map((json) => ({ json }));"
+      },
+      "id": "e26fafb4-7cc0-4316-9f24-0bea86de760e",
+      "name": "Detect Auth Anomalies",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        920,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.notion.com/v1/pages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$env.NOTION_API_KEY}}"
+            },
+            {
+              "name": "Notion-Version",
+              "value": "2022-06-28"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.notionPayload }}",
+        "options": {}
+      },
+      "id": "e86b6e51-8029-4d3d-b2ec-f23cf7fd8629",
+      "name": "Notion Append Auth Anomaly",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1170,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "leftValue": "={{ $json.suppressEmail }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ]
+        }
+      },
+      "id": "6f67f61b-fac4-4962-9f6d-01ef42e7eb4f",
+      "name": "Cooldown Suppress Email?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1170,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $env.AO_OS_ALERT_EMAIL }}",
+        "subject": "={{ $json.emailSubject }}",
+        "emailType": "html",
+        "message": "={{ $json.emailBody }}",
+        "options": {}
+      },
+      "id": "48afef4f-1603-4608-a77e-c654db9dbaec",
+      "name": "Gmail Auth Anomaly Alert",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1400,
+        520
+      ],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "REPLACE_WITH_GMAIL_CREDENTIAL_ID",
+          "name": "REPLACE_WITH_GMAIL_CREDENTIAL_NAME"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Every 5 Minutes": {
+      "main": [
+        [
+          {
+            "node": "Auth Login",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Auth Login": {
+      "main": [
+        [
+          {
+            "node": "Poll Events",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Poll Events": {
+      "main": [
+        [
+          {
+            "node": "Detect Auth Anomalies",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Detect Auth Anomalies": {
+      "main": [
+        [
+          {
+            "node": "Notion Append Auth Anomaly",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Cooldown Suppress Email?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cooldown Suppress Email?": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Gmail Auth Anomaly Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}

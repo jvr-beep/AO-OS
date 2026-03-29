@@ -1,0 +1,9 @@
+-- This migration was originally generated from a database state where the
+-- member identity auth tables already existed. In a clean replay order it ran
+-- before those tables were created, which broke shadow database replays.
+--
+-- The actual member identity auth schema is defined in the later migration:
+--   20260329110000_add_member_identity_auth
+--
+-- This placeholder is intentionally a no-op so existing timestamp ordering is
+-- preserved without mutating fresh databases out of sequence.

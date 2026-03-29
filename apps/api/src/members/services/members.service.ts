@@ -7,6 +7,40 @@ import { MemberResponseDto } from "../dto/member.response.dto";
 export class MembersService {
   constructor(private readonly prisma: PrismaService) {}
 
+  async listMembers(query?: string): Promise<MemberResponseDto[]> {
+    const normalizedQuery = query?.trim();
+    const where = normalizedQuery
+      ? {
+          OR: [
+            { id: { contains: normalizedQuery, mode: "insensitive" as const } },
+            { publicMemberNumber: { contains: normalizedQuery, mode: "insensitive" as const } },
+            { email: { contains: normalizedQuery, mode: "insensitive" as const } },
+            { firstName: { contains: normalizedQuery, mode: "insensitive" as const } },
+            { lastName: { contains: normalizedQuery, mode: "insensitive" as const } },
+            { displayName: { contains: normalizedQuery, mode: "insensitive" as const } }
+          ]
+        }
+      : {};
+
+    const members = await this.prisma.member.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      take: 100
+    });
+
+    return members.map((member) => ({
+      id: member.id,
+      publicMemberNumber: member.publicMemberNumber,
+      email: member.email,
+      firstName: member.firstName,
+      lastName: member.lastName,
+      displayName: member.displayName,
+      phone: member.phone,
+      status: member.status,
+      createdAt: member.createdAt.toISOString()
+    }));
+  }
+
   async createMember(input: CreateMemberDto): Promise<MemberResponseDto> {
     const created = await this.prisma.member.create({
       data: {

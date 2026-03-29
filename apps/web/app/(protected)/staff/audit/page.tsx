@@ -4,7 +4,11 @@ import { getSession } from '@/lib/session'
 import { apiFetch } from '@/lib/api'
 import type { AuditEvent } from '@/types/api'
 
-export default async function StaffAuditPage() {
+export default async function StaffAuditPage({
+  searchParams,
+}: {
+  searchParams?: { q?: string }
+}) {
   const session = await getSession()
 
   if (session.user?.role !== 'admin') {
@@ -12,6 +16,23 @@ export default async function StaffAuditPage() {
   }
 
   const events = await apiFetch<AuditEvent[]>('/staff-audit', session.accessToken!)
+  const query = searchParams?.q?.trim().toLowerCase() ?? ''
+  const filteredEvents = query
+    ? events.filter((ev) => {
+        const actorEmailSnapshot = (ev as AuditEvent & { actorEmailSnapshot?: string }).actorEmailSnapshot ?? ''
+        const actorDisplay =
+          ev.staffUser?.fullName ?? actorEmailSnapshot ?? ev.staffUserId ?? 'system'
+        const action = (ev.action ?? '').toLowerCase()
+        const targetType = (ev.targetType ?? '').toLowerCase()
+        const targetId = (ev.targetId ?? '').toLowerCase()
+        return (
+          actorDisplay.toLowerCase().includes(query) ||
+          action.includes(query) ||
+          targetType.includes(query) ||
+          targetId.includes(query)
+        )
+      })
+    : events
 
   return (
     <div className="max-w-5xl">
@@ -23,6 +44,25 @@ export default async function StaffAuditPage() {
       </div>
 
       <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
+        <div className="p-4 border-b">
+          <p className="text-xs text-gray-500 mb-2">Tip: partial matches are supported.</p>
+          <form method="get" className="flex flex-col sm:flex-row gap-2">
+            <input
+              name="q"
+              defaultValue={searchParams?.q ?? ''}
+              placeholder="Search by staff, action, target type, or target ID"
+              className="form-input flex-1"
+            />
+            <button type="submit" className="btn-primary">
+              Search
+            </button>
+            {searchParams?.q && (
+              <Link href="/staff/audit" className="btn-secondary text-center">
+                Clear Search
+              </Link>
+            )}
+          </form>
+        </div>
         <table className="w-full text-sm">
           <thead className="bg-gray-50 border-b">
             <tr>
@@ -41,14 +81,14 @@ export default async function StaffAuditPage() {
             </tr>
           </thead>
           <tbody className="divide-y">
-            {events.length === 0 ? (
+            {filteredEvents.length === 0 ? (
               <tr>
                 <td colSpan={4} className="px-4 py-8 text-center text-sm text-gray-500">
                   No audit events.
                 </td>
               </tr>
             ) : (
-              events.map((ev) => (
+              filteredEvents.map((ev) => (
                 <tr key={ev.id} className="hover:bg-gray-50">
                   {(() => {
                     const actorEmailSnapshot = (

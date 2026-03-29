@@ -14,6 +14,7 @@ import { LockerAssignmentResponseDto } from "../dto/locker-assignment.response.d
 import { LockerPolicyEventResponseDto } from "../dto/locker-policy-event.response.dto";
 import { LockerPolicyDecisionResponseDto } from "../dto/locker-policy-decision.response.dto";
 import { LockerResponseDto } from "../dto/locker.response.dto";
+import { MoveLockerDto } from "../dto/move-locker.dto";
 import { UnassignLockerDto } from "../dto/unassign-locker.dto";
 import { LockersService } from "../services/lockers.service";
 
@@ -65,6 +66,18 @@ export class LockersController {
   @Roles("front_desk", "operations", "admin")
   unassignLocker(@Body() body: UnassignLockerDto): Promise<LockerAssignmentResponseDto> {
     return this.lockersService.unassignLocker(body);
+  }
+
+  @Post("lockers/move")
+  @Roles("front_desk", "operations", "admin")
+  moveLocker(@Body() body: MoveLockerDto): Promise<LockerAssignmentResponseDto> {
+    return this.lockersService.moveLocker(body);
+  }
+
+  @Post("lockers/resolve-abandoned")
+  @Roles("operations", "admin")
+  resolveAbandonedLockers(@Body() body: { siteId?: string }): Promise<{ released: number }> {
+    return this.lockersService.resolveAbandonedLockers(body.siteId);
   }
 
   @Post("lockers/access")

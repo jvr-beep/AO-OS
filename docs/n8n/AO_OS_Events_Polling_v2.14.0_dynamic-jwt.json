@@ -1,0 +1,226 @@
+{
+  "name": "AO OS Events Polling - v2.14.0 (Dynamic JWT)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 30
+            }
+          ]
+        }
+      },
+      "id": "7b9e0e7b-2f3a-4b2f-9f8d-88ed3f834301",
+      "name": "Every 30 Minutes",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        220,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.AO_OS_API_BASE + '/auth/login' }}",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ { \"email\": $env.AO_OS_N8N_EMAIL, \"password\": $env.AO_OS_N8N_PASSWORD } }}",
+        "options": {}
+      },
+      "id": "d8ae89d4-718f-4e2d-b1c9-06fe8cfb7f67",
+      "name": "Auth Login",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.AO_OS_API_BASE + '/events/poll' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Auth Login').first().json.accessToken }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "adf68766-3a95-40de-8a8a-4dd9b4670578",
+      "name": "Poll Events",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $input.first().json;\n\nfunction severityFor(event) {\n  // Guest access denied → critical\n  if (event?.type === 'GuestAccessEvent' && event?.data?.accessResult === 'denied') return 'critical';\n\n  // SystemException carries its own severity — map critical→critical, warning→high\n  if (event?.type === 'SystemException') {\n    if (event?.data?.severity === 'critical') return 'critical';\n    if (event?.data?.severity === 'warning') return 'high';\n    return 'medium';\n  }\n\n  if (event?.type === 'AuthEvent') {\n    if (event?.data?.eventType === 'auth.login_failed') return 'medium';\n    return 'low';\n  }\n\n  // Legacy event types\n  if (event?.data?.decision === 'denied') return 'critical';\n  if (event?.type === 'LockerPolicyDecisionEvent' && event?.data?.reasonCode === 'HARD_BLOCKED') return 'critical';\n  if (event?.type === 'StaffAuditEvent' && event?.data?.outcome === 'blocked') return 'critical';\n\n  if (['LockerAccessEvent', 'RoomAccessEvent', 'AccessAttempt'].includes(event?.type)) return 'high';\n  if (['CleaningTask', 'RoomBooking', 'PresenceEvent'].includes(event?.type)) return 'medium';\n\n  return 'low';\n}\n\nfunction titleFor(event) {\n  const data = event?.data || {};\n  if (event?.type === 'GuestAccessEvent') {\n    return `GuestAccessEvent - Zone ${data.zoneCode || '?'} ${data.accessResult || ''}`;\n  }\n  if (event?.type === 'SystemException') {\n    return `SystemException [${data.severity || '?'}] - ${data.exceptionType || 'unknown'}`;\n  }\n  if (event?.type === 'AuthEvent') {\n    return `${data.eventType || 'AuthEvent'} - ${data.memberId || data.attemptedEmail || data.authMethod || 'unknown'}`;\n  }\n  return `${event.type} - ${data.memberId || data.actorStaffUserId || 'System'}`;\n}\n\nconst events = Array.isArray(response?.events) ? response.events : [];\nconst polledAt = response?.lastPolledAt || new Date().toISOString();\n\nreturn events.map((event) => {\n  const data = event?.data || {};\n  const severity = severityFor(event);\n\n  const title = titleFor(event).slice(0, 200);\n  const status = String(data.decision || data.accessResult || data.status || data.outcome || 'pending');\n  const memberId = data.memberId ? String(data.memberId) : '';\n  const lockerId = data.lockerId ? String(data.lockerId) : '';\n  const roomId = data.roomId ? String(data.roomId) : '';\n  const decision = data.decision || data.accessResult ? String(data.decision || data.accessResult) : '';\n  const denialReason = String(data.denialReasonCode || data.denialReason || data.reasonCode || data.failureReasonCode || '');\n  const rawData = JSON.stringify(data).slice(0, 1800);\n\n  return {\n    json: {\n      ...event,\n      severity,\n      polledAt,\n      notionPayload: {\n        parent: {\n          database_id: $env.NOTION_OPERATIONAL_LOG_DB_ID\n        },\n        properties: {\n          Title: {\n            title: [{ text: { content: title } }]\n          },\n          'Event Type': {\n            select: { name: String(event.type) }\n          },\n          Status: {\n            select: { name: status }\n          },\n          Severity: {\n            select: { name: severity }\n          },\n          Timestamp: {\n            date: { start: String(event.occurredAt) }\n          },\n          'Member ID': {\n            rich_text: memberId ? [{ text: { content: memberId } }] : []\n          },\n          'Locker ID': {\n            rich_text: lockerId ? [{ text: { content: lockerId } }] : []\n          },\n          'Room ID': {\n            rich_text: roomId ? [{ text: { content: roomId } }] : []\n          },\n          Decision: {\n            rich_text: decision ? [{ text: { content: decision } }] : []\n          },\n          'Denial Reason': {\n            rich_text: denialReason ? [{ text: { content: denialReason } }] : []\n          },\n          'Raw Data': {\n            rich_text: rawData ? [{ text: { content: rawData } }] : []\n          },\n          'Polled At': {\n            date: { start: String(polledAt) }\n          }\n        }\n      }\n    }\n  };\n});"
+      },
+      "id": "dd5f2e21-c7f8-49ee-aae5-d34f5ac1b286",
+      "name": "Expand + Score Events",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        900,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.notion.com/v1/pages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$env.NOTION_API_KEY}}"
+            },
+            {
+              "name": "Notion-Version",
+              "value": "2022-06-28"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.notionPayload }}",
+        "options": {}
+      },
+      "id": "1f90c4b1-f906-4c66-a40f-d4a8f9ac2b20",
+      "name": "Notion Append Event",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1160,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return items\n  .filter((item) => item?.json?.severity === 'critical')\n  .map((item) => ({\n    json: {\n      type: item.json.type,\n      occurredAt: item.json.occurredAt,\n      severity: item.json.severity,\n      data: item.json.data\n    }\n  }));"
+      },
+      "id": "df1ca8f9-d6b0-4ea5-a55f-2ed87f4bc5d4",
+      "name": "Critical Only",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1160,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $env.AO_OS_ALERT_EMAIL }}",
+        "subject": "=\u26a0\ufe0f AO OS Critical Alert: {{ $json.type }}",
+        "emailType": "html",
+        "message": "=<h2>Critical Event Detected</h2>\n<table style=\"border-collapse:collapse;width:100%;font-family:sans-serif;font-size:14px\">\n  <tr><td style=\"padding:6px 12px;background:#f5f5f5;font-weight:bold\">Event Type</td><td style=\"padding:6px 12px\">{{ $json.type }}</td></tr>\n  <tr><td style=\"padding:6px 12px;background:#f5f5f5;font-weight:bold\">Occurred At</td><td style=\"padding:6px 12px\">{{ $json.occurredAt }}</td></tr>\n  <tr><td style=\"padding:6px 12px;background:#f5f5f5;font-weight:bold\">Severity</td><td style=\"padding:6px 12px;color:#cc0000;font-weight:bold\">{{ $json.severity }}</td></tr>\n  <tr><td style=\"padding:6px 12px;background:#f5f5f5;font-weight:bold\">Details</td><td style=\"padding:6px 12px\"><pre style=\"margin:0;white-space:pre-wrap\">{{ JSON.stringify($json.data, null, 2) }}</pre></td></tr>\n</table>",
+        "options": {}
+      },
+      "id": "a3f92b14-8e1d-4c5a-bb3a-9d0e7f2c5e11",
+      "name": "Gmail Critical Alert",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1380,
+        420
+      ],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "REPLACE_WITH_GMAIL_CREDENTIAL_ID",
+          "name": "REPLACE_WITH_GMAIL_CREDENTIAL_NAME"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Every 30 Minutes": {
+      "main": [
+        [
+          {
+            "node": "Auth Login",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Auth Login": {
+      "main": [
+        [
+          {
+            "node": "Poll Events",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Poll Events": {
+      "main": [
+        [
+          {
+            "node": "Expand + Score Events",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Expand + Score Events": {
+      "main": [
+        [
+          {
+            "node": "Notion Append Event",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Critical Only",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Critical Only": {
+      "main": [
+        [
+          {
+            "node": "Gmail Critical Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}

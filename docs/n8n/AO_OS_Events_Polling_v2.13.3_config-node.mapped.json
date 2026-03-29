@@ -1,0 +1,298 @@
+﻿{
+    "name":  "AO OS Events Polling - v2.13.3 (Config Node)",
+    "nodes":  [
+                  {
+                      "parameters":  {
+                                         "rule":  {
+                                                      "interval":  [
+                                                                       {
+                                                                           "field":  "minutes",
+                                                                           "minutesInterval":  30
+                                                                       }
+                                                                   ]
+                                                  }
+                                     },
+                      "id":  "a6ad1f76-5996-4b1c-b802-e57ae3df3420",
+                      "name":  "Every 30 Minutes",
+                      "type":  "n8n-nodes-base.scheduleTrigger",
+                      "typeVersion":  1.2,
+                      "position":  [
+                                       180,
+                                       300
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "assignments":  {
+                                                             "assignments":  [
+                                                                                 {
+                                                                                     "name":  "apiBase",
+                                                                                     "value":  "https://YOUR-REACHABLE-API/v1",
+                                                                                     "type":  "string"
+                                                                                 },
+                                                                                 {
+                                                                                     "name":  "loginEmail",
+                                                                                     "value":  "{{$credentials[\"AO Auth\"].loginEmail}}",
+                                                                                     "type":  "string"
+                                                                                 },
+                                                                                 {
+                                                                                     "name":  "loginPassword",
+                                                                                     "value":  "{{$credentials[\"AO Auth\"].loginPassword}}",
+                                                                                     "type":  "string"
+                                                                                 },
+                                                                                 {
+                                                                                     "name":  "notionApiKey",
+                                                                                     "value":  "{{$credentials[\"Notion API\"].apiKey}}",
+                                                                                     "type":  "string"
+                                                                                 },
+                                                                                 {
+                                                                                     "name":  "notionDatabaseId",
+                                                                                     "value":  "{{$credentials[\"Notion Config\"].databaseId}}",
+                                                                                     "type":  "string"
+                                                                                 },
+                                                                                 {
+                                                                                     "name":  "opsEmail",
+                                                                                     "value":  "operations@ao-os.local",
+                                                                                     "type":  "string"
+                                                                                 }
+                                                                             ]
+                                                         },
+                                         "options":  {
+
+                                                     }
+                                     },
+                      "id":  "251f12df-aaf7-4215-b6f2-0c545b2de58b",
+                      "name":  "Config",
+                      "type":  "n8n-nodes-base.set",
+                      "typeVersion":  3.4,
+                      "position":  [
+                                       400,
+                                       300
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "method":  "POST",
+                                         "url":  "={{ $(\u0027Config\u0027).first().json.apiBase + \u0027/auth/login\u0027 }}",
+                                         "sendBody":  true,
+                                         "contentType":  "json",
+                                         "specifyBody":  "json",
+                                         "jsonBody":  "={{ { \"email\": $(\u0027Config\u0027).first().json.loginEmail, \"password\": $(\u0027Config\u0027).first().json.loginPassword } }}",
+                                         "options":  {
+
+                                                     }
+                                     },
+                      "id":  "31ef6b4a-0cf5-4dda-b93e-c3af6e13a082",
+                      "name":  "Auth Login",
+                      "type":  "n8n-nodes-base.httpRequest",
+                      "typeVersion":  4.2,
+                      "position":  [
+                                       620,
+                                       300
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "method":  "GET",
+                                         "url":  "={{ $(\u0027Config\u0027).first().json.apiBase + \u0027/events/poll\u0027 }}",
+                                         "sendHeaders":  true,
+                                         "headerParameters":  {
+                                                                  "parameters":  [
+                                                                                     {
+                                                                                         "name":  "Authorization",
+                                                                                         "value":  "=Bearer {{ $(\u0027Auth Login\u0027).first().json.accessToken }}"
+                                                                                     },
+                                                                                     {
+                                                                                         "name":  "Content-Type",
+                                                                                         "value":  "application/json"
+                                                                                     }
+                                                                                 ]
+                                                              },
+                                         "options":  {
+
+                                                     }
+                                     },
+                      "id":  "fca6caea-50f0-44a8-9869-501d0f8318b9",
+                      "name":  "Poll Events",
+                      "type":  "n8n-nodes-base.httpRequest",
+                      "typeVersion":  4.2,
+                      "position":  [
+                                       840,
+                                       300
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "jsCode":  "const response = $input.first().json;\n\nfunction severityFor(event) {\n  if (event?.data?.decision === \u0027denied\u0027) return \u0027critical\u0027;\n  if (event?.type === \u0027LockerPolicyDecisionEvent\u0027 \u0026\u0026 event?.data?.reasonCode === \u0027HARD_BLOCKED\u0027) return \u0027critical\u0027;\n  if (event?.type === \u0027StaffAuditEvent\u0027 \u0026\u0026 event?.data?.outcome === \u0027blocked\u0027) return \u0027critical\u0027;\n\n  if ([\u0027LockerAccessEvent\u0027, \u0027RoomAccessEvent\u0027, \u0027AccessAttempt\u0027].includes(event?.type)) return \u0027high\u0027;\n  if ([\u0027CleaningTask\u0027, \u0027RoomBooking\u0027, \u0027PresenceEvent\u0027].includes(event?.type)) return \u0027medium\u0027;\n\n  return \u0027low\u0027;\n}\n\nconst config = $(\u0027Config\u0027).first().json;\nconst events = Array.isArray(response?.events) ? response.events : [];\nconst polledAt = response?.lastPolledAt || new Date().toISOString();\n\nreturn events.map((event) =\u003e {\n  const data = event?.data || {};\n  const severity = severityFor(event);\n\n  const title = `${event.type} - ${data.memberId || data.actorStaffUserId || \u0027System\u0027}`.slice(0, 200);\n  const status = String(data.decision || data.status || data.outcome || \u0027pending\u0027);\n  const memberId = data.memberId ? String(data.memberId) : \u0027\u0027;\n  const lockerId = data.lockerId ? String(data.lockerId) : \u0027\u0027;\n  const roomId = data.roomId ? String(data.roomId) : \u0027\u0027;\n  const decision = data.decision ? String(data.decision) : \u0027\u0027;\n  const denialReason = String(data.denialReasonCode || data.reasonCode || \u0027\u0027);\n  const rawData = JSON.stringify(data).slice(0, 1800);\n\n  return {\n    json: {\n      ...event,\n      severity,\n      polledAt,\n      opsEmail: config.opsEmail,\n      notionPayload: {\n        parent: {\n          database_id: config.notionDatabaseId\n        },\n        properties: {\n          Title: {\n            title: [{ text: { content: title } }]\n          },\n          \u0027Event Type\u0027: {\n            select: { name: String(event.type) }\n          },\n          Status: {\n            select: { name: status }\n          },\n          Severity: {\n            select: { name: severity }\n          },\n          Timestamp: {\n            date: { start: String(event.occurredAt) }\n          },\n          \u0027Member ID\u0027: {\n            rich_text: memberId ? [{ text: { content: memberId } }] : []\n          },\n          \u0027Locker ID\u0027: {\n            rich_text: lockerId ? [{ text: { content: lockerId } }] : []\n          },\n          \u0027Room ID\u0027: {\n            rich_text: roomId ? [{ text: { content: roomId } }] : []\n          },\n          Decision: {\n            rich_text: decision ? [{ text: { content: decision } }] : []\n          },\n          \u0027Denial Reason\u0027: {\n            rich_text: denialReason ? [{ text: { content: denialReason } }] : []\n          },\n          \u0027Raw Data\u0027: {\n            rich_text: rawData ? [{ text: { content: rawData } }] : []\n          },\n          \u0027Polled At\u0027: {\n            date: { start: String(polledAt) }\n          }\n        }\n      }\n    }\n  };\n});"
+                                     },
+                      "id":  "f0f74852-0b87-4fca-b5ec-4f14dfde0c15",
+                      "name":  "Expand + Score Events",
+                      "type":  "n8n-nodes-base.code",
+                      "typeVersion":  2,
+                      "position":  [
+                                       1080,
+                                       300
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "method":  "POST",
+                                         "url":  "https://api.notion.com/v1/pages",
+                                         "sendHeaders":  true,
+                                         "headerParameters":  {
+                                                                  "parameters":  [
+                                                                                     {
+                                                                                         "name":  "Authorization",
+                                                                                         "value":  "=Bearer {{ $(\u0027Config\u0027).first().json.notionApiKey }}"
+                                                                                     },
+                                                                                     {
+                                                                                         "name":  "Notion-Version",
+                                                                                         "value":  "2022-06-28"
+                                                                                     },
+                                                                                     {
+                                                                                         "name":  "Content-Type",
+                                                                                         "value":  "application/json"
+                                                                                     }
+                                                                                 ]
+                                                              },
+                                         "sendBody":  true,
+                                         "specifyBody":  "json",
+                                         "jsonBody":  "={{ $json.notionPayload }}",
+                                         "options":  {
+
+                                                     }
+                                     },
+                      "id":  "5b2fbfc2-f38f-41da-bcae-c3939e9d5d52",
+                      "name":  "Notion Append Event",
+                      "type":  "n8n-nodes-base.httpRequest",
+                      "typeVersion":  4.2,
+                      "position":  [
+                                       1320,
+                                       180
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "conditions":  {
+                                                            "conditions":  [
+                                                                               {
+                                                                                   "leftValue":  "={{ $json.severity }}",
+                                                                                   "rightValue":  "critical",
+                                                                                   "operator":  {
+                                                                                                    "type":  "string",
+                                                                                                    "operation":  "equals"
+                                                                                                }
+                                                                               }
+                                                                           ]
+                                                        }
+                                     },
+                      "id":  "26e189f8-cb4a-4e2d-ae2f-2b27b5af5088",
+                      "name":  "Is Critical?",
+                      "type":  "n8n-nodes-base.if",
+                      "typeVersion":  2.2,
+                      "position":  [
+                                       1320,
+                                       420
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+
+                                     },
+                      "id":  "e89e86ab-2cd7-497f-8f9f-a3ca9d19baf7",
+                      "name":  "Attach Gmail Node Here",
+                      "type":  "n8n-nodes-base.noOp",
+                      "typeVersion":  1,
+                      "position":  [
+                                       1540,
+                                       420
+                                   ]
+                  }
+              ],
+    "connections":  {
+                        "Every 30 Minutes":  {
+                                                 "main":  [
+                                                              [
+                                                                  {
+                                                                      "node":  "Config",
+                                                                      "type":  "main",
+                                                                      "index":  0
+                                                                  }
+                                                              ]
+                                                          ]
+                                             },
+                        "Config":  {
+                                       "main":  [
+                                                    [
+                                                        {
+                                                            "node":  "Auth Login",
+                                                            "type":  "main",
+                                                            "index":  0
+                                                        }
+                                                    ]
+                                                ]
+                                   },
+                        "Auth Login":  {
+                                           "main":  [
+                                                        [
+                                                            {
+                                                                "node":  "Poll Events",
+                                                                "type":  "main",
+                                                                "index":  0
+                                                            }
+                                                        ]
+                                                    ]
+                                       },
+                        "Poll Events":  {
+                                            "main":  [
+                                                         [
+                                                             {
+                                                                 "node":  "Expand + Score Events",
+                                                                 "type":  "main",
+                                                                 "index":  0
+                                                             }
+                                                         ]
+                                                     ]
+                                        },
+                        "Expand + Score Events":  {
+                                                      "main":  [
+                                                                   [
+                                                                       {
+                                                                           "node":  "Notion Append Event",
+                                                                           "type":  "main",
+                                                                           "index":  0
+                                                                       },
+                                                                       {
+                                                                           "node":  "Is Critical?",
+                                                                           "type":  "main",
+                                                                           "index":  0
+                                                                       }
+                                                                   ]
+                                                               ]
+                                                  },
+                        "Is Critical?":  {
+                                             "main":  [
+                                                          [
+                                                              {
+                                                                  "node":  "Attach Gmail Node Here",
+                                                                  "type":  "main",
+                                                                  "index":  0
+                                                              }
+                                                          ],
+                                                          [
+
+                                                          ]
+                                                      ]
+                                         }
+                    },
+    "pinData":  {
+
+                },
+    "settings":  {
+                     "executionOrder":  "v1"
+                 },
+    "staticData":  null,
+    "meta":  {
+                 "templateCredsSetupCompleted":  false
+             }
+}

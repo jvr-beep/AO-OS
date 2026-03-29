@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { getSession } from '@/lib/session'
 import { apiFetch } from '@/lib/api'
 import { StatusBadge } from '@/components/status-badge'
@@ -12,7 +13,7 @@ import type { Wristband } from '@/types/api'
 export default async function WristbandsPage({
   searchParams,
 }: {
-  searchParams?: { ok?: string; error?: string }
+  searchParams?: { ok?: string; error?: string; q?: string }
 }) {
   const session = await getSession()
   const wristbands = await apiFetch<Wristband[]>('/wristbands', session.accessToken!)
@@ -21,6 +22,22 @@ export default async function WristbandsPage({
   const canActivateCredential = role === 'front_desk' || role === 'operations' || role === 'admin'
   const okMessage = searchParams?.ok
   const errorMessage = searchParams?.error
+  const query = searchParams?.q?.trim().toLowerCase() ?? ''
+
+  const filteredWristbands = query
+    ? wristbands.filter((wb) => {
+        const uid = wb.uid.toLowerCase()
+        const status = wb.status.toLowerCase()
+        const memberId = wb.memberId?.toLowerCase() ?? ''
+        const id = wb.id.toLowerCase()
+        return (
+          uid.includes(query) ||
+          status.includes(query) ||
+          memberId.includes(query) ||
+          id.includes(query)
+        )
+      })
+    : wristbands
 
   return (
     <div className="max-w-4xl">
@@ -130,6 +147,25 @@ export default async function WristbandsPage({
       </div>
 
       <div className="card overflow-hidden">
+        <div className="p-4 border-b border-gray-700">
+          <p className="text-xs text-gray-400 mb-2">Tip: partial matches are supported.</p>
+          <form method="get" className="flex flex-col sm:flex-row gap-2">
+            <input
+              name="q"
+              defaultValue={searchParams?.q ?? ''}
+              placeholder="Search by UID, status, member ID, or wristband ID"
+              className="form-input flex-1"
+            />
+            <button type="submit" className="btn-primary">
+              Search
+            </button>
+            {searchParams?.q && (
+              <Link href="/wristbands" className="btn-secondary text-center">
+                Clear Search
+              </Link>
+            )}
+          </form>
+        </div>
         <table className="w-full text-sm">
           <thead className="border-b border-gray-600 bg-ao-dark">
             <tr>
@@ -148,14 +184,14 @@ export default async function WristbandsPage({
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-700">
-            {wristbands.length === 0 ? (
+            {filteredWristbands.length === 0 ? (
               <tr>
                 <td colSpan={4} className="px-4 py-8 text-center text-sm text-gray-500">
                   No wristbands found.
                 </td>
               </tr>
             ) : (
-              wristbands.map((wb) => (
+              filteredWristbands.map((wb) => (
                 <tr key={wb.id} className="hover:bg-gray-700 hover:bg-opacity-30">
                   <td className="px-4 py-3 font-mono text-xs text-gray-200">{wb.uid}</td>
                   <td className="px-4 py-3">

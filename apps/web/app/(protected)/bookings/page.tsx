@@ -13,7 +13,7 @@ import type { RoomBooking, Room } from '@/types/api'
 export default async function BookingsPage({
   searchParams,
 }: {
-  searchParams?: { ok?: string; error?: string; roomId?: string; memberId?: string }
+  searchParams?: { ok?: string; error?: string; roomId?: string; memberId?: string; q?: string }
 }) {
   const session = await getSession()
   const token = session.accessToken!
@@ -31,6 +31,25 @@ export default async function BookingsPage({
   const errorMessage = searchParams?.error
   const prefilledRoomId = searchParams?.roomId
   const prefilledMemberId = searchParams?.memberId
+  const query = searchParams?.q?.trim().toLowerCase() ?? ''
+
+  const filteredBookings = query
+    ? orderedBookings.filter((booking) => {
+        const room = roomById.get(booking.roomId)
+        const roomCode = room?.code.toLowerCase() ?? ''
+        const bookingType = booking.bookingType.toLowerCase()
+        const status = booking.status.toLowerCase()
+        const roomId = booking.roomId.toLowerCase()
+        const memberId = booking.memberId.toLowerCase()
+        return (
+          roomCode.includes(query) ||
+          bookingType.includes(query) ||
+          status.includes(query) ||
+          roomId.includes(query) ||
+          memberId.includes(query)
+        )
+      })
+    : orderedBookings
 
   return (
     <div className="max-w-6xl">
@@ -93,6 +112,33 @@ export default async function BookingsPage({
       </div>
 
       <div className="card overflow-hidden">
+        <div className="p-4 border-b border-gray-700">
+          <p className="text-xs text-gray-400 mb-2">Tip: partial matches are supported.</p>
+          <form method="get" className="flex flex-col sm:flex-row gap-2">
+            <input type="hidden" name="roomId" value={prefilledRoomId ?? ''} />
+            <input type="hidden" name="memberId" value={prefilledMemberId ?? ''} />
+            <input
+              name="q"
+              defaultValue={searchParams?.q ?? ''}
+              placeholder="Search by room code/ID, member ID, type, or status"
+              className="form-input flex-1"
+            />
+            <button type="submit" className="btn-primary">
+              Search
+            </button>
+            {searchParams?.q && (
+              <Link
+                href={`/bookings${prefilledRoomId || prefilledMemberId ? `?${new URLSearchParams({
+                  ...(prefilledRoomId ? { roomId: prefilledRoomId } : {}),
+                  ...(prefilledMemberId ? { memberId: prefilledMemberId } : {}),
+                }).toString()}` : ''}`}
+                className="btn-secondary text-center"
+              >
+                Clear Search
+              </Link>
+            )}
+          </form>
+        </div>
         <table className="w-full text-sm">
           <thead className="bg-ao-dark border-b border-gray-700">
             <tr>
@@ -120,14 +166,14 @@ export default async function BookingsPage({
             </tr>
           </thead>
           <tbody className="divide-y">
-            {orderedBookings.length === 0 ? (
+            {filteredBookings.length === 0 ? (
               <tr>
                 <td colSpan={7} className="px-4 py-8 text-center text-sm text-gray-400">
                   No bookings found.
                 </td>
               </tr>
             ) : (
-              orderedBookings.map((booking) => {
+              filteredBookings.map((booking) => {
                 const room = roomById.get(booking.roomId)
 
                 return (

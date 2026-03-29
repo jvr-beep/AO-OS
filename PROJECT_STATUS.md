@@ -3,20 +3,10 @@
 ## Project
 AO OS is the operating system for AO Sanctuary.
 
-The current goal is to build the backend foundation for:
-- member identity
-- membership plans
-- subscriptions
-- wristband assignment
-- access logic
-- visit/session tracking
-
-This project is being built locally first using:
-- NestJS
-- Prisma
-- PostgreSQL
-- pnpm
-- Postman
+This project is built locally using:
+- NestJS + Prisma + PostgreSQL
+- pnpm monorepo
+- Postman + n8n + Notion
 - VS Code
 
 ---
@@ -29,136 +19,132 @@ This project is being built locally first using:
 
 ---
 
-## Current Working Modules
+## Completed Modules
+
+### Core / Auth
 - Health
+- Auth (JWT login, RBAC guards)
+- Staff Users
+- Staff Audit
+
+### Member Domain
 - Members
 - Membership Plans
 - Subscriptions
 - Wristbands
+- Wristband Transactions
+- Member Account (ledger)
+
+### Access & Presence
+- Access Attempts
+- Access Control (zones, points, grants, overrides)
+- Presence Events
+
+### Facilities
+- Rooms
+- Floor Plans
+- Room Bookings
+- Cleaning Tasks
+- Lockers (policy engine)
+
+### Guest / Visit Domain *(Sprint 2)*
+- Guests
+- Waivers
+- Catalog (resource tiers)
+- Inventory (resources, holds, assignment)
+- Guest Bookings
+- Visits (status history)
+- Folios (line items, payments)
+- Orchestrators (walk-in check-in, booking check-in, checkout — with optimistic locking)
+- Guest Access (permissions, access events, auto-exception on denied)
+- Ops (snapshot, system exceptions CRUD)
+
+### Automation
+- Events Polling (n8n, Notion append, Gmail critical alert — v2.14.0)
+- Auth Health Check (n8n, Notion log — v2.13.3)
 
 ---
 
-## Current Working Endpoints
+## Current Working Endpoints (selected)
 
 ### Health
 - `GET /v1/health`
 
-### Members
-- `POST /v1/members`
-- `GET /v1/members/:id`
+### Auth
+- `POST /v1/auth/login`
 
-### Membership Plans
-- `POST /v1/membership-plans`
-- `GET /v1/membership-plans`
+### Orchestrators
+- `POST /v1/orchestrators/check-in/booking`
+- `POST /v1/orchestrators/check-in/walk-in`
+- `POST /v1/orchestrators/checkout`
 
-### Subscriptions
-- `POST /v1/subscriptions`
-- `GET /v1/members/:id/subscriptions`
+### Guest Access
+- `POST /v1/guest-access/permissions`
+- `POST /v1/guest-access/permissions/:id/revoke`
+- `GET /v1/guest-access/visits/:visitId/permissions`
+- `POST /v1/guest-access/events`
+- `GET /v1/guest-access/visits/:visitId/events`
 
-### Wristbands
-- `POST /v1/wristbands`
-- `GET /v1/wristbands`
-- `POST /v1/wristbands/assign`
-- `POST /v1/wristbands/unassign`
+### Ops
+- `GET /v1/ops/snapshot`
+- `GET /v1/ops/exceptions`
+- `POST /v1/ops/exceptions`
+- `PATCH /v1/ops/exceptions/:id/status`
+
+### Events Polling
+- `GET /v1/events/poll`
 
 ---
 
 ## Current Database State
-Prisma schema and migrations are active.
+Prisma schema and migrations are active. All domains seeded.
 
-The schema currently includes core models for:
-- members
-- member profiles
-- auth identities
-- membership plans
-- subscriptions
-- payment methods
-- locations
-- wristbands
-- wristband assignments
-- access zones
-- access points
-- access attempts
-- member access grants
-- member access overrides
-- visit sessions
-- presence events
-- bookings
+Event polling cursors track: LockerAccessEvent, LockerPolicyDecisionEvent, AccessAttempt, PresenceEvent, RoomAccessEvent, StaffAuditEvent, CleaningTask, RoomBooking, GuestAccessEvent, SystemException.
 
 ---
 
-## Known Test Data
+## OpenAPI
+Full spec at `openapi/ao-os.openapi.yaml` — 38 endpoints across 10 tag groups.
 
-### Member
-- memberId: `5d211c05-b810-4f4b-aad4-ad465e60a5df`
-- email: `test1@aosanctuary.com`
+---
 
-### Membership Plan
-- membershipPlanId: `5a360f2a-39f5-4d6c-802f-df369fdbc1f2`
-- code: `AO_ESSENTIAL`
+## Integration Tests
+- `apps/api/test/integration/auth-rbac.int-spec.ts`
+- `apps/api/test/integration/access-presence-protections.int-spec.ts`
+- `apps/api/test/integration/guest-visit-orchestration.int-spec.ts` *(Sprint 2)*
 
-### Subscription
-- example subscriptionId: `e5b1438b-08f5-40df-92a2-e81aab6038ff`
+Run: `pnpm --filter api test:int`
 
-### Wristbands
-- no confirmed test wristband persisted yet at the time of this document
-- use API to create first wristband record before assign/unassign verification
+---
+
+## n8n Workflows
+| File | Version | Status |
+|---|---|---|
+| `AO_OS_Auth_Healthcheck_v2.13.3_n8n-cloud.json` | v2.13.3 | Complete — fill in Notion credential placeholders to deploy |
+| `AO_OS_Events_Polling_v2.14.0_dynamic-jwt.json` | v2.14.0 | Complete — fill in Gmail + Notion credential IDs to deploy |
+
+**Required env vars for events polling:** `AO_OS_API_BASE`, `AO_OS_N8N_EMAIL`, `AO_OS_N8N_PASSWORD`, `NOTION_OPERATIONAL_LOG_DB_ID`, `NOTION_API_KEY`, `AO_OS_ALERT_EMAIL`
 
 ---
 
 ## Current Development Rules
-- keep changes minimal and compilable
-- prefer one module at a time
-- follow existing patterns in `members`, `membership-plans`, and `subscriptions`
-- do not expand scope unless explicitly approved
-- test every new endpoint in Postman before moving on
-- commit after each working slice
-
----
-
-## Next Priority
-Build the next operational layer after wristbands:
-
-### Access Attempts
-Goal:
-- represent a wristband/member attempting entry at an access point
-- record allow / deny / error decisions
-- capture denial reason codes
-- create the first real access-control flow
-
-Suggested endpoints:
-- `POST /v1/access-attempts`
-- `GET /v1/access-attempts`
-- `GET /v1/members/:id/access-attempts`
-
----
-
-## Suggested Build Sequence
-1. Verify wristband create/list/assign/unassign flow
-2. Build access attempts module
-3. Build visit session check-in / check-out
-4. Build presence event tracking
-5. Add stronger validation and business rules
-6. Add OpenAPI/docs later
-7. Add tests later
+- Keep changes minimal and compilable
+- Follow existing module patterns
+- Test new endpoints in Postman before moving on
+- Run `pnpm --filter api build` to verify before committing
+- Run `pnpm --filter api test:int` for integration test verification
 
 ---
 
 ## Current Tooling
 ### Required
-- VS Code
+- VS Code + GitHub Copilot
 - Postman desktop
 - PowerShell
 - GitHub
-- PostgreSQL
-- Prisma
-
-### Installed / In Use
-- VS Code
-- Postman desktop
-- GitHub repo
-- local NestJS API
-- Prisma migrations
+- PostgreSQL + Prisma
+- n8n Cloud
+- Notion
 
 ---
 
@@ -169,4 +155,4 @@ Use:
 - VS Code agent for code generation and edits
 - Postman for endpoint verification
 - GitHub for commits and checkpoints
-- ChatGPT for architecture, sequencing, debugging, and prompt drafting
+

@@ -1,14 +1,52 @@
 import { Body, Controller, Post } from "@nestjs/common";
-import { AuthService } from "../auth.service";
+import { AuthService, MemberAuthResponse } from "../auth.service";
 import { LoginDto } from "../dto/login.dto";
 import { LoginResponseDto } from "../dto/login.response.dto";
+import { MemberSignupDto } from "../dto/member-signup.dto";
+import { PasswordResetRequestDto } from "../dto/password-reset-request.dto";
+import { PasswordResetConfirmDto } from "../dto/password-reset-confirm.dto";
+import { Req } from "@nestjs/common";
 
 @Controller("auth")
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  // ── STAFF LOGIN ────────────────────────────────────────────────────
+
   @Post("login")
   login(@Body() body: LoginDto): Promise<LoginResponseDto> {
     return this.authService.login(body);
+  }
+
+  @Post("member/login")
+  memberLogin(@Body() body: LoginDto, @Req() req: any): Promise<MemberAuthResponse> {
+    return this.authService.memberLogin(body, {
+      ipAddress: req.ip,
+      userAgent: req.headers["user-agent"]
+    });
+  }
+
+  // ── MEMBER SIGNUP + EMAIL VERIFY ───────────────────────────────────
+
+  @Post("signup")
+  memberSignup(@Body() body: MemberSignupDto): Promise<{ email: string }> {
+    return this.authService.memberSignup(body);
+  }
+
+  @Post("email/verify")
+  verifyEmail(@Body() body: { token: string }): Promise<{ email: string }> {
+    return this.authService.verifyEmail(body.token);
+  }
+
+  // ── PASSWORD RESET (SELF-SERVE) ────────────────────────────────────
+
+  @Post("password-reset/request")
+  passwordResetRequest(@Body() body: PasswordResetRequestDto): Promise<void> {
+    return this.authService.passwordResetRequest(body);
+  }
+
+  @Post("password-reset/confirm")
+  passwordResetConfirm(@Body() body: PasswordResetConfirmDto): Promise<{ email: string }> {
+    return this.authService.passwordResetConfirm(body);
   }
 }

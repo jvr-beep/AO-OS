@@ -58,6 +58,26 @@ export class VisitSessionsService {
       }
     });
 
+    // Auto-release any active locker assignments tied to this session
+    const activeLockerAssignments = await this.prisma.lockerAssignment.findMany({
+      where: { visitSessionId: input.visitSessionId, active: true },
+      select: { id: true, lockerId: true }
+    });
+
+    if (activeLockerAssignments.length > 0) {
+      await this.prisma.lockerAssignment.updateMany({
+        where: { visitSessionId: input.visitSessionId, active: true },
+        data: { active: false, unassignedAt: new Date(), unassignedReason: "session_checkout" }
+      });
+
+      for (const assignment of activeLockerAssignments) {
+        await this.prisma.locker.update({
+          where: { id: assignment.lockerId },
+          data: { status: "available" }
+        });
+      }
+    }
+
     return this.toDto(updated);
   }
 

@@ -13,6 +13,7 @@ async function getApiHealth(): Promise<'ok' | 'degraded' | 'unreachable'> {
 }
 
 const QUICK_LINKS = [
+  { href: '/members', label: 'Members' },
   { href: '/rooms', label: 'Rooms' },
   { href: '/bookings', label: 'Bookings' },
   { href: '/cleaning', label: 'Cleaning' },
@@ -71,7 +72,7 @@ export default async function DashboardPage() {
 
       <div className="card">
         <h2 className="text-sm font-semibold text-ao-primary mb-2 uppercase tracking-wide">Member Lookup</h2>
-        <p className="text-xs text-gray-400 mb-3">Enter a member UUID to view their profile.</p>
+        <p className="text-xs text-gray-400 mb-3">Search by member UUID, name, email, or member number.</p>
         <MemberLookup />
       </div>
     </div>

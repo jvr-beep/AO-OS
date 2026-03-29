@@ -1,0 +1,214 @@
+{
+  "name": "AO OS Events Polling - v2.13.3 (Dynamic JWT)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 30
+            }
+          ]
+        }
+      },
+      "id": "7b9e0e7b-2f3a-4b2f-9f8d-88ed3f834301",
+      "name": "Every 30 Minutes",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        220,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.AO_OS_API_BASE + '/auth/login' }}",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ { \"email\": $env.AO_OS_N8N_EMAIL, \"password\": $env.AO_OS_N8N_PASSWORD } }}",
+        "options": {}
+      },
+      "id": "d8ae89d4-718f-4e2d-b1c9-06fe8cfb7f67",
+      "name": "Auth Login",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.AO_OS_API_BASE + '/events/poll' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Auth Login').first().json.accessToken }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "adf68766-3a95-40de-8a8a-4dd9b4670578",
+      "name": "Poll Events",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $input.first().json;\n\nfunction severityFor(event) {\n  if (event?.data?.decision === 'denied') return 'critical';\n  if (event?.type === 'LockerPolicyDecisionEvent' && event?.data?.reasonCode === 'HARD_BLOCKED') return 'critical';\n  if (event?.type === 'StaffAuditEvent' && event?.data?.outcome === 'blocked') return 'critical';\n\n  if (['LockerAccessEvent', 'RoomAccessEvent', 'AccessAttempt'].includes(event?.type)) return 'high';\n  if (['CleaningTask', 'RoomBooking', 'PresenceEvent'].includes(event?.type)) return 'medium';\n\n  return 'low';\n}\n\nconst events = Array.isArray(response?.events) ? response.events : [];\nconst polledAt = response?.lastPolledAt || new Date().toISOString();\n\nreturn events.map((event) => {\n  const data = event?.data || {};\n  const severity = severityFor(event);\n\n  const title = `${event.type} - ${data.memberId || data.actorStaffUserId || 'System'}`.slice(0, 200);\n  const status = String(data.decision || data.status || data.outcome || 'pending');\n  const memberId = data.memberId ? String(data.memberId) : '';\n  const lockerId = data.lockerId ? String(data.lockerId) : '';\n  const roomId = data.roomId ? String(data.roomId) : '';\n  const decision = data.decision ? String(data.decision) : '';\n  const denialReason = String(data.denialReasonCode || data.reasonCode || '');\n  const rawData = JSON.stringify(data).slice(0, 1800);\n\n  return {\n    json: {\n      ...event,\n      severity,\n      polledAt,\n      notionPayload: {\n        parent: {\n          database_id: $env.NOTION_OPERATIONAL_LOG_DB_ID\n        },\n        properties: {\n          Title: {\n            title: [{ text: { content: title } }]\n          },\n          'Event Type': {\n            select: { name: String(event.type) }\n          },\n          Status: {\n            select: { name: status }\n          },\n          Severity: {\n            select: { name: severity }\n          },\n          Timestamp: {\n            date: { start: String(event.occurredAt) }\n          },\n          'Member ID': {\n            rich_text: memberId ? [{ text: { content: memberId } }] : []\n          },\n          'Locker ID': {\n            rich_text: lockerId ? [{ text: { content: lockerId } }] : []\n          },\n          'Room ID': {\n            rich_text: roomId ? [{ text: { content: roomId } }] : []\n          },\n          Decision: {\n            rich_text: decision ? [{ text: { content: decision } }] : []\n          },\n          'Denial Reason': {\n            rich_text: denialReason ? [{ text: { content: denialReason } }] : []\n          },\n          'Raw Data': {\n            rich_text: rawData ? [{ text: { content: rawData } }] : []\n          },\n          'Polled At': {\n            date: { start: String(polledAt) }\n          }\n        }\n      }\n    }\n  };\n});"
+      },
+      "id": "dd5f2e21-c7f8-49ee-aae5-d34f5ac1b286",
+      "name": "Expand + Score Events",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        900,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.notion.com/v1/pages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$env.NOTION_API_KEY}}"
+            },
+            {
+              "name": "Notion-Version",
+              "value": "2022-06-28"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.notionPayload }}",
+        "options": {}
+      },
+      "id": "1f90c4b1-f906-4c66-a40f-d4a8f9ac2b20",
+      "name": "Notion Append Event",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1160,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return items\n  .filter((item) => item?.json?.severity === 'critical')\n  .map((item) => ({\n    json: {\n      type: item.json.type,\n      occurredAt: item.json.occurredAt,\n      severity: item.json.severity,\n      data: item.json.data\n    }\n  }));"
+      },
+      "id": "df1ca8f9-d6b0-4ea5-a55f-2ed87f4bc5d4",
+      "name": "Critical Only",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1160,
+        420
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "0f71e77d-5229-4f2b-b4a1-f30ca6b49c2c",
+      "name": "Attach Gmail Node Here",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1380,
+        420
+      ]
+    }
+  ],
+  "connections": {
+    "Every 30 Minutes": {
+      "main": [
+        [
+          {
+            "node": "Auth Login",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Auth Login": {
+      "main": [
+        [
+          {
+            "node": "Poll Events",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Poll Events": {
+      "main": [
+        [
+          {
+            "node": "Expand + Score Events",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Expand + Score Events": {
+      "main": [
+        [
+          {
+            "node": "Notion Append Event",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Critical Only",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Critical Only": {
+      "main": [
+        [
+          {
+            "node": "Attach Gmail Node Here",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}

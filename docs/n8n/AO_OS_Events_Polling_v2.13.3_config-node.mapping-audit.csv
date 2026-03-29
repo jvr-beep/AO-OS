@@ -1,0 +1,5 @@
+﻿"Scope","Identifier","Path","BeforeValue","AfterValue"
+"path","nodes[1].parameters.assignments.assignments[4].value",,"REPLACE_ME","{{$credentials[""Notion Config""].databaseId}}"
+"path","nodes[1].parameters.assignments.assignments[3].value",,"secret_REPLACE_ME","{{$credentials[""Notion API""].apiKey}}"
+"path","nodes[1].parameters.assignments.assignments[2].value",,"REPLACE_ME","{{$credentials[""AO Auth""].loginPassword}}"
+"path","nodes[1].parameters.assignments.assignments[1].value",,"staff@ao-os.local","{{$credentials[""AO Auth""].loginEmail}}"

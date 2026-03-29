@@ -4,17 +4,56 @@ import { apiFetch } from '@/lib/api'
 import { StatusBadge } from '@/components/status-badge'
 import type { Room } from '@/types/api'
 
-export default async function RoomsPage() {
+export default async function RoomsPage({
+  searchParams,
+}: {
+  searchParams?: { q?: string }
+}) {
   const session = await getSession()
   const rooms = await apiFetch<Room[]>('/rooms', session.accessToken!)
+  const query = searchParams?.q?.trim().toLowerCase() ?? ''
 
-  const orderedRooms = [...rooms].sort((a, b) => a.code.localeCompare(b.code))
+  const filteredRooms = query
+    ? rooms.filter((room) => {
+        const code = room.code.toLowerCase()
+        const name = room.name.toLowerCase()
+        const roomType = room.roomType.toLowerCase()
+        const status = room.status.toLowerCase()
+        return (
+          code.includes(query) ||
+          name.includes(query) ||
+          roomType.includes(query) ||
+          status.includes(query)
+        )
+      })
+    : rooms
+
+  const orderedRooms = [...filteredRooms].sort((a, b) => a.code.localeCompare(b.code))
 
   return (
     <div className="max-w-5xl">
       <h1 className="text-2xl font-semibold mb-6 text-gray-100">Rooms</h1>
 
       <div className="card overflow-hidden">
+        <div className="p-4 border-b border-gray-700">
+          <p className="text-xs text-gray-400 mb-2">Tip: partial matches are supported.</p>
+          <form method="get" className="flex flex-col sm:flex-row gap-2">
+            <input
+              name="q"
+              defaultValue={searchParams?.q ?? ''}
+              placeholder="Search by code, name, type, or status"
+              className="form-input flex-1"
+            />
+            <button type="submit" className="btn-primary">
+              Search
+            </button>
+            {searchParams?.q && (
+              <Link href="/rooms" className="btn-secondary text-center">
+                Clear Search
+              </Link>
+            )}
+          </form>
+        </div>
         <table className="w-full text-sm">
           <thead className="bg-ao-dark border-b border-gray-700">
             <tr>
