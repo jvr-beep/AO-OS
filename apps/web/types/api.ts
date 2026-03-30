@@ -266,3 +266,17 @@ export interface CleaningTask {
   assignedToStaffUserId?: string
   notes?: string
 }
+
+export interface PersonalAccessToken {
+  id: string
+  name: string
+  prefix: string
+  createdAt: string
+  expiresAt: string | null
+  lastUsedAt: string | null
+  revokedAt: string | null
+}
+
+export interface CreatedPersonalAccessToken extends PersonalAccessToken {
+  rawToken: string
+}
