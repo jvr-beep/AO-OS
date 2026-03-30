@@ -274,8 +274,21 @@ The following secrets must be configured in **GitHub → repository Settings →
 3. Give it a descriptive name (e.g. `AO-OS deploy`).
 4. Select scope: **repo** (full — required for private repository read access).
 5. Click **Generate token** and copy the value immediately.
-6. In the repository, go to **Settings → Secrets and variables → Actions → New repository secret**.
-7. Name: `GH_TOKEN`, Value: paste the token. Save.
+6. Register it as a repository secret using one of the options below.
+
+**Option A — automated script (recommended):**
+
+```powershell
+./scripts/Set-GhTokenSecret.ps1
+```
+
+The script prompts for the token securely, detects the repository from your git remote,
+and registers the secret automatically using the GitHub CLI (`gh`) or the GitHub REST API.
+
+**Option B — manual (GitHub web UI):**
+
+In the repository, go to **Settings → Secrets and variables → Actions → New repository secret**.
+Name: `GH_TOKEN`, Value: paste the token. Save.
 
 > **Note:** The token is injected into the deploy workflow at runtime and used only as a one-time
 > git credential (`https://x-access-token:<token>@github.com/…`). It is never written to disk
