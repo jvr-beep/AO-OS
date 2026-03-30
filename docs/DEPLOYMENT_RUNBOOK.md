@@ -255,7 +255,31 @@ Before launch, verify all of the following agree:
 
 If one value points to the wrong environment, auth and verification flows can fail.
 
-## 3. Database Provisioning
+## 3. GitHub Actions Secret Setup (`GH_TOKEN`)
+
+The deploy workflow uses `GH_TOKEN` to authenticate `git fetch` on the VM using a temporary `.netrc` file.
+
+Option A (recommended): run the helper script
+
+```powershell
+./scripts/Set-GhTokenSecret.ps1
+```
+
+What it does:
+
+1. Detects the repository from git remote (for example, `jvr-beep/AO-OS`).
+2. Prompts for your PAT securely (no terminal echo).
+3. Tries `gh secret set` first.
+4. Falls back to GitHub REST API with libsodium encryption if `gh` is unavailable.
+
+Option B (manual): add secret in GitHub UI
+
+1. Open repository settings: `Settings -> Secrets and variables -> Actions`.
+2. Click `New repository secret`.
+3. Name: `GH_TOKEN`.
+4. Value: a PAT with repository access sufficient for Actions secret use and repo read.
+
+## 4. Database Provisioning
 
 1. Create managed Postgres instance.
 2. Set production `DATABASE_URL` in API runtime.
@@ -279,7 +303,7 @@ pnpm prisma migrate deploy --schema ./prisma/schema.prisma
 pnpm prisma:seed
 ```
 
-## 4. API Deploy
+## 5. API Deploy
 
 Docker path (recommended):
 
@@ -331,7 +355,7 @@ API listens on `:4000` and serves endpoints under `/v1/*`.
 curl -i http://localhost:4000/v1/health
 ```
 
-## 5. Cloudflare Tunnel Setup (API Ingress)
+## 6. Cloudflare Tunnel Setup (API Ingress)
 
 Use existing config and credentials templates under `infra/cloudflared/`.
 
@@ -402,7 +426,7 @@ Common checks:
 - **Recent logs**: `sudo journalctl -u cloudflared -f`
 - **Config validation**: Edit `infra/cloudflared/config.yml` and restart the service
 
-## 6. Web Deploy (Vercel)
+## 7. Web Deploy (Vercel)
 
 1. Connect repository to Vercel.
 2. Configure project root to `apps/web`.
@@ -411,7 +435,7 @@ Common checks:
    - `SESSION_SECRET=<strong-secret>`
 4. Deploy and verify login flow.
 
-## 7. OAuth + Auth URLs
+## 8. OAuth + Auth URLs
 
 In Google Cloud console, set production redirect URI exactly:
 
@@ -422,7 +446,7 @@ Also verify:
 1. `APP_BASE_URL` points to real web origin.
 2. Email links (`verify-email`, `reset-password`, `set-password`) resolve correctly.
 
-## 8. n8n Deploy (Auth Monitoring)
+## 9. n8n Deploy (Auth Monitoring)
 
 1. Import workflow:
    - `docs/n8n/AO_OS_Auth_Anomaly_Detection_v1.0.0_dynamic-jwt.json`
@@ -432,7 +456,7 @@ Also verify:
    - Notion anomaly records are created.
    - Gmail alert triggers only when not suppressed by cooldown.
 
-## 9. Go-Live Checklist
+## 10. Go-Live Checklist
 
 1. Production DB backups enabled.
 2. API deployed and `/v1/health` green internally and externally.
@@ -443,7 +467,7 @@ Also verify:
 7. n8n auth anomaly workflow imported and tested.
 8. Events polling access remains restricted to `admin` and `operations` roles.
 
-## 10. Post-Launch Hardening
+## 11. Post-Launch Hardening
 
 1. Add API rate limiting on auth endpoints.
 2. Add centralized error logging and request tracing.

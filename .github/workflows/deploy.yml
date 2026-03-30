@@ -24,6 +24,10 @@ jobs:
     steps:
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.2.0
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          GH_ACTOR: ${{ github.actor }}
+          GH_REPOSITORY: ${{ github.repository }}
         with:
           host: ${{ secrets.VM_HOST }}
           username: ${{ secrets.VM_USER }}
@@ -33,6 +37,32 @@ jobs:
           script: |
             set -euo pipefail
             cd ~/AO-OS
+
+            if [ -z "${GH_TOKEN:-}" ]; then
+              echo "Missing required secret: GH_TOKEN"
+              exit 1
+            fi
+
+            NETRC_FILE="$(mktemp)"
+            cleanup() {
+              rm -f "$NETRC_FILE"
+            }
+            trap cleanup EXIT
+
+            umask 177
+            cat > "$NETRC_FILE" <<EOF
+machine github.com
+  login ${GH_ACTOR}
+  password ${GH_TOKEN}
+machine api.github.com
+  login ${GH_ACTOR}
+  password ${GH_TOKEN}
+EOF
+
+            chmod 600 "$NETRC_FILE"
+            export NETRC="$NETRC_FILE"
+
+            git remote set-url origin "https://github.com/${GH_REPOSITORY}.git"
 
             echo "=== Pull latest ==="
             git fetch origin
