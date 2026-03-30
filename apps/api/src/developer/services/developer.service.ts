@@ -17,7 +17,18 @@ export class DeveloperService {
     const rawToken = crypto.randomBytes(32).toString("hex");
     const tokenHash = crypto.createHash("sha256").update(rawToken).digest("hex");
     const prefix = rawToken.substring(0, 8);
-    const expiresAt = input.expiresAt ? new Date(input.expiresAt) : null;
+
+    let expiresAt: Date | null = null;
+    if (input.expiresAt) {
+      const parsed = new Date(input.expiresAt);
+      if (isNaN(parsed.getTime())) {
+        throw new BadRequestException("PAT_INVALID_EXPIRY_DATE");
+      }
+      if (parsed <= new Date()) {
+        throw new BadRequestException("PAT_EXPIRY_DATE_MUST_BE_FUTURE");
+      }
+      expiresAt = parsed;
+    }
 
     const pat = await (this.prisma as any).staffPat.create({
       data: {
