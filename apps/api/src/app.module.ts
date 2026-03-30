@@ -34,6 +34,7 @@ import { FoliosModule } from "./folios/folios.module";
 import { OrchestratorsModule } from "./orchestrators/orchestrators.module";
 import { GuestAccessModule } from "./guest-access/guest-access.module";
 import { OpsModule } from "./ops/ops.module";
+import { DeveloperModule } from "./developer/developer.module";
 
 @Module({
   imports: [
@@ -73,7 +74,8 @@ import { OpsModule } from "./ops/ops.module";
     FoliosModule,
     OrchestratorsModule,
     GuestAccessModule,
-    OpsModule
+    OpsModule,
+    DeveloperModule
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard }

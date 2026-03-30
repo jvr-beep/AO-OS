@@ -404,6 +404,24 @@ model StaffUser {
   updatedAt     DateTime  @updatedAt
 
   assignedCleaningTasks CleaningTask[]
+  personalAccessTokens  StaffPat[]
+}
+
+model StaffPat {
+  id          String    @id @default(uuid())
+  staffUserId String
+  name        String
+  tokenHash   String    @unique
+  prefix      String
+  createdAt   DateTime  @default(now())
+  expiresAt   DateTime?
+  lastUsedAt  DateTime?
+  revokedAt   DateTime?
+
+  staffUser StaffUser @relation(fields: [staffUserId], references: [id], onDelete: Cascade)
+
+  @@index([staffUserId])
+  @@map("staff_pats")
 }
 
 model MembershipPlan {
