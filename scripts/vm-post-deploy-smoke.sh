@@ -80,10 +80,13 @@ echo "=== Seed env configured ==="
 grep -E "^AUTH_SEED_ADMIN_(EMAIL|NAME)=" "$ENV_FILE" || true
 
 echo "=== Starting API container ==="
+# Remove any stale stopped containers whose name matches so compose can reuse the name cleanly
+docker rm -f ao-os-api 2>/dev/null || true
+
 if [[ "$BUILD_IMAGE" -eq 1 ]]; then
-  docker compose -f "$COMPOSE_FILE" up -d --build --force-recreate api
+  docker compose -f "$COMPOSE_FILE" up -d --build --force-recreate --remove-orphans api
 else
-  docker compose -f "$COMPOSE_FILE" up -d --force-recreate api
+  docker compose -f "$COMPOSE_FILE" up -d --force-recreate --remove-orphans api
 fi
 
 echo "=== Waiting for API health ==="
