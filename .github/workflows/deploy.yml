@@ -24,18 +24,21 @@ jobs:
     steps:
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.2.0
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
         with:
           host: ${{ secrets.VM_HOST }}
           username: ${{ secrets.VM_USER }}
           key: ${{ secrets.VM_SSH_KEY }}
           timeout: 10m
           command_timeout: 10m
+          envs: GH_TOKEN
           script: |
             set -euo pipefail
             cd ~/AO-OS
 
             echo "=== Pull latest ==="
-            git fetch origin
+            git -c "url.https://x-access-token:${GH_TOKEN}@github.com/.insteadOf=https://github.com/" fetch origin
             git pull --ff-only
 
             echo "=== Deploy ==="
