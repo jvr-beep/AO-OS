@@ -15,7 +15,7 @@ async function bootstrap(): Promise<void> {
   app.enableCors({ origin: allowedOrigins, credentials: true });
 
   app.useGlobalPipes(
-    new ValidationPipe({ whitelist: true, transform: true })
+    new ValidationPipe({ transform: true })
   );
 
   app.setGlobalPrefix("v1");
