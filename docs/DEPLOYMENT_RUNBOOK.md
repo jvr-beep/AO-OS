@@ -255,7 +255,46 @@ Before launch, verify all of the following agree:
 
 If one value points to the wrong environment, auth and verification flows can fail.
 
-## 3. Database Provisioning
+## 3. GitHub Actions Secrets
+
+The following secrets must be configured in **GitHub → repository Settings → Secrets and variables → Actions**:
+
+| Secret name | Required scope / value | Purpose |
+|---|---|---|
+| `GH_TOKEN` | Classic PAT with **repo** scope | Authenticates `git fetch`/`git pull` on the VM during deploy |
+| `VM_HOST` | Production VM hostname or IP | SSH target for deploy |
+| `VM_USER` | SSH username on the VM | SSH login for deploy |
+| `VM_SSH_KEY` | Private SSH key (PEM) | SSH authentication for deploy |
+| `AUTH_SEED_ADMIN_PASSWORD` | Admin seed password | Used by the locker-credential smoke workflow |
+
+### Creating `GH_TOKEN`
+
+1. Open **GitHub → Settings → Developer settings → Personal access tokens → Tokens (classic)**.
+2. Click **Generate new token (classic)**.
+3. Give it a descriptive name (e.g. `AO-OS deploy`).
+4. Select scope: **repo** (full — required for private repository read access).
+5. Click **Generate token** and copy the value immediately.
+6. Register it as a repository secret using one of the options below.
+
+**Option A — automated script (recommended):**
+
+```powershell
+./scripts/Set-GhTokenSecret.ps1
+```
+
+The script prompts for the token securely, detects the repository from your git remote,
+and registers the secret automatically using the GitHub CLI (`gh`) or the GitHub REST API.
+
+**Option B — manual (GitHub web UI):**
+
+In the repository, go to **Settings → Secrets and variables → Actions → New repository secret**.
+Name: `GH_TOKEN`, Value: paste the token. Save.
+
+> **Note:** The token is injected into the deploy workflow at runtime and used only as a one-time
+> git credential (`https://x-access-token:<token>@github.com/…`). It is never written to disk
+> on the VM and never appears in workflow logs.
+
+## 4. Database Provisioning
 
 1. Create managed Postgres instance.
 2. Set production `DATABASE_URL` in API runtime.
@@ -279,7 +318,7 @@ pnpm prisma migrate deploy --schema ./prisma/schema.prisma
 pnpm prisma:seed
 ```
 
-## 4. API Deploy
+## 5. API Deploy
 
 Docker path (recommended):
 
@@ -331,7 +370,7 @@ API listens on `:4000` and serves endpoints under `/v1/*`.
 curl -i http://localhost:4000/v1/health
 ```
 
-## 5. Cloudflare Tunnel Setup (API Ingress)
+## 6. Cloudflare Tunnel Setup (API Ingress)
 
 Use existing config and credentials templates under `infra/cloudflared/`.
 
@@ -402,7 +441,7 @@ Common checks:
 - **Recent logs**: `sudo journalctl -u cloudflared -f`
 - **Config validation**: Edit `infra/cloudflared/config.yml` and restart the service
 
-## 6. Web Deploy (Vercel)
+## 7. Web Deploy (Vercel)
 
 1. Connect repository to Vercel.
 2. Configure project root to `apps/web`.
@@ -411,7 +450,7 @@ Common checks:
    - `SESSION_SECRET=<strong-secret>`
 4. Deploy and verify login flow.
 
-## 7. OAuth + Auth URLs
+## 8. OAuth + Auth URLs
 
 In Google Cloud console, set production redirect URI exactly:
 
@@ -422,7 +461,7 @@ Also verify:
 1. `APP_BASE_URL` points to real web origin.
 2. Email links (`verify-email`, `reset-password`, `set-password`) resolve correctly.
 
-## 8. n8n Deploy (Auth Monitoring)
+## 9. n8n Deploy (Auth Monitoring)
 
 1. Import workflow:
    - `docs/n8n/AO_OS_Auth_Anomaly_Detection_v1.0.0_dynamic-jwt.json`
@@ -432,7 +471,7 @@ Also verify:
    - Notion anomaly records are created.
    - Gmail alert triggers only when not suppressed by cooldown.
 
-## 9. Go-Live Checklist
+## 10. Go-Live Checklist
 
 1. Production DB backups enabled.
 2. API deployed and `/v1/health` green internally and externally.
@@ -443,7 +482,7 @@ Also verify:
 7. n8n auth anomaly workflow imported and tested.
 8. Events polling access remains restricted to `admin` and `operations` roles.
 
-## 10. Post-Launch Hardening
+## 11. Post-Launch Hardening
 
 1. Add API rate limiting on auth endpoints.
 2. Add centralized error logging and request tracing.

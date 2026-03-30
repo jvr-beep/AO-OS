@@ -24,19 +24,30 @@ jobs:
     steps:
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.2.0
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
         with:
           host: ${{ secrets.VM_HOST }}
           username: ${{ secrets.VM_USER }}
           key: ${{ secrets.VM_SSH_KEY }}
           timeout: 10m
           command_timeout: 10m
+          envs: GH_TOKEN
           script: |
             set -euo pipefail
             cd ~/AO-OS
 
             echo "=== Pull latest ==="
+            _cred_file=$(mktemp)
+            chmod 600 "$_cred_file"
+            trap "rm -f '$_cred_file'; git config --local --unset credential.helper 2>/dev/null || true" EXIT
+            printf "machine github.com login x-access-token password %s\n" "${GH_TOKEN}" > "$_cred_file"
+            git config --local credential.helper "store --file $_cred_file"
             git fetch origin
             git pull --ff-only
+            git config --local --unset credential.helper
+            rm -f "$_cred_file"
+            trap - EXIT
 
             echo "=== Deploy ==="
             bash scripts/vm-post-deploy-smoke.sh --build
