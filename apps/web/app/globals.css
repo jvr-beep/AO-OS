@@ -4,27 +4,30 @@
 
 @layer base {
   html {
-    @apply bg-ao-darker text-gray-100;
+    @apply bg-surface-0 text-text-primary;
   }
 
   body {
-    @apply bg-ao-darker text-gray-100 antialiased;
+    @apply bg-surface-0 text-text-primary antialiased font-sans;
   }
 
   /* Headings */
   h1 {
-    @apply text-3xl font-bold text-white;
+    @apply text-3xl font-bold text-text-primary;
+    font-family: 'system-ui', sans-serif;
   }
   h2 {
-    @apply text-2xl font-semibold text-gray-50;
+    @apply text-2xl font-semibold text-text-secondary;
+    font-family: 'system-ui', sans-serif;
   }
   h3 {
-    @apply text-xl font-semibold text-gray-100;
+    @apply text-xl font-semibold text-text-primary;
+    font-family: 'system-ui', sans-serif;
   }
 
   /* Links */
   a {
-    @apply text-ao-primary hover:text-ao-teal transition-colors;
+    @apply text-accent-primary hover:text-accent-active transition-colors;
   }
 }
 

@@ -24,45 +24,53 @@ const QUICK_LINKS = [
   { href: '/staff/audit', label: 'Audit Log' },
 ]
 
+function HealthPill({ health }: { health: string }) {
+  const color =
+    health === 'ok'
+      ? 'bg-success text-surface-0'
+      : health === 'degraded'
+        ? 'bg-warning text-surface-0'
+        : 'bg-critical text-surface-0'
+  return (
+    <span className={`inline-block px-3 py-1 rounded font-semibold text-xs ${color}`}>{health}</span>
+  )
+}
+
 export default async function DashboardPage() {
   const [session, health] = await Promise.all([getSession(), getApiHealth()])
 
-  const healthColor =
-    health === 'ok'
-      ? 'text-green-400'
-      : health === 'degraded'
-        ? 'text-yellow-400'
-        : 'text-red-400'
-
   return (
-    <div className="max-w-3xl">
-      <h1 className="text-3xl font-bold mb-2">Dashboard</h1>
-      <p className="text-gray-400 mb-6">Welcome to AO OS</p>
+    <div className="max-w-4xl mx-auto py-8 px-4">
+      <h1 className="text-3xl font-bold mb-2 tracking-tight">AO OS Staff Dashboard</h1>
+      <p className="text-text-muted mb-8">Instant operating picture: occupancy, arrivals, cleaning, and alerts.</p>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 mb-6">
-        <div className="card">
-          <p className="text-xs text-ao-teal uppercase tracking-wide font-semibold mb-2">API Health</p>
-          <p className={`text-lg font-bold ${healthColor}`}>{health}</p>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <div className="rounded-lg bg-surface-1 border border-border-subtle p-6 flex flex-col gap-2 shadow-sm">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-semibold text-text-muted uppercase tracking-wide">API Health</span>
+            <HealthPill health={health} />
+          </div>
+          <div className="text-2xl font-bold text-text-primary">{health === 'ok' ? 'Operational' : health === 'degraded' ? 'Degraded' : 'Unreachable'}</div>
         </div>
 
-        <div className="card">
-          <p className="text-xs text-ao-teal uppercase tracking-wide font-semibold mb-2">Signed in as</p>
-          <p className="text-sm font-medium text-white">{session.user?.fullName}</p>
-          <p className="text-xs text-gray-400">{session.user?.email}</p>
-          <span className="mt-2 inline-block text-xs bg-ao-primary text-ao-darker px-2 py-1 rounded font-semibold">
+        <div className="rounded-lg bg-surface-1 border border-border-subtle p-6 flex flex-col gap-2 shadow-sm">
+          <span className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-2">Signed in as</span>
+          <div className="text-lg font-medium text-text-primary">{session.user?.fullName}</div>
+          <div className="text-xs text-text-secondary">{session.user?.email}</div>
+          <span className="mt-2 inline-block text-xs bg-accent-primary text-surface-0 px-2 py-1 rounded font-semibold">
             {session.user?.role}
           </span>
         </div>
       </div>
 
-      <div className="card mb-6">
-        <h2 className="text-sm font-semibold text-ao-primary mb-3 uppercase tracking-wide">Quick Links</h2>
+      <div className="rounded-lg bg-surface-1 border border-border-subtle p-6 mb-8 shadow-sm">
+        <h2 className="text-sm font-semibold text-accent-primary mb-3 uppercase tracking-wide">Quick Links</h2>
         <div className="flex flex-wrap gap-2">
           {QUICK_LINKS.map((link) => (
             <Link
               key={link.href}
               href={link.href}
-              className="text-sm bg-gray-700 text-gray-100 px-3 py-1.5 rounded hover:bg-ao-primary hover:text-ao-darker transition-colors font-medium"
+              className="text-sm bg-surface-2 text-text-primary px-3 py-1.5 rounded hover:bg-accent-primary hover:text-surface-0 transition-colors font-medium border border-border-subtle"
             >
               {link.label}
             </Link>
@@ -70,9 +78,9 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      <div className="card">
-        <h2 className="text-sm font-semibold text-ao-primary mb-2 uppercase tracking-wide">Member Lookup</h2>
-        <p className="text-xs text-gray-400 mb-3">Search by member UUID, name, email, or member number.</p>
+      <div className="rounded-lg bg-surface-1 border border-border-subtle p-6 shadow-sm">
+        <h2 className="text-sm font-semibold text-accent-primary mb-2 uppercase tracking-wide">Member Lookup</h2>
+        <p className="text-xs text-text-muted mb-3">Search by member UUID, name, email, or member number.</p>
         <MemberLookup />
       </div>
     </div>

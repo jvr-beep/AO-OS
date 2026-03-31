@@ -1,0 +1,8 @@
+# SwaggerHub CLI config for AO-OS
+# See: https://github.com/SmartBear/swaggerhub-cli
+
+# Organization and API info (update as needed)
+organization: AO-Sanctuary
+api: ao-os
+version: 0.2.0
+# Token is read from SWAGGERHUB_TOKEN env var

@@ -8,11 +8,11 @@ interface AppShellProps {
 
 export function AppShell({ children, role, userLabel }: AppShellProps) {
   return (
-    <div className="flex h-screen overflow-hidden bg-ao-darker">
-      <aside className="w-52 flex-shrink-0 bg-ao-dark border-r border-gray-700">
+    <div className="flex h-screen overflow-hidden bg-surface-0">
+      <aside className="w-56 flex-shrink-0 bg-surface-1 border-r border-border-subtle">
         <SidebarNav role={role} userLabel={userLabel} />
       </aside>
-      <main className="flex-1 overflow-y-auto bg-ao-darker p-6">{children}</main>
+      <main className="flex-1 overflow-y-auto bg-surface-0 p-8">{children}</main>
     </div>
   )
 }

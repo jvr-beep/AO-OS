@@ -32,17 +32,17 @@ export function SidebarNav({ role, userLabel }: SidebarNavProps) {
     const active = pathname === href || (href !== '/dashboard' && pathname.startsWith(href))
     return `block px-3 py-2 rounded text-sm font-medium transition-colors ${
       active
-        ? 'bg-ao-primary text-ao-darker'
-        : 'text-gray-200 hover:bg-gray-700 hover:text-ao-primary'
+        ? 'bg-accent-primary text-surface-0'
+        : 'text-text-primary hover:bg-surface-2 hover:text-accent-primary'
     }`
   }
 
   return (
     <div className="flex flex-col h-full">
-      <div className="px-4 py-4 border-b border-gray-700">
-        <p className="text-ao-primary font-bold text-lg">AO</p>
-        <p className="text-gray-400 text-xs mt-2 truncate font-medium">{userLabel}</p>
-        <span className="mt-2 inline-block text-xs bg-ao-primary text-ao-darker px-2 py-1 rounded font-semibold">
+      <div className="px-4 py-4 border-b border-border-subtle">
+        <p className="text-accent-primary font-bold text-lg tracking-tight">AO</p>
+        <p className="text-text-secondary text-xs mt-2 truncate font-medium">{userLabel}</p>
+        <span className="mt-2 inline-block text-xs bg-accent-primary text-surface-0 px-2 py-1 rounded font-semibold">
           {role}
         </span>
       </div>
@@ -56,7 +56,7 @@ export function SidebarNav({ role, userLabel }: SidebarNavProps) {
 
         {(role === 'operations' || role === 'admin') && (
           <>
-            <div className="pt-4 pb-1 px-3 text-xs text-ao-teal font-bold uppercase tracking-wider">
+            <div className="pt-4 pb-1 px-3 text-xs text-accent-active font-bold uppercase tracking-wider">
               Admin
             </div>
             {ADMIN_ITEMS.map((item) => (
@@ -68,11 +68,11 @@ export function SidebarNav({ role, userLabel }: SidebarNavProps) {
         )}
       </nav>
 
-      <div className="px-3 py-4 border-t border-gray-700">
+      <div className="px-3 py-4 border-t border-border-subtle">
         <form action={logout}>
           <button
             type="submit"
-            className="w-full text-left px-3 py-2 rounded text-sm text-gray-300 hover:bg-gray-700 hover:text-ao-primary transition-colors"
+            className="w-full text-left px-3 py-2 rounded text-sm text-text-muted hover:bg-surface-2 hover:text-accent-primary transition-colors"
           >
             Sign out
           </button>

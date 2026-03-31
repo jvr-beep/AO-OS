@@ -37,11 +37,11 @@ export default async function StaffPage({
 
   return (
     <div className="max-w-4xl">
-      <h1 className="text-2xl font-semibold mb-6">Staff</h1>
+      <h1 className="text-2xl font-semibold mb-6 text-text-primary">Staff</h1>
 
-      <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
-        <div className="p-4 border-b">
-          <p className="text-xs text-gray-500 mb-2">Tip: partial matches are supported.</p>
+      <div className="bg-surface-1 rounded-lg border border-border-subtle overflow-hidden shadow-sm">
+        <div className="p-4 border-b border-border-subtle">
+          <p className="text-xs text-text-muted mb-2">Tip: partial matches are supported.</p>
           <form method="get" className="flex flex-col sm:flex-row gap-2">
             <input
               name="q"
@@ -60,44 +60,44 @@ export default async function StaffPage({
           </form>
         </div>
         <table className="w-full text-sm">
-          <thead className="bg-gray-50 border-b">
+          <thead className="bg-surface-2 border-b border-border-subtle">
             <tr>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">
+              <th className="text-left px-4 py-3 text-xs font-semibold text-text-secondary uppercase tracking-wide">
                 Name
               </th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">
+              <th className="text-left px-4 py-3 text-xs font-semibold text-text-secondary uppercase tracking-wide">
                 Email
               </th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">
+              <th className="text-left px-4 py-3 text-xs font-semibold text-text-secondary uppercase tracking-wide">
                 Role
               </th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">
+              <th className="text-left px-4 py-3 text-xs font-semibold text-text-secondary uppercase tracking-wide">
                 Status
               </th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">
+              <th className="text-left px-4 py-3 text-xs font-semibold text-text-secondary uppercase tracking-wide">
                 Joined
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y">
+          <tbody className="divide-y divide-border-subtle">
             {filteredStaffUsers.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-sm text-gray-500">
+                <td colSpan={5} className="px-4 py-8 text-center text-sm text-text-muted">
                   No staff users found.
                 </td>
               </tr>
             ) : (
               filteredStaffUsers.map((user) => (
-                <tr key={user.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 font-medium">{user.fullName}</td>
-                  <td className="px-4 py-3 text-gray-600">{user.email}</td>
+                <tr key={user.id} className="hover:bg-surface-2">
+                  <td className="px-4 py-3 font-medium text-text-primary">{user.fullName}</td>
+                  <td className="px-4 py-3 text-text-secondary">{user.email}</td>
                   <td className="px-4 py-3">
                     <StatusBadge status={user.role} />
                   </td>
                   <td className="px-4 py-3">
                     <StatusBadge status={user.isActive ? 'active' : 'inactive'} />
                   </td>
-                  <td className="px-4 py-3 text-xs text-gray-500">
+                  <td className="px-4 py-3 text-xs text-text-muted">
                     {new Date(user.createdAt).toLocaleDateString()}
                   </td>
                 </tr>

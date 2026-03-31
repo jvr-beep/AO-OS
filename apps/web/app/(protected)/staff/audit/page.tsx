@@ -37,15 +37,15 @@ export default async function StaffAuditPage({
   return (
     <div className="max-w-5xl">
       <div className="flex items-center gap-3 mb-6">
-        <Link href="/staff" className="text-sm text-blue-600 hover:underline">
-          ← Staff
+        <Link href="/staff" className="text-sm text-accent-primary hover:underline">
+           Staff
         </Link>
-        <h1 className="text-2xl font-semibold">Audit Log</h1>
+        <h1 className="text-2xl font-semibold text-text-primary">Audit Log</h1>
       </div>
 
-      <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
-        <div className="p-4 border-b">
-          <p className="text-xs text-gray-500 mb-2">Tip: partial matches are supported.</p>
+      <div className="bg-surface-1 rounded-lg border border-border-subtle overflow-hidden shadow-sm">
+        <div className="p-4 border-b border-border-subtle">
+          <p className="text-xs text-text-muted mb-2">Tip: partial matches are supported.</p>
           <form method="get" className="flex flex-col sm:flex-row gap-2">
             <input
               name="q"
@@ -64,32 +64,32 @@ export default async function StaffAuditPage({
           </form>
         </div>
         <table className="w-full text-sm">
-          <thead className="bg-gray-50 border-b">
+          <thead className="bg-surface-2 border-b border-border-subtle">
             <tr>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">
+              <th className="text-left px-4 py-3 text-xs font-semibold text-text-secondary uppercase tracking-wide">
                 Time
               </th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">
+              <th className="text-left px-4 py-3 text-xs font-semibold text-text-secondary uppercase tracking-wide">
                 Staff
               </th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">
+              <th className="text-left px-4 py-3 text-xs font-semibold text-text-secondary uppercase tracking-wide">
                 Action
               </th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">
+              <th className="text-left px-4 py-3 text-xs font-semibold text-text-secondary uppercase tracking-wide">
                 Target
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y">
+          <tbody className="divide-y divide-border-subtle">
             {filteredEvents.length === 0 ? (
               <tr>
-                <td colSpan={4} className="px-4 py-8 text-center text-sm text-gray-500">
+                <td colSpan={4} className="px-4 py-8 text-center text-sm text-text-muted">
                   No audit events.
                 </td>
               </tr>
             ) : (
               filteredEvents.map((ev) => (
-                <tr key={ev.id} className="hover:bg-gray-50">
+                <tr key={ev.id} className="hover:bg-surface-2">
                   {(() => {
                     const actorEmailSnapshot = (
                       ev as AuditEvent & { actorEmailSnapshot?: string }
@@ -101,15 +101,15 @@ export default async function StaffAuditPage({
 
                     return (
                       <>
-                  <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">
+                  <td className="px-4 py-3 text-xs text-text-muted whitespace-nowrap">
                     {new Date(ev.createdAt).toLocaleString()}
                   </td>
-                  <td className="px-4 py-3 text-xs">{actorDisplay}</td>
-                  <td className="px-4 py-3 font-mono text-xs">{ev.action}</td>
-                  <td className="px-4 py-3 text-xs text-gray-500">
+                  <td className="px-4 py-3 text-xs text-text-primary">{actorDisplay}</td>
+                  <td className="px-4 py-3 font-mono text-xs text-text-secondary">{ev.action}</td>
+                  <td className="px-4 py-3 text-xs text-text-muted">
                     {ev.targetType
                       ? `${ev.targetType}${ev.targetId ? ` / ${ev.targetId.slice(0, 8)}…` : ''}`
-                      : '—'}
+                      : 'd'}
                   </td>
                       </>
                     )
