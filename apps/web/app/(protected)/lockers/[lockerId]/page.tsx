@@ -176,7 +176,7 @@ export default async function LockerDetailPage({
                   </td>
                   <td className="px-4 py-2 text-xs">
                     {ev.denialReasonCode ? (
-                      <StatusBadge status={ev.denialReasonCode} variant="danger" />
+                      <StatusBadge status={ev.denialReasonCode} />
                     ) : (
                       '—'
                     )}

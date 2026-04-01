@@ -1,7 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
-import { useFormState, useFormStatus } from 'react-dom'
+import { useEffect, useMemo, useState, useTransition } from 'react'
 import { loginAction, requestPasswordReset } from '@/app/actions/auth'
 import { AoLogo } from '@/components/AoLogo'
 
@@ -9,17 +8,11 @@ const USERS_KEY = 'ao-os-login-users'
 const LAST_USER_KEY = 'ao-os-last-login-user'
 const MAX_USERS = 8
 
-type LoginFormState = {
-  error?: string
-} | null
-
 type Props = {
   resetState: 'sent' | 'error' | null
 }
 
-function SubmitButton() {
-  const { pending } = useFormStatus()
-
+function SubmitButton({ pending }: { pending: boolean }) {
   return (
     <button type="submit" className="w-full btn-primary" disabled={pending}>
       {pending && <span className="login-spinner" aria-hidden="true" />}
@@ -32,7 +25,8 @@ export default function LoginClient({ resetState }: Props) {
   const [email, setEmail] = useState('')
   const [savedUsers, setSavedUsers] = useState<string[]>([])
   const [showReset, setShowReset] = useState(false)
-  const [formState, formAction] = useFormState<LoginFormState, FormData>(loginAction, null)
+  const [loginError, setLoginError] = useState<string | null>(null)
+  const [isPending, startTransition] = useTransition()
 
   useEffect(() => {
     const rawUsers = window.localStorage.getItem(USERS_KEY)
@@ -133,9 +127,9 @@ export default function LoginClient({ resetState }: Props) {
           <p className="text-xs text-cyan-100/40 mt-2">Honor the body. Honor the man.</p>
         </div>
 
-        {formState?.error && (
+        {loginError && (
           <div className="mb-4 rounded-lg bg-red-900/70 border border-red-700 px-4 py-3 text-sm text-red-100">
-            {formState.error}
+            {loginError}
           </div>
         )}
 
@@ -152,9 +146,17 @@ export default function LoginClient({ resetState }: Props) {
         )}
 
         <form
-          action={formAction}
           className="space-y-4"
-          onSubmit={() => rememberUser(email)}
+          onSubmit={(e) => {
+            e.preventDefault()
+            const formData = new FormData(e.currentTarget)
+            rememberUser(email)
+            setLoginError(null)
+            startTransition(async () => {
+              const result = await loginAction(null, formData)
+              if (result?.error) setLoginError(result.error)
+            })
+          }}
         >
           <div>
             <label className="form-label" htmlFor="email">
@@ -196,7 +198,7 @@ export default function LoginClient({ resetState }: Props) {
             />
           </div>
 
-          <SubmitButton />
+          <SubmitButton pending={isPending} />
         </form>
 
         <div className="mt-4 text-center">

@@ -51,13 +51,13 @@ jobs:
 
             umask 177
             cat > "$NETRC_FILE" <<EOF
-machine github.com
-  login ${GH_ACTOR}
-  password ${GH_TOKEN}
-machine api.github.com
-  login ${GH_ACTOR}
-  password ${GH_TOKEN}
-EOF
+            machine github.com
+              login ${GH_ACTOR}
+              password ${GH_TOKEN}
+            machine api.github.com
+              login ${GH_ACTOR}
+              password ${GH_TOKEN}
+            EOF
 
             chmod 600 "$NETRC_FILE"
             export NETRC="$NETRC_FILE"
@@ -70,6 +70,39 @@ EOF
 
             echo "=== Deploy ==="
             bash scripts/vm-post-deploy-smoke.sh --build
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.32.1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Validate OpenAPI in SwaggerHub CLI
+        if: ${{ secrets.SWAGGERHUB_TOKEN != '' }}
+        env:
+          SWAGGERHUB_TOKEN: ${{ secrets.SWAGGERHUB_TOKEN }}
+        run: pnpm swaggerhub:validate
+
+      - name: Skip SwaggerHub publish (missing token)
+        if: ${{ secrets.SWAGGERHUB_TOKEN == '' }}
+        run: echo "SWAGGERHUB_TOKEN is not set; skipping SwaggerHub validation and publish."
+
+      - name: Publish OpenAPI to SwaggerHub
+        if: ${{ secrets.SWAGGERHUB_TOKEN != '' }}
+        env:
+          SWAGGERHUB_TOKEN: ${{ secrets.SWAGGERHUB_TOKEN }}
+        run: pnpm swaggerhub:push
 
       - name: Notify on failure
         if: failure()

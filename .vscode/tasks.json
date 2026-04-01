@@ -1,0 +1,30 @@
+    {
+      "label": "GCP VM: Check & Update OS (Direct)",
+      "type": "shell",
+      "command": "ssh -i C:/Users/Jason van Ravenswaay/.ssh/google_compute_engine \"jvr@aosanctuary.com@35.192.46.16\" \"uname -a && (lsb_release -a 2>/dev/null || cat /etc/os-release) && sudo apt update && sudo apt upgrade -y && sudo apt list --upgradable\"",
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "dedicated"
+      }
+    }
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "GCP VM: Check & Update OS",
+      "type": "shell",
+      "command": "ssh ao-os-api-gcp 'uname -a && (lsb_release -a 2>/dev/null || cat /etc/os-release) && sudo apt update && sudo apt upgrade -y && sudo apt list --upgradable'",
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "dedicated"
+      },
+      "group": "build"
+    }
+  ]
+}

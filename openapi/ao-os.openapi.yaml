@@ -426,6 +426,27 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/Tier' }
 
+  /catalog/tiers/{tierId}/durations:
+    get:
+      summary: List valid durations for a tier
+      tags: [Catalog]
+      parameters:
+        - name: tierId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Supported durations
+
+  /catalog/add-ons:
+    get:
+      summary: List catalog add-ons
+      tags: [Catalog]
+      responses:
+        '200':
+          description: Add-ons listed
+
   # ══════════════════════════════════════════════════════════════════════════
   # Inventory
   # ══════════════════════════════════════════════════════════════════════════
@@ -535,6 +556,12 @@ paths:
   # Bookings
   # ══════════════════════════════════════════════════════════════════════════
   /bookings:
+    get:
+      summary: List bookings
+      tags: [Bookings]
+      responses:
+        '200':
+          description: Bookings listed
     post:
       summary: Create a guest booking
       tags: [Bookings]
@@ -641,6 +668,45 @@ paths:
               schema: { $ref: '#/components/schemas/GuestBooking' }
         '409':
           description: Invalid status transition
+
+  /bookings/{id}/check-in:
+    post:
+      summary: Check in booking
+      tags: [Bookings]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Booking checked in
+
+  /bookings/{id}/check-out:
+    post:
+      summary: Check out booking
+      tags: [Bookings]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Booking checked out
+
+  /bookings/{id}/cancel:
+    post:
+      summary: Cancel booking
+      tags: [Bookings]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Booking canceled
 
   /guests/{guestId}/bookings:
     get:
@@ -1199,3 +1265,880 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/SystemException' }
+
+  # ══════════════════════════════════════════════════════════════════════════
+  # Auth and Health
+  # ══════════════════════════════════════════════════════════════════════════
+  /health:
+    get:
+      summary: Health check
+      tags: [Health]
+      security: []
+      responses:
+        '200':
+          description: Service is healthy
+
+  /auth/login:
+    post:
+      summary: Staff login
+      tags: [Auth]
+      security: []
+      responses:
+        '200':
+          description: Authenticated
+
+  /auth/member/login:
+    post:
+      summary: Member login
+      tags: [Auth]
+      security: []
+      responses:
+        '200':
+          description: Authenticated
+
+  /auth/signup:
+    post:
+      summary: Member signup
+      tags: [Auth]
+      security: []
+      responses:
+        '201':
+          description: Member created
+
+  /auth/email/verify:
+    post:
+      summary: Verify member email
+      tags: [Auth]
+      security: []
+      responses:
+        '200':
+          description: Email verified
+
+  /auth/password-reset/request:
+    post:
+      summary: Request password reset
+      tags: [Auth]
+      security: []
+      responses:
+        '200':
+          description: Reset flow started
+
+  /auth/password-reset/confirm:
+    post:
+      summary: Confirm password reset
+      tags: [Auth]
+      security: []
+      responses:
+        '200':
+          description: Password reset complete
+
+  /auth/google:
+    get:
+      summary: Start Google OAuth flow
+      tags: [Auth]
+      security: []
+      responses:
+        '302':
+          description: Redirect to Google
+
+  /auth/google/callback:
+    get:
+      summary: Google OAuth callback
+      tags: [Auth]
+      security: []
+      responses:
+        '302':
+          description: Redirect after callback
+
+  /auth/providers/google/link:
+    get:
+      summary: Start Google provider link flow
+      tags: [Auth]
+      responses:
+        '302':
+          description: Redirect to provider
+
+  /auth/providers/google/{externalAuthId}:
+    delete:
+      summary: Unlink Google provider
+      tags: [Auth]
+      parameters:
+        - name: externalAuthId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '204':
+          description: Provider unlinked
+
+  # ══════════════════════════════════════════════════════════════════════════
+  # Identity, Members, Plans, Staff
+  # ══════════════════════════════════════════════════════════════════════════
+  /identity/members/anonymous:
+    post:
+      summary: Create anonymous member identity
+      tags: [Identity]
+      security: []
+      responses:
+        '201':
+          description: Identity created
+
+  /identity/members/registered:
+    post:
+      summary: Create registered member identity
+      tags: [Identity]
+      security: []
+      responses:
+        '201':
+          description: Identity created
+
+  /identity/members/{memberId}/convert:
+    post:
+      summary: Convert anonymous to registered member
+      tags: [Identity]
+      parameters:
+        - name: memberId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Member converted
+
+  /admin/members/{memberId}/password-reset:
+    post:
+      summary: Admin password reset for member
+      tags: [Identity]
+      parameters:
+        - name: memberId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Password reset
+
+  /members:
+    get:
+      summary: List members
+      tags: [Members]
+      responses:
+        '200':
+          description: Members listed
+    post:
+      summary: Create member
+      tags: [Members]
+      responses:
+        '201':
+          description: Member created
+
+  /members/{id}:
+    get:
+      summary: Get member by ID
+      tags: [Members]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Member found
+
+  /membership-plans:
+    get:
+      summary: List membership plans
+      tags: [Membership Plans]
+      responses:
+        '200':
+          description: Plans listed
+    post:
+      summary: Create membership plan
+      tags: [Membership Plans]
+      responses:
+        '201':
+          description: Plan created
+
+  /staff-users:
+    get:
+      summary: List staff users
+      tags: [Staff Users]
+      responses:
+        '200':
+          description: Staff users listed
+    post:
+      summary: Create staff user
+      tags: [Staff Users]
+      responses:
+        '201':
+          description: Staff user created
+
+  /staff-users/{id}:
+    get:
+      summary: Get staff user by ID
+      tags: [Staff Users]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Staff user found
+
+  /staff-users/{id}/role:
+    patch:
+      summary: Update staff user role
+      tags: [Staff Users]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Role updated
+
+  /staff-users/{id}/deactivate:
+    patch:
+      summary: Deactivate staff user
+      tags: [Staff Users]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Staff user deactivated
+
+  /staff-users/{id}/reactivate:
+    patch:
+      summary: Reactivate staff user
+      tags: [Staff Users]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Staff user reactivated
+
+  /staff-users/{id}/password:
+    patch:
+      summary: Update staff user password
+      tags: [Staff Users]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Password updated
+
+  /staff-audit:
+    get:
+      summary: List staff audit records
+      tags: [Staff Audit]
+      responses:
+        '200':
+          description: Audit records listed
+
+  # ══════════════════════════════════════════════════════════════════════════
+  # Additional Ops and Domain Routes
+  # ══════════════════════════════════════════════════════════════════════════
+  /events/poll:
+    get:
+      summary: Poll events since cursor or timestamp
+      tags: [Events]
+      parameters:
+        - name: since
+          in: query
+          required: false
+          schema: { type: string, format: date-time }
+      responses:
+        '200':
+          description: Events payload
+
+  /guests/lookup:
+    post:
+      summary: Lookup guest by search criteria
+      tags: [Guests]
+      responses:
+        '200':
+          description: Guest lookup results
+
+  /waivers/current:
+    get:
+      summary: Get current waiver metadata
+      tags: [Waivers]
+      security: []
+      responses:
+        '200':
+          description: Current waiver metadata
+
+  /guests/{guestId}/waivers/latest:
+    get:
+      summary: Get latest waiver for guest
+      tags: [Waivers]
+      parameters:
+        - name: guestId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Latest waiver
+
+  /availability/search:
+    get:
+      summary: Search availability
+      tags: [Inventory]
+      responses:
+        '200':
+          description: Availability results
+
+  /inventory/holds/{holdId}:
+    delete:
+      summary: Delete inventory hold
+      tags: [Inventory]
+      parameters:
+        - name: holdId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '204':
+          description: Hold deleted
+
+  /inventory/assignments/finalize:
+    post:
+      summary: Finalize inventory assignment
+      tags: [Inventory]
+      responses:
+        '201':
+          description: Assignment finalized
+
+  /access-attempts:
+    post:
+      summary: Create access attempt
+      tags: [Access Attempts]
+      responses:
+        '201':
+          description: Access attempt created
+    get:
+      summary: List access attempts
+      tags: [Access Attempts]
+      responses:
+        '200':
+          description: Access attempts listed
+
+  /members/{id}/access-attempts:
+    get:
+      summary: List member access attempts
+      tags: [Access Attempts]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Access attempts listed
+
+  /cleaning/tasks:
+    get:
+      summary: List cleaning tasks
+      tags: [Cleaning]
+      responses:
+        '200':
+          description: Cleaning tasks listed
+
+  /cleaning/tasks/{id}/start:
+    post:
+      summary: Start cleaning task
+      tags: [Cleaning]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Cleaning task started
+
+  /cleaning/tasks/{id}/complete:
+    post:
+      summary: Complete cleaning task
+      tags: [Cleaning]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Cleaning task completed
+
+  /floor-plans:
+    get:
+      summary: List floor plans
+      tags: [Floor Plans]
+      responses:
+        '200':
+          description: Floor plans listed
+    post:
+      summary: Create floor plan
+      tags: [Floor Plans]
+      responses:
+        '201':
+          description: Floor plan created
+
+  /floor-plans/{id}:
+    get:
+      summary: Get floor plan by ID
+      tags: [Floor Plans]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Floor plan found
+
+  /floor-plans/{id}/areas:
+    post:
+      summary: Create area for floor plan
+      tags: [Floor Plans]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '201':
+          description: Area created
+
+  /rooms:
+    get:
+      summary: List rooms
+      tags: [Rooms]
+      responses:
+        '200':
+          description: Rooms listed
+    post:
+      summary: Create room
+      tags: [Rooms]
+      responses:
+        '201':
+          description: Room created
+
+  /rooms/{id}:
+    get:
+      summary: Get room by ID
+      tags: [Rooms]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Room found
+
+  /rooms/access:
+    post:
+      summary: Create room access event
+      tags: [Rooms]
+      responses:
+        '201':
+          description: Access event created
+
+  /rooms/{id}/access-events:
+    get:
+      summary: List room access events
+      tags: [Rooms]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Access events listed
+
+  /members/{id}/room-access-events:
+    get:
+      summary: List member room access events
+      tags: [Rooms]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Access events listed
+
+  /rooms/{id}/bookings:
+    get:
+      summary: List bookings for room
+      tags: [Rooms]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Room bookings listed
+
+  /members/{id}/bookings:
+    get:
+      summary: List bookings for member
+      tags: [Bookings]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Member bookings listed
+
+  /presence-events:
+    post:
+      summary: Create presence event
+      tags: [Presence]
+      responses:
+        '201':
+          description: Presence event created
+
+  /visit-sessions/{id}/presence-events:
+    get:
+      summary: List presence events by visit session
+      tags: [Presence]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Presence events listed
+
+  /members/{id}/presence-events:
+    get:
+      summary: List member presence events
+      tags: [Presence]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Presence events listed
+
+  /visit-sessions/check-in:
+    post:
+      summary: Check in visit session
+      tags: [Visit Sessions]
+      responses:
+        '201':
+          description: Session checked in
+
+  /visit-sessions/check-out:
+    post:
+      summary: Check out visit session
+      tags: [Visit Sessions]
+      responses:
+        '201':
+          description: Session checked out
+
+  /members/{id}/visit-sessions:
+    get:
+      summary: List member visit sessions
+      tags: [Visit Sessions]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Sessions listed
+
+  /subscriptions:
+    post:
+      summary: Create subscription
+      tags: [Subscriptions]
+      responses:
+        '201':
+          description: Subscription created
+
+  /members/{id}/subscriptions:
+    get:
+      summary: List member subscriptions
+      tags: [Subscriptions]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Subscriptions listed
+
+  /wristbands:
+    get:
+      summary: List wristbands
+      tags: [Wristbands]
+      responses:
+        '200':
+          description: Wristbands listed
+    post:
+      summary: Create wristband
+      tags: [Wristbands]
+      responses:
+        '201':
+          description: Wristband created
+
+  /wristbands/{id}:
+    get:
+      summary: Get wristband by ID
+      tags: [Wristbands]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Wristband found
+
+  /wristbands/issue:
+    post:
+      summary: Issue wristband
+      tags: [Wristbands]
+      responses:
+        '201':
+          description: Wristband issued
+
+  /wristbands/activate:
+    post:
+      summary: Activate wristband
+      tags: [Wristbands]
+      responses:
+        '200':
+          description: Wristband activated
+
+  /wristbands/suspend:
+    post:
+      summary: Suspend wristband
+      tags: [Wristbands]
+      responses:
+        '200':
+          description: Wristband suspended
+
+  /wristbands/replace:
+    post:
+      summary: Replace wristband
+      tags: [Wristbands]
+      responses:
+        '200':
+          description: Wristband replaced
+
+  /wristbands/assign:
+    post:
+      summary: Assign wristband
+      tags: [Wristbands]
+      responses:
+        '200':
+          description: Wristband assigned
+
+  /wristbands/unassign:
+    post:
+      summary: Unassign wristband
+      tags: [Wristbands]
+      responses:
+        '200':
+          description: Wristband unassigned
+
+  /wristband-transactions:
+    get:
+      summary: List wristband transactions
+      tags: [Wristband Transactions]
+      responses:
+        '200':
+          description: Transactions listed
+    post:
+      summary: Create wristband transaction
+      tags: [Wristband Transactions]
+      responses:
+        '201':
+          description: Transaction created
+
+  /members/{id}/wristband-transactions:
+    get:
+      summary: List member wristband transactions
+      tags: [Wristband Transactions]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Transactions listed
+
+  /members/{id}/account:
+    get:
+      summary: Get member account summary
+      tags: [Member Account]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Account summary
+
+  /members/{id}/account/entries:
+    get:
+      summary: List member account entries
+      tags: [Member Account]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Account entries listed
+
+  /members/{id}/account/payments:
+    post:
+      summary: Create member account payment
+      tags: [Member Account]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '201':
+          description: Payment created
+
+  /lockers:
+    get:
+      summary: List lockers
+      tags: [Lockers]
+      responses:
+        '200':
+          description: Lockers listed
+    post:
+      summary: Create locker
+      tags: [Lockers]
+      responses:
+        '201':
+          description: Locker created
+
+  /lockers/{id}/access-events:
+    get:
+      summary: List locker access events
+      tags: [Lockers]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Access events listed
+
+  /lockers/assign:
+    post:
+      summary: Assign locker
+      tags: [Lockers]
+      responses:
+        '200':
+          description: Locker assigned
+
+  /lockers/policy/evaluate:
+    post:
+      summary: Evaluate locker policy
+      tags: [Lockers]
+      responses:
+        '200':
+          description: Policy evaluated
+
+  /lockers/policy/events:
+    get:
+      summary: List locker policy events
+      tags: [Lockers]
+      responses:
+        '200':
+          description: Policy events listed
+
+  /lockers/unassign:
+    post:
+      summary: Unassign locker
+      tags: [Lockers]
+      responses:
+        '200':
+          description: Locker unassigned
+
+  /lockers/move:
+    post:
+      summary: Move locker assignment
+      tags: [Lockers]
+      responses:
+        '200':
+          description: Locker moved
+
+  /lockers/resolve-abandoned:
+    post:
+      summary: Resolve abandoned locker assignment
+      tags: [Lockers]
+      responses:
+        '200':
+          description: Abandoned locker resolved
+
+  /lockers/access:
+    post:
+      summary: Record locker access event
+      tags: [Lockers]
+      responses:
+        '201':
+          description: Locker access recorded
+
+  /members/{id}/locker-access-events:
+    get:
+      summary: List member locker access events
+      tags: [Lockers]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Access events listed
+
+  /members/{id}/locker-policy-events:
+    get:
+      summary: List member locker policy events
+      tags: [Lockers]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Policy events listed
