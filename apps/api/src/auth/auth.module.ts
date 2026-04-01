@@ -8,6 +8,7 @@ import { AuthController } from "./controllers/auth.controller";
 import { AuthService } from "./auth.service";
 import { RolesGuard } from "./guards/roles.guard";
 import { JwtStrategy } from "./strategies/jwt.strategy";
+import { PATStrategy } from "./strategies/pat.strategy";
 
 @Module({
   imports: [
@@ -23,7 +24,7 @@ import { JwtStrategy } from "./strategies/jwt.strategy";
     })
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, RolesGuard],
+  providers: [AuthService, JwtStrategy, PATStrategy, RolesGuard],
   exports: [AuthService, PassportModule, JwtModule, RolesGuard, EmailModule]
 })
 export class AuthModule implements OnModuleInit {
