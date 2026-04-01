@@ -31,7 +31,7 @@
 @layer components {
   /* Primary buttons */
   .btn-primary {
-    @apply inline-flex items-center justify-center px-4 py-2 rounded-lg font-medium transition-all bg-ao-primary text-white hover:bg-ao-teal active:scale-95;
+    @apply inline-flex items-center justify-center px-4 py-2 rounded-lg font-medium transition-all bg-ao-primary text-white hover:bg-ao-teal active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100;
   }
 
   /* Secondary buttons */
@@ -52,5 +52,33 @@
   /* Form labels */
   .form-label {
     @apply block text-sm font-medium text-gray-200 mb-1;
+  }
+
+  /* Login card — fade + slide up on mount */
+  .login-card {
+    animation: login-enter 0.35s ease both;
+  }
+
+  /* Small spinner used inside the Sign-in button while pending */
+  .login-spinner {
+    @apply inline-block w-4 h-4 rounded-full border-2 border-white/30 border-t-white;
+    animation: spin 0.7s linear infinite;
+  }
+}
+
+@keyframes login-enter {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
   }
 }
