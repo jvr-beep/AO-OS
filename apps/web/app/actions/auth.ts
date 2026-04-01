@@ -2,26 +2,25 @@
 
 import { redirect } from 'next/navigation'
 import { getSession } from '@/lib/session'
+import type { Role } from '@/types/api'
 
 const API_BASE = process.env.API_BASE_URL ?? 'http://localhost:4000/v1'
 
-export async function login(formData: FormData) {
-  const email = formData.get('email') as string
-  const password = formData.get('password') as string
-
-  const res = await fetch(`${API_BASE}/auth/login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password }),
-    cache: 'no-store',
-  })
-
-  if (!res.ok) {
-    redirect('/login?error=1')
+type LoginResponse = {
+  accessToken: string
+  staffUser: {
+    id: string
+    email: string
+    fullName: string
+    role: Role
   }
+}
 
-  const data = await res.json()
+type LoginResult =
+  | { ok: true; data: LoginResponse }
+  | { ok: false; error: string }
 
+async function saveLoginSession(data: LoginResponse) {
   const session = await getSession()
   session.accessToken = data.accessToken
   session.user = {
@@ -31,6 +30,64 @@ export async function login(formData: FormData) {
     role: data.staffUser.role,
   }
   await session.save()
+}
+
+async function doLogin(formData: FormData): Promise<LoginResult> {
+  const email = String(formData.get('email') ?? '').trim()
+  const password = String(formData.get('password') ?? '')
+
+  if (!email || !password) {
+    return { ok: false, error: 'Email and password are required.' }
+  }
+
+  let res: Response
+
+  try {
+    res = await fetch(`${API_BASE}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+      cache: 'no-store',
+    })
+  } catch {
+    return { ok: false, error: 'Could not sign in right now. Please try again.' }
+  }
+
+  if (!res.ok) {
+    if (res.status === 401 || res.status === 403) {
+      return { ok: false, error: 'Invalid email or password.' }
+    }
+
+    return { ok: false, error: 'Could not sign in right now. Please try again.' }
+  }
+
+  const data = await res.json() as LoginResponse
+  return { ok: true, data }
+}
+
+export async function login(formData: FormData) {
+  const result = await doLogin(formData)
+
+  if (!result.ok) {
+    redirect('/login?error=1')
+  }
+
+  await saveLoginSession(result.data)
+
+  redirect('/dashboard')
+}
+
+export async function loginAction(
+  _prevState: { error?: string } | null,
+  formData: FormData,
+) {
+  const result = await doLogin(formData)
+
+  if (!result.ok) {
+    return { error: result.error }
+  }
+
+  await saveLoginSession(result.data)
 
   redirect('/dashboard')
 }
@@ -39,4 +96,25 @@ export async function logout() {
   const session = await getSession()
   await session.destroy()
   redirect('/login')
+}
+
+export async function requestPasswordReset(formData: FormData) {
+  const email = String(formData.get('email') ?? '').trim()
+
+  if (!email) {
+    redirect('/login?reset=error')
+  }
+
+  const res = await fetch(`${API_BASE}/auth/password-reset/request`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+    cache: 'no-store',
+  })
+
+  if (!res.ok) {
+    redirect('/login?reset=error')
+  }
+
+  redirect('/login?reset=sent')
 }
