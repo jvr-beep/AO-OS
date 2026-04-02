@@ -71,6 +71,16 @@ describe("Integration - Guest Visit Orchestration", () => {
   });
 
   afterAll(async () => {
+    // Collect any orphaned visits created by the orchestrator that were never
+    // captured in visitIds (e.g. when a test failed before pushing the id)
+    if (guestId && tierId) {
+      const orphaned = await ctx.prisma.visit.findMany({
+        where: { guestId, tierId, id: { notIn: visitIds.length ? visitIds : ["_none_"] } },
+        select: { id: true }
+      });
+      orphaned.forEach((v) => visitIds.push(v.id));
+    }
+
     // Delete in dependency order (FK-safe)
     if (visitIds.length) {
       await ctx.prisma.systemException.deleteMany({

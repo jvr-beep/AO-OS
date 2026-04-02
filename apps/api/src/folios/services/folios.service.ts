@@ -233,8 +233,7 @@ export class FoliosService {
     await tx.visit.update({
       where: { id: folio.visitId },
       data: {
-        paymentStatus,
-        version: { increment: 1 }
+        paymentStatus
       }
     });
   }
