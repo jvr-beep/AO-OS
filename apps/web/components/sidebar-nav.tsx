@@ -30,19 +30,19 @@ export function SidebarNav({ role, userLabel }: SidebarNavProps) {
 
   function linkClass(href: string) {
     const active = pathname === href || (href !== '/dashboard' && pathname.startsWith(href))
-    return `block px-3 py-2 rounded text-sm font-medium transition-colors ${
+    return `block px-3 py-2 rounded text-sm font-sans transition-colors border-l-2 ${
       active
-        ? 'bg-accent-primary text-surface-0'
-        : 'text-text-primary hover:bg-surface-2 hover:text-accent-primary'
+        ? 'border-accent-primary text-text-primary font-medium bg-surface-2'
+        : 'border-transparent text-text-muted hover:text-text-primary hover:bg-surface-2'
     }`
   }
 
   return (
     <div className="flex flex-col h-full">
       <div className="px-4 py-4 border-b border-border-subtle">
-        <p className="text-accent-primary font-bold text-lg tracking-tight">AO</p>
-        <p className="text-text-secondary text-xs mt-2 truncate font-medium">{userLabel}</p>
-        <span className="mt-2 inline-block text-xs bg-accent-primary text-surface-0 px-2 py-1 rounded font-semibold">
+        <p className="font-heading text-sm text-text-primary uppercase tracking-widest">AO</p>
+        <p className="text-text-muted text-xs mt-2 truncate font-sans">{userLabel}</p>
+        <span className="mt-2 inline-block text-xs border border-accent-primary text-accent-primary px-2 py-0.5 rounded font-sans uppercase tracking-wider">
           {role}
         </span>
       </div>
@@ -56,7 +56,7 @@ export function SidebarNav({ role, userLabel }: SidebarNavProps) {
 
         {(role === 'operations' || role === 'admin') && (
           <>
-            <div className="pt-4 pb-1 px-3 text-xs text-accent-active font-bold uppercase tracking-wider">
+            <div className="pt-4 pb-1 px-3 text-xs text-text-muted font-sans uppercase tracking-wider">
               Admin
             </div>
             {ADMIN_ITEMS.map((item) => (

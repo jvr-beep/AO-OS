@@ -29,91 +29,63 @@
     @apply bg-surface-0 text-text-primary antialiased font-sans;
   }
 
-  /* Headings */
   h1 {
-    @apply text-3xl font-bold text-text-primary;
-    font-family: 'system-ui', sans-serif;
-  }
-  h2 {
-    @apply text-2xl font-semibold text-text-secondary;
-    font-family: 'system-ui', sans-serif;
-  }
-  h3 {
-    @apply text-xl font-semibold text-text-primary;
-    font-family: 'system-ui', sans-serif;
+    @apply font-heading text-3xl uppercase tracking-widest text-text-primary;
   }
 
-  /* Links */
+  h2 {
+    @apply font-heading text-xl uppercase tracking-wider text-text-secondary;
+  }
+
+  h3 {
+    @apply font-heading text-base uppercase tracking-wide text-text-primary;
+  }
+
   a {
-    @apply text-accent-primary hover:text-accent-active transition-colors;
+    @apply text-accent-primary hover:text-text-primary transition-colors;
   }
 }
 
 @layer components {
-  /* Primary buttons */
+  /* Primary action — ghost button, teal border, ivory text */
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition-all bg-ao-primary text-white hover:bg-ao-teal active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100;
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded
+           font-sans font-medium text-sm tracking-wide transition-all
+           border border-accent-primary text-text-primary
+           hover:bg-accent-primary hover:text-surface-0
+           active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100;
   }
 
-  /* Secondary buttons */
+  /* Secondary action */
   .btn-secondary {
-    @apply inline-flex items-center justify-center px-4 py-2 rounded-lg font-medium transition-all bg-gray-700 text-gray-100 hover:bg-gray-600 active:scale-95;
+    @apply inline-flex items-center justify-center px-4 py-2 rounded
+           font-sans font-medium text-sm transition-all
+           border border-border-subtle text-text-secondary
+           hover:border-accent-primary hover:text-text-primary
+           active:scale-95;
   }
 
-  /* Cards / content backgrounds */
+  /* Cards / content containers */
   .card {
-    @apply bg-ao-dark rounded-lg border border-gray-700 p-4;
+    @apply bg-surface-2 rounded border border-border-subtle p-4;
   }
 
   /* Form inputs */
   .form-input {
-    @apply w-full px-3 py-2 bg-ao-dark border border-gray-600 rounded-lg text-gray-100 placeholder-gray-500 focus:border-ao-primary focus:outline-none focus:ring-1 focus:ring-ao-primary transition-colors;
+    @apply w-full px-3 py-2 bg-surface-0 border border-border-subtle rounded
+           font-sans text-sm text-text-primary placeholder-text-muted
+           focus:border-accent-primary focus:outline-none focus:ring-1 focus:ring-accent-primary
+           transition-colors;
   }
 
   /* Form labels */
   .form-label {
-    @apply block text-sm font-medium text-gray-200 mb-1;
+    @apply block text-xs font-sans font-medium text-text-secondary mb-1 uppercase tracking-wider;
   }
 
+  /* Login page background — clean obsidian field */
   .login-bg {
-    background:
-      radial-gradient(120% 80% at 85% 50%, rgba(15, 46, 66, 0.75) 0%, rgba(3, 8, 18, 0.96) 60%),
-      linear-gradient(90deg, rgba(3, 6, 15, 0.98) 0%, rgba(5, 12, 25, 0.92) 45%, rgba(10, 25, 40, 0.68) 100%),
-      repeating-linear-gradient(
-        90deg,
-        rgba(0, 214, 255, 0.10) 0,
-        rgba(0, 214, 255, 0.10) 1px,
-        transparent 1px,
-        transparent 160px
-      ),
-      repeating-linear-gradient(
-        0deg,
-        rgba(0, 214, 255, 0.07) 0,
-        rgba(0, 214, 255, 0.07) 1px,
-        transparent 1px,
-        transparent 140px
-      );
-    position: relative;
-    overflow: hidden;
-  }
-
-  .login-bg::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background:
-      linear-gradient(130deg, transparent 0 56%, rgba(0, 214, 255, 0.18) 56%, rgba(0, 214, 255, 0.18) 56.15%, transparent 56.15%),
-      linear-gradient(130deg, transparent 0 69%, rgba(0, 214, 255, 0.14) 69%, rgba(0, 214, 255, 0.14) 69.15%, transparent 69.15%),
-      linear-gradient(40deg, transparent 0 72%, rgba(0, 214, 255, 0.12) 72%, rgba(0, 214, 255, 0.12) 72.2%, transparent 72.2%);
-    pointer-events: none;
-    opacity: 0.9;
-  }
-
-  .login-overlay {
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(circle at 92% 40%, rgba(0, 214, 255, 0.12) 0%, rgba(0, 214, 255, 0) 38%);
-    pointer-events: none;
+    background: radial-gradient(ellipse 90% 70% at 50% 35%, #0F1620 0%, #0B0E11 100%);
   }
 
   .login-card {
@@ -123,8 +95,8 @@
   .login-spinner {
     width: 1rem;
     height: 1rem;
-    border: 2px solid rgba(255, 255, 255, 0.28);
-    border-top-color: rgba(255, 255, 255, 0.95);
+    border: 2px solid rgba(237, 233, 227, 0.2);
+    border-top-color: rgba(237, 233, 227, 0.9);
     border-radius: 9999px;
     animation: spin 0.75s linear infinite;
   }

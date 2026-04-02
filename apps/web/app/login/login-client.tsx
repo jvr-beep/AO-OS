@@ -60,87 +60,28 @@ export default function LoginClient({ resetState }: Props) {
 
   return (
     <div className="login-bg min-h-screen flex items-center justify-center px-4">
-      <div className="login-overlay" />
+      <div className="card login-card w-full max-w-sm relative z-10 border-border-subtle shadow-2xl shadow-black/60">
 
-      {/* AO brand watermark — metallic Λ + O mark, semi-transparent */}
-      <div
-        className="pointer-events-none absolute inset-0 flex items-center justify-center"
-        aria-hidden="true"
-      >
-        <svg
-          viewBox="0 0 280 320"
-          className="h-[70vh] w-auto opacity-[0.09]"
-          xmlns="http://www.w3.org/2000/svg"
-          style={{ filter: 'drop-shadow(0 0 32px rgba(42,181,192,0.35))' }}
-        >
-          <defs>
-            <linearGradient
-              id="ao-metal"
-              x1="0"
-              y1="0"
-              x2="280"
-              y2="280"
-              gradientUnits="userSpaceOnUse"
-            >
-              <stop offset="0%"   stopColor="#063040" />
-              <stop offset="22%"  stopColor="#0d6070" />
-              <stop offset="42%"  stopColor="#2ab5c0" />
-              <stop offset="52%"  stopColor="#5eccd4" />
-              <stop offset="65%"  stopColor="#1a8090" />
-              <stop offset="85%"  stopColor="#0d5060" />
-              <stop offset="100%" stopColor="#041e28" />
-            </linearGradient>
-          </defs>
-
-          {/* Left arm of Λ */}
-          <line
-            x1="144" y1="14"
-            x2="14"  y2="265"
-            stroke="url(#ao-metal)"
-            strokeWidth="40"
-            strokeLinecap="square"
-          />
-          {/* Right arm of Λ */}
-          <line
-            x1="144" y1="14"
-            x2="266" y2="265"
-            stroke="url(#ao-metal)"
-            strokeWidth="40"
-            strokeLinecap="square"
-          />
-          {/* O ring — centered at base of Λ */}
-          <circle
-            cx="144"
-            cy="218"
-            r="62"
-            fill="none"
-            stroke="url(#ao-metal)"
-            strokeWidth="38"
-          />
-        </svg>
-      </div>
-
-      <div className="card login-card w-full max-w-sm relative z-10 border-cyan-900/40 shadow-2xl shadow-cyan-950/30 backdrop-blur-sm">
         <div className="text-center mb-8">
-          <AoLogo className="mx-auto mb-4 h-20 w-20" />
-          <p className="text-xs text-cyan-200/70 uppercase tracking-widest font-semibold">Staff Portal</p>
-          <p className="text-xs text-cyan-100/40 mt-2">Honor the body. Honor the man.</p>
+          <AoLogo className="mx-auto mb-6 h-16 w-16" />
+          <p className="font-heading text-xs text-text-primary uppercase tracking-[0.3em]">Staff Portal</p>
+          <p className="font-sans text-xs text-text-muted mt-2">Honor the body. Honor the man.</p>
         </div>
 
         {loginError && (
-          <div className="mb-4 rounded-lg bg-red-900/70 border border-red-700 px-4 py-3 text-sm text-red-100">
+          <div className="mb-4 rounded border border-critical/40 bg-critical/10 px-4 py-3 text-sm text-text-primary font-sans">
             {loginError}
           </div>
         )}
 
         {resetState === 'sent' && (
-          <div className="mb-4 rounded-lg bg-emerald-950/60 border border-emerald-700 px-4 py-3 text-sm text-emerald-100">
+          <div className="mb-4 rounded border border-accent-primary/40 bg-accent-primary/10 px-4 py-3 text-sm text-text-primary font-sans">
             If that email exists, a password reset link has been sent.
           </div>
         )}
 
         {resetState === 'error' && (
-          <div className="mb-4 rounded-lg bg-amber-900/60 border border-amber-700 px-4 py-3 text-sm text-amber-100">
+          <div className="mb-4 rounded border border-warning/40 bg-warning/10 px-4 py-3 text-sm text-text-primary font-sans">
             Could not submit password reset request. Please try again.
           </div>
         )}
@@ -180,7 +121,7 @@ export default function LoginClient({ resetState }: Props) {
               ))}
             </datalist>
             {savedUsers.length > 0 && (
-              <p className="mt-1 text-xs text-cyan-100/45">Saved users available in dropdown.</p>
+              <p className="mt-1 text-xs text-text-muted font-sans">Saved users available in dropdown.</p>
             )}
           </div>
 
@@ -205,15 +146,15 @@ export default function LoginClient({ resetState }: Props) {
           <button
             type="button"
             onClick={() => setShowReset((s) => !s)}
-            className="text-xs text-cyan-300 hover:text-cyan-200 underline underline-offset-2"
+            className="text-xs text-text-muted hover:text-text-primary font-sans underline underline-offset-4 transition-colors"
           >
             Forgot password?
           </button>
         </div>
 
         {showReset && (
-          <form action={requestPasswordReset} className="mt-4 space-y-3 border-t border-cyan-950/60 pt-4">
-            <p className="text-xs text-cyan-100/70">Request a password reset link by email.</p>
+          <form action={requestPasswordReset} className="mt-4 space-y-3 border-t border-border-subtle pt-4">
+            <p className="text-xs text-text-muted font-sans">Request a password reset link by email.</p>
             <input
               name="email"
               type="email"
