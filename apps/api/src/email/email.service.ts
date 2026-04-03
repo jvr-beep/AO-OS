@@ -1,17 +1,27 @@
 import { Injectable, Logger } from "@nestjs/common";
+import { getWorkspaceDelegatedAccessToken } from "./google-workspace-auth";
 
 /**
- * EmailService — thin wrapper around Resend (or any HTTP-based email provider).
+ * EmailService — thin wrapper around Gmail API or Resend.
  *
- * Set RESEND_API_KEY + EMAIL_FROM in env. If neither is set the service logs
- * the email payload so dev workflows still show what would have been sent.
+ * Provider selection order:
+ * 1. EMAIL_PROVIDER=gmail or detected Google Workspace env
+ * 2. EMAIL_PROVIDER=resend or detected Resend env
+ * 3. dry-run logging when no provider config exists
  */
+
+type EmailProvider = "gmail" | "resend" | "dry-run";
+
 @Injectable()
 export class EmailService {
   private readonly logger = new Logger(EmailService.name);
-  private readonly apiKey = process.env.RESEND_API_KEY ?? "";
+  private readonly resendApiKey = process.env.RESEND_API_KEY ?? "";
   private readonly from = process.env.EMAIL_FROM ?? "AO OS <noreply@aosanctuary.com>";
   private readonly appBaseUrl = process.env.APP_BASE_URL ?? "https://app.aosanctuary.com";
+  private readonly googleWorkspaceClientEmail = process.env.GOOGLE_WORKSPACE_CLIENT_EMAIL ?? "";
+  private readonly googleWorkspacePrivateKey = (process.env.GOOGLE_WORKSPACE_PRIVATE_KEY ?? "").replace(/\\n/g, "\n");
+  private readonly googleWorkspaceDelegatedUser = process.env.GOOGLE_WORKSPACE_DELEGATED_USER ?? "";
+  private readonly provider = this.resolveProvider();
 
   async sendVerification(to: string, rawToken: string): Promise<void> {
     const link = `${this.appBaseUrl}/auth/verify-email?token=${rawToken}`;
@@ -31,6 +41,15 @@ export class EmailService {
     });
   }
 
+  async sendStaffPasswordReset(to: string, rawToken: string): Promise<void> {
+    const link = `${this.appBaseUrl}/login?resetToken=${encodeURIComponent(rawToken)}`;
+    await this._send({
+      to,
+      subject: "Reset your AO OS staff password",
+      html: this._staffResetTemplate(link)
+    });
+  }
+
   async sendInvite(to: string, rawToken: string): Promise<void> {
     const link = `${this.appBaseUrl}/auth/set-password?token=${rawToken}`;
     await this._send({
@@ -41,7 +60,55 @@ export class EmailService {
   }
 
   private async _send(opts: { to: string; subject: string; html: string }): Promise<void> {
-    if (!this.apiKey) {
+    if (this.provider === "gmail") {
+      await this._sendViaGmail(opts);
+      return;
+    }
+
+    if (this.provider === "resend") {
+      await this._sendViaResend(opts);
+      return;
+    }
+
+    if (this.provider === "dry-run") {
+      this.logger.warn(`[EMAIL DRY-RUN] To: ${opts.to} | Subject: ${opts.subject}`);
+      this.logger.debug(opts.html);
+      return;
+    }
+  }
+
+  private resolveProvider(): EmailProvider {
+    const explicitProvider = (process.env.EMAIL_PROVIDER ?? "").trim().toLowerCase();
+
+    if (explicitProvider === "gmail" || explicitProvider === "resend" || explicitProvider === "dry-run") {
+      return explicitProvider;
+    }
+
+    if (this.hasGmailConfig()) {
+      return "gmail";
+    }
+
+    if (this.resendApiKey) {
+      return "resend";
+    }
+
+    return "dry-run";
+  }
+
+  private hasGmailConfig(): boolean {
+    // Key-based: all three vars present (legacy / local-dev mode).
+    // Keyless: client email + delegated user present without a private key —
+    //   uses GCP IAM signJwt via Application Default Credentials.
+    return Boolean(
+      this.googleWorkspaceClientEmail &&
+      this.googleWorkspaceDelegatedUser &&
+      (this.googleWorkspacePrivateKey || process.env.GOOGLE_WORKSPACE_KEYLESS === "true")
+    );
+  }
+
+  private async _sendViaResend(opts: { to: string; subject: string; html: string }): Promise<void> {
+    if (!this.resendApiKey) {
+      this.logger.warn("[EMAIL DRY-RUN] Resend selected but RESEND_API_KEY is missing.");
       this.logger.warn(`[EMAIL DRY-RUN] To: ${opts.to} | Subject: ${opts.subject}`);
       this.logger.debug(opts.html);
       return;
@@ -50,7 +117,7 @@ export class EmailService {
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${this.apiKey}`,
+        Authorization: `Bearer ${this.resendApiKey}`,
         "Content-Type": "application/json"
       },
       body: JSON.stringify({ from: this.from, to: opts.to, subject: opts.subject, html: opts.html })
@@ -62,6 +129,59 @@ export class EmailService {
     }
   }
 
+  private async _sendViaGmail(opts: { to: string; subject: string; html: string }): Promise<void> {
+    if (!this.hasGmailConfig()) {
+      this.logger.warn("[EMAIL DRY-RUN] Gmail selected but Google Workspace env is incomplete.");
+      this.logger.warn(`[EMAIL DRY-RUN] To: ${opts.to} | Subject: ${opts.subject}`);
+      this.logger.debug(opts.html);
+      return;
+    }
+
+    const accessToken = await getWorkspaceDelegatedAccessToken(
+      this.googleWorkspaceClientEmail,
+      this.googleWorkspaceDelegatedUser,
+      ["https://www.googleapis.com/auth/gmail.send"],
+      this.googleWorkspacePrivateKey || undefined
+    );
+
+    const rawMessage = this.buildRawMimeMessage(opts);
+    const response = await fetch(
+      `https://gmail.googleapis.com/gmail/v1/users/${encodeURIComponent(this.googleWorkspaceDelegatedUser)}/messages/send`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ raw: rawMessage })
+      }
+    );
+
+    if (!response.ok) {
+      const body = await response.text();
+      this.logger.error(`Gmail send failed (${response.status}): ${body}`);
+      throw new Error("GMAIL_SEND_FAILED");
+    }
+  }
+
+  private buildRawMimeMessage(opts: { to: string; subject: string; html: string }): string {
+    const message = [
+      `From: ${this.from}`,
+      `To: ${opts.to}`,
+      `Subject: ${opts.subject}`,
+      "MIME-Version: 1.0",
+      'Content-Type: text/html; charset="UTF-8"',
+      "",
+      opts.html
+    ].join("\r\n");
+
+    return Buffer.from(message)
+      .toString("base64")
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_")
+      .replace(/=+$/g, "");
+  }
+
   // ── Templates ──────────────────────────────────────────────────────
 
   private _verifyTemplate(link: string): string {
@@ -71,6 +191,12 @@ export class EmailService {
 
   private _resetTemplate(link: string): string {
     return `<p>We received a request to reset your AO OS password. Click the link below within 30 minutes.</p>
+<p><a href="${link}">${link}</a></p>
+<p>If you did not request a password reset, you can safely ignore this email.</p>`;
+  }
+
+  private _staffResetTemplate(link: string): string {
+    return `<p>We received a request to reset your AO OS staff portal password. Click the link below within 30 minutes.</p>
 <p><a href="${link}">${link}</a></p>
 <p>If you did not request a password reset, you can safely ignore this email.</p>`;
   }
