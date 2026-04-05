@@ -1,7 +1,62 @@
+{
+  "version": "2.0.0",
+  "tasks": [
     {
-      "label": "GCP VM: Check & Update OS (Direct)",
+      "label": "API: Start Dev",
       "type": "shell",
-      "command": "ssh -i C:/Users/Jason van Ravenswaay/.ssh/google_compute_engine \"jvr@aosanctuary.com@35.192.46.16\" \"uname -a && (lsb_release -a 2>/dev/null || cat /etc/os-release) && sudo apt update && sudo apt upgrade -y && sudo apt list --upgradable\"",
+      "command": "pnpm --filter api dev",
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "dedicated"
+      },
+      "group": "build",
+      "runOptions": { "instanceLimit": 1 }
+    },
+    {
+      "label": "API: Build",
+      "type": "shell",
+      "command": "pnpm --filter api build",
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "dedicated"
+      },
+      "group": "build"
+    },
+    {
+      "label": "API: Run Smoke Tests",
+      "type": "shell",
+      "command": "pnpm smoke:locker-policy",
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "API: Run Integration Tests",
+      "type": "shell",
+      "command": "pnpm --filter api test:int",
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "dedicated"
+      },
+      "group": "test"
+    },
+    {
+      "label": "DB: Migrate Dev",
+      "type": "shell",
+      "command": "pnpm prisma:migrate-dev",
       "problemMatcher": [],
       "presentation": {
         "echo": true,
@@ -9,10 +64,94 @@
         "focus": false,
         "panel": "dedicated"
       }
-    }
-{
-  "version": "2.0.0",
-  "tasks": [
+    },
+    {
+      "label": "DB: Seed",
+      "type": "shell",
+      "command": "pnpm prisma:seed",
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "Cloudflare: Start Tunnel",
+      "type": "shell",
+      "command": "cloudflared tunnel run ao-os-api",
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "dedicated"
+      },
+      "runOptions": { "instanceLimit": 1 }
+    },
+    {
+      "label": "Vercel: Deploy Frontend (prod)",
+      "type": "shell",
+      "command": "vercel --prod",
+      "options": { "cwd": "${workspaceFolder}/apps/web" },
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "Vercel: List Deployments",
+      "type": "shell",
+      "command": "vercel ls",
+      "options": { "cwd": "${workspaceFolder}/apps/web" },
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "GCP VM: SSH",
+      "type": "shell",
+      "command": "ssh ao-os-api-gcp",
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "GCP VM: Start Instance",
+      "type": "shell",
+      "command": "gcloud compute instances start ${input:gcpInstance} --project=${input:gcpProject} --zone=${input:gcpZone}",
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "GCP VM: Stop Instance",
+      "type": "shell",
+      "command": "gcloud compute instances stop ${input:gcpInstance} --project=${input:gcpProject} --zone=${input:gcpZone}",
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "dedicated"
+      }
+    },
     {
       "label": "GCP VM: Check & Update OS",
       "type": "shell",
@@ -25,6 +164,50 @@
         "panel": "dedicated"
       },
       "group": "build"
+    },
+    {
+      "label": "Ops: Menu",
+      "type": "shell",
+      "command": "powershell -NoProfile -ExecutionPolicy Bypass -File ${workspaceFolder}/scripts/ops.ps1",
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "Ops: Status Check",
+      "type": "shell",
+      "command": "powershell -NoProfile -ExecutionPolicy Bypass -File ${workspaceFolder}/scripts/ops.ps1 -Action status",
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "dedicated"
+      }
+    }
+  ],
+  "inputs": [
+    {
+      "id": "gcpProject",
+      "type": "promptString",
+      "description": "GCP project ID",
+      "default": ""
+    },
+    {
+      "id": "gcpZone",
+      "type": "promptString",
+      "description": "GCP zone (e.g. us-central1-a)",
+      "default": "us-central1-a"
+    },
+    {
+      "id": "gcpInstance",
+      "type": "promptString",
+      "description": "GCP instance name",
+      "default": ""
     }
   ]
 }

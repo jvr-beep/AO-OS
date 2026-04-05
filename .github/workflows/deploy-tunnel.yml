@@ -1,0 +1,93 @@
+name: Restart Cloudflared Tunnel
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "infra/cloudflared/config.yml"
+      - ".github/workflows/deploy-tunnel.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-tunnel
+  cancel-in-progress: false
+
+jobs:
+  restart-tunnel:
+    name: Restart cloudflared on GCP VM
+    runs-on: ubuntu-latest
+
+    environment:
+      name: production
+      url: https://api.aosanctuary.com/v1/health
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Copy updated config to GCP VM and restart tunnel
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          GH_ACTOR: ${{ github.actor }}
+          GH_REPOSITORY: ${{ github.repository }}
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.VM_SSH_KEY }}
+          timeout: 5m
+          command_timeout: 5m
+          script: |
+            set -euo pipefail
+            cd ~/AO-OS
+
+            if [ -z "${GH_TOKEN:-}" ]; then
+              echo "Missing required secret: GH_TOKEN"
+              exit 1
+            fi
+
+            NETRC_FILE="$(mktemp)"
+            cleanup() { rm -f "$NETRC_FILE"; }
+            trap cleanup EXIT
+
+            umask 177
+            cat > "$NETRC_FILE" <<EOF
+            machine github.com
+              login ${GH_ACTOR}
+              password ${GH_TOKEN}
+            machine api.github.com
+              login ${GH_ACTOR}
+              password ${GH_TOKEN}
+            EOF
+            chmod 600 "$NETRC_FILE"
+            export NETRC="$NETRC_FILE"
+
+            git remote set-url origin "https://github.com/${GH_REPOSITORY}.git"
+            git fetch origin
+            git pull --ff-only
+
+            echo "=== Copying updated cloudflared config ==="
+            cp infra/cloudflared/config.yml /root/.cloudflared/config.yml
+
+            echo "=== Restarting cloudflared service ==="
+            sudo systemctl restart cloudflared
+
+            echo "=== Checking tunnel status ==="
+            sleep 3
+            sudo systemctl is-active cloudflared && echo "cloudflared is running" || echo "cloudflared failed to start"
+
+      - name: Verify tunnel health
+        run: |
+          echo "Waiting for tunnel to stabilise..."
+          sleep 10
+          status=$(curl -s -o /dev/null -w "%{http_code}" https://api.aosanctuary.com/v1/health || echo "000")
+          if [ "$status" = "200" ]; then
+            echo "Tunnel health check passed (HTTP 200)"
+          else
+            echo "::warning::Tunnel health check returned HTTP $status — verify manually"
+          fi
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "::error::cloudflared restart failed. SSH to VM and check: sudo systemctl status cloudflared"
