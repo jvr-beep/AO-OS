@@ -33,7 +33,7 @@ async function saveLoginSession(data: LoginResponse) {
 }
 
 async function doLogin(formData: FormData): Promise<LoginResult> {
-  const email = String(formData.get('email') ?? '').trim()
+  const email = String(formData.get('email') ?? '').trim().toLowerCase()
   const password = String(formData.get('password') ?? '')
 
   if (!email || !password) {
@@ -54,8 +54,13 @@ async function doLogin(formData: FormData): Promise<LoginResult> {
   }
 
   if (!res.ok) {
-    if (res.status === 401 || res.status === 403) {
+    if (res.status === 401) {
       return { ok: false, error: 'Invalid email or password.' }
+    }
+
+    if (res.status === 403) {
+      console.error('Staff login failed', { status: res.status, email })
+      return { ok: false, error: 'Sign-in is currently blocked. Please contact support.' }
     }
 
     return { ok: false, error: 'Could not sign in right now. Please try again.' }

@@ -176,8 +176,9 @@ export class AuthService {
   }
 
   private async validateStaffUser(email: string, password: string): Promise<StaffUserRecord> {
+    const normalizedEmail = email.trim().toLowerCase();
     const staffUser = (await (this.prisma as any).staffUser.findUnique({
-      where: { email }
+      where: { email: normalizedEmail }
     })) as StaffUserRecord | null;
 
     if (!staffUser || !staffUser.active) {
