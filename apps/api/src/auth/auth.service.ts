@@ -176,8 +176,9 @@ export class AuthService {
   }
 
   private async validateStaffUser(email: string, password: string): Promise<StaffUserRecord> {
+    const normalizedEmail = email.trim().toLowerCase();
     const staffUser = (await (this.prisma as any).staffUser.findUnique({
-      where: { email }
+      where: { email: normalizedEmail }
     })) as StaffUserRecord | null;
 
     if (!staffUser || !staffUser.active) {
@@ -394,7 +395,8 @@ export class AuthService {
   // ── STAFF PASSWORD RESET ───────────────────────────────────────────
 
   async staffPasswordResetRequest(input: PasswordResetRequestDto): Promise<void> {
-    const staffUser = await (this.prisma as any).staffUser.findUnique({ where: { email: input.email } });
+    const normalizedEmail = input.email.trim().toLowerCase();
+    const staffUser = await (this.prisma as any).staffUser.findUnique({ where: { email: normalizedEmail } });
     if (!staffUser) {
       // Security: don't reveal whether email exists
       return;
@@ -409,7 +411,7 @@ export class AuthService {
       data: { passwordResetToken: tokenHash, passwordResetExpiresAt: expiresAt }
     });
 
-    await this.emailService.sendStaffPasswordReset(input.email, rawToken);
+    await this.emailService.sendStaffPasswordReset(normalizedEmail, rawToken);
   }
 
   async staffPasswordResetConfirm(input: PasswordResetConfirmDto): Promise<{ email: string }> {

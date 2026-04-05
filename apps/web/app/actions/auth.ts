@@ -33,7 +33,7 @@ async function saveLoginSession(data: LoginResponse) {
 }
 
 async function doLogin(formData: FormData): Promise<LoginResult> {
-  const email = String(formData.get('email') ?? '').trim()
+  const email = String(formData.get('email') ?? '').trim().toLowerCase()
   const password = String(formData.get('password') ?? '')
 
   if (!email || !password) {
@@ -54,7 +54,10 @@ async function doLogin(formData: FormData): Promise<LoginResult> {
   }
 
   if (!res.ok) {
-    if (res.status === 401 || res.status === 403) {
+    if (res.status === 403) {
+      return { ok: false, error: 'Your account is inactive. Please contact an administrator.' }
+    }
+    if (res.status === 401) {
       return { ok: false, error: 'Invalid email or password.' }
     }
 
@@ -99,7 +102,7 @@ export async function logout() {
 }
 
 export async function requestPasswordReset(formData: FormData) {
-  const email = String(formData.get('email') ?? '').trim()
+  const email = String(formData.get('email') ?? '').trim().toLowerCase()
 
   if (!email) {
     redirect('/login?reset=error')

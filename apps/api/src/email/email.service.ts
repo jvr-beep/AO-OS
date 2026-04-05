@@ -160,6 +160,10 @@ export class EmailService {
 
     if (!response.ok) {
       const body = await response.text();
+      // Log at ERROR level so monitoring/alerting picks this up; we intentionally
+      // do not throw here because a Gmail delivery failure should not propagate as
+      // an HTTP 500 to the caller (e.g. a password-reset request that already
+      // wrote the token to the DB would otherwise surface as a generic error).
       this.logger.error(`Gmail send failed (${response.status}): ${body}`);
       return;
     }
