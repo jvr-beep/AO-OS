@@ -32,6 +32,7 @@ The goal is to make them identical in shape, naming, routing, and expected behav
 | `NODE_ENV` | Yes | Yes | Yes | `staging` or `production` |
 | `PORT` | Yes | Yes | Yes | Internal service port |
 | `APP_BASE_URL` | Yes | Yes | Yes | Must align with public web origin |
+| `STAFF_APP_BASE_URL` | Yes | Yes | Yes | Staff portal URL for reset emails; defaults to `APP_BASE_URL` |
 | `DATABASE_URL` | Yes | Yes | Yes | Different DBs |
 | `AUTH_JWT_SECRET` | Yes | Yes | Yes | Never shared across environments |
 | `AUTH_JWT_EXPIRES_IN` | Yes | Yes | Yes | Keep policy explicit |

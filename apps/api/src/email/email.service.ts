@@ -18,6 +18,7 @@ export class EmailService {
   private readonly resendApiKey = process.env.RESEND_API_KEY ?? "";
   private readonly from = process.env.EMAIL_FROM ?? "AO OS <noreply@aosanctuary.com>";
   private readonly appBaseUrl = process.env.APP_BASE_URL ?? "https://app.aosanctuary.com";
+  private readonly staffAppBaseUrl = process.env.STAFF_APP_BASE_URL ?? this.appBaseUrl;
   private readonly googleWorkspaceClientEmail = process.env.GOOGLE_WORKSPACE_CLIENT_EMAIL ?? "";
   private readonly googleWorkspacePrivateKey = (process.env.GOOGLE_WORKSPACE_PRIVATE_KEY ?? "").replace(/\\n/g, "\n");
   private readonly googleWorkspaceDelegatedUser = process.env.GOOGLE_WORKSPACE_DELEGATED_USER ?? "";
@@ -42,7 +43,7 @@ export class EmailService {
   }
 
   async sendStaffPasswordReset(to: string, rawToken: string): Promise<void> {
-    const link = `${this.appBaseUrl}/login?resetToken=${encodeURIComponent(rawToken)}`;
+    const link = `${this.staffAppBaseUrl}/login?resetToken=${encodeURIComponent(rawToken)}`;
     await this._send({
       to,
       subject: "Reset your AO OS staff password",
