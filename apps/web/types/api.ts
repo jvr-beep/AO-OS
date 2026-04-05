@@ -5,9 +5,9 @@ export interface StaffUser {
   email: string
   fullName: string
   role: Role
-  isActive: boolean
+  active: boolean
   createdAt: string
-  updatedAt: string
+  updatedAt?: string
 }
 
 export interface Member {
