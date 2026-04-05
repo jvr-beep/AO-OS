@@ -105,12 +105,17 @@ export async function requestPasswordReset(formData: FormData) {
     redirect('/login?reset=error')
   }
 
-  const res = await fetch(`${API_BASE}/auth/staff/password-reset/request`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email }),
-    cache: 'no-store',
-  })
+  let res: Response
+  try {
+    res = await fetch(`${API_BASE}/auth/staff/password-reset/request`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+      cache: 'no-store',
+    })
+  } catch {
+    redirect('/login?reset=error')
+  }
 
   if (!res.ok) {
     redirect('/login?reset=error')
@@ -127,12 +132,17 @@ export async function confirmPasswordReset(formData: FormData) {
     redirect('/login?reset=error')
   }
 
-  const res = await fetch(`${API_BASE}/auth/staff/password-reset/confirm`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ token, newPassword }),
-    cache: 'no-store',
-  })
+  let res: Response
+  try {
+    res = await fetch(`${API_BASE}/auth/staff/password-reset/confirm`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, newPassword }),
+      cache: 'no-store',
+    })
+  } catch {
+    redirect(`/login?resetToken=${encodeURIComponent(token)}&reset=error`)
+  }
 
   if (!res.ok) {
     redirect(`/login?resetToken=${encodeURIComponent(token)}&reset=error`)
