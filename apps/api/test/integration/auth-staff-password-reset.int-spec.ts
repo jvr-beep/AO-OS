@@ -26,7 +26,7 @@ describe("Integration - Staff auth: email normalisation and password reset", () 
   });
 
   it("logs in with mixed-case email variant", async () => {
-    const mixedCaseEmail = `${ctx.runId}-NORM-ADMIN@aosanctuary.test`.toUpperCase();
+    const mixedCaseEmail = `${ctx.runId}-Norm-Admin@AOSANCTUARY.test`;
     const login = await loginFixture(ctx.http, mixedCaseEmail, initialPassword);
     expect(login.accessToken).toBeTruthy();
     expect(login.staffUser.id).toBe(staffId);

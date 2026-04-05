@@ -59,7 +59,6 @@ async function doLogin(formData: FormData): Promise<LoginResult> {
     }
 
     if (res.status === 403) {
-      console.error('Staff login failed', { status: res.status, email })
       return { ok: false, error: 'Sign-in is currently blocked. Please contact support.' }
     }
 
