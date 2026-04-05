@@ -12,6 +12,9 @@ concurrency:
   group: deploy-tunnel
   cancel-in-progress: false
 
+permissions:
+  contents: read
+
 jobs:
   restart-tunnel:
     name: Restart cloudflared on GCP VM
@@ -78,7 +81,7 @@ jobs:
 
       - name: Verify tunnel health
         run: |
-          echo "Waiting for tunnel to stabilise..."
+          echo "Waiting for tunnel to stabilize..."
           sleep 10
           status=$(curl -s -o /dev/null -w "%{http_code}" https://api.aosanctuary.com/v1/health || echo "000")
           if [ "$status" = "200" ]; then

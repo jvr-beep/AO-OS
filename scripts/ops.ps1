@@ -92,7 +92,8 @@ function Invoke-Status {
       if ($dep) {
         $state = $dep.state
         $color = if ($state -eq "READY") { "Green" } elseif ($state -eq "ERROR") { "Red" } else { "Yellow" }
-        Write-Host "  $state  $($dep.url)  (created $(([DateTimeOffset]::FromUnixTimeMilliseconds($dep.createdAt)).LocalDateTime))" -ForegroundColor $color
+        $createdAt = ([DateTimeOffset]::FromUnixTimeMilliseconds($dep.createdAt)).LocalDateTime
+        Write-Host "  $state  $($dep.url)  (created $createdAt)" -ForegroundColor $color
       } else {
         Write-Host "  No deployments found." -ForegroundColor Yellow
       }

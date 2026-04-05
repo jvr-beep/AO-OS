@@ -147,13 +147,13 @@ export class OpsService {
     if (!project || !zone || !instance) {
       return { status: "unconfigured", vm_state: null };
     }
+    // Requires an Authorization header with a valid OAuth2 access token
+    // (Application Default Credentials or a service account key).
+    // Without credentials the API returns 401 — handled gracefully below.
     const url =
       `https://compute.googleapis.com/compute/v1/projects/${project}/zones/${zone}/instances/${instance}`;
     try {
-      const res = await fetch(url, {
-        headers: { "Metadata-Flavor": "Google" },
-        signal: AbortSignal.timeout(8000)
-      });
+      const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
       if (res.status === 401 || res.status === 403) {
         return { status: "auth_required", vm_state: null };
       }
