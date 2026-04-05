@@ -61,6 +61,13 @@ export type MemberAuthResponse = {
   session: { sessionId: string; expiresAt: string };
 };
 
+type StaffPasswordResetJwtPayload = {
+  sub: string;
+  email: string;
+  purpose: "staff_password_reset";
+  passwordVersion: string;
+};
+
 type AuthEventRecordInput = {
   memberId?: string;
   sessionId?: string;
@@ -75,6 +82,7 @@ type AuthEventRecordInput = {
 
 const MAX_MEMBER_LOGIN_ATTEMPTS = 5;
 const MEMBER_LOGIN_LOCK_MINUTES = 15;
+const STAFF_PASSWORD_RESET_TTL_MINUTES = 30;
 
 @Injectable()
 export class AuthService {
@@ -112,6 +120,55 @@ export class AuthService {
   async memberLogin(input: LoginDto, meta: RequestMeta = {}): Promise<MemberAuthResponse> {
     const member = await this.validateMemberCredentials(input.email, input.password);
     return this.finalizeMemberAuthentication(member.id, "password", meta);
+  }
+
+  async staffPasswordResetRequest(input: PasswordResetRequestDto): Promise<void> {
+    const email = this.normalizeStaffEmail(input.email);
+    const staffUser = (await (this.prisma as any).staffUser.findUnique({
+      where: { email }
+    })) as StaffUserRecord | null;
+
+    if (!staffUser || !staffUser.active) {
+      return;
+    }
+
+    const rawToken = await this._createStaffPasswordResetToken(staffUser);
+    await this.emailService.sendStaffPasswordReset(staffUser.email, rawToken);
+  }
+
+  async staffPasswordResetConfirm(input: PasswordResetConfirmDto): Promise<{ email: string }> {
+    let payload: StaffPasswordResetJwtPayload;
+
+    try {
+      payload = await this.jwtService.verifyAsync<StaffPasswordResetJwtPayload>(input.token);
+    } catch {
+      throw new BadRequestException("INVALID_OR_EXPIRED_TOKEN");
+    }
+
+    if (payload.purpose !== "staff_password_reset") {
+      throw new BadRequestException("INVALID_OR_EXPIRED_TOKEN");
+    }
+
+    const staffUser = (await (this.prisma as any).staffUser.findUnique({
+      where: { id: payload.sub }
+    })) as StaffUserRecord | null;
+
+    if (!staffUser || !staffUser.active || staffUser.email !== payload.email) {
+      throw new BadRequestException("INVALID_OR_EXPIRED_TOKEN");
+    }
+
+    if (payload.passwordVersion !== this._getStaffPasswordVersion(staffUser.passwordHash)) {
+      throw new BadRequestException("INVALID_OR_EXPIRED_TOKEN");
+    }
+
+    const passwordHash = await bcrypt.hash(input.newPassword, 10);
+
+    await (this.prisma as any).staffUser.update({
+      where: { id: staffUser.id },
+      data: { passwordHash }
+    });
+
+    return { email: staffUser.email };
   }
 
   async finalizeMemberAuthentication(
@@ -176,8 +233,9 @@ export class AuthService {
   }
 
   private async validateStaffUser(email: string, password: string): Promise<StaffUserRecord> {
+    const normalizedEmail = this.normalizeStaffEmail(email);
     const staffUser = (await (this.prisma as any).staffUser.findUnique({
-      where: { email }
+      where: { email: normalizedEmail }
     })) as StaffUserRecord | null;
 
     if (!staffUser || !staffUser.active) {
@@ -190,6 +248,10 @@ export class AuthService {
     }
 
     return staffUser;
+  }
+
+  private normalizeStaffEmail(email: string): string {
+    return email.trim().toLowerCase();
   }
 
   private async validateMemberCredentials(email: string, password: string): Promise<MemberAuthRecord> {
@@ -465,5 +527,20 @@ export class AuthService {
     });
 
     return { rawToken };
+  }
+
+  private async _createStaffPasswordResetToken(staffUser: StaffUserRecord): Promise<string> {
+    return this.jwtService.signAsync({
+      sub: staffUser.id,
+      email: staffUser.email,
+      purpose: "staff_password_reset",
+      passwordVersion: this._getStaffPasswordVersion(staffUser.passwordHash)
+    } satisfies StaffPasswordResetJwtPayload, {
+      expiresIn: `${STAFF_PASSWORD_RESET_TTL_MINUTES}m`
+    });
+  }
+
+  private _getStaffPasswordVersion(passwordHash: string): string {
+    return crypto.createHash("sha256").update(passwordHash).digest("hex");
   }
 }

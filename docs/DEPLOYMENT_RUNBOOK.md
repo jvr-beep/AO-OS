@@ -44,6 +44,7 @@ Required:
 - `AUTH_JWT_SECRET`
 - `AUTH_JWT_EXPIRES_IN` (example: `1h`)
 - `APP_BASE_URL` (example: `https://app.aosanctuary.com`)
+- `STAFF_APP_BASE_URL` if staff reset emails should point to a different staff portal origin
 - `GOOGLE_CLIENT_ID`
 - `GOOGLE_CLIENT_SECRET`
 - `GOOGLE_REDIRECT_URI` (example: `https://api.aosanctuary.com/v1/auth/google/callback`)
@@ -52,8 +53,14 @@ Optional but recommended:
 
 - `PORT` (defaults to `4000`)
 - `NODE_ENV=production`
+- `EMAIL_PROVIDER` (`gmail`, `resend`, or omit for auto-detect)
 - `EMAIL_FROM`
 - `RESEND_API_KEY`
+- `GOOGLE_WORKSPACE_CLIENT_EMAIL`
+- `GOOGLE_WORKSPACE_DELEGATED_USER`
+- `GOOGLE_WORKSPACE_CUSTOMER_ID`
+- `GOOGLE_WORKSPACE_PRIVATE_KEY` for key-based auth
+- `GOOGLE_WORKSPACE_KEYLESS=true` for keyless auth
 - `AUTH_SEED_ADMIN_EMAIL`
 - `AUTH_SEED_ADMIN_PASSWORD`
 - `AUTH_SEED_ADMIN_NAME`
@@ -144,8 +151,14 @@ Auth and Google:
 
 Email and account flows:
 
-- `RESEND_API_KEY` (or provider equivalent)
+- `EMAIL_PROVIDER`
 - `EMAIL_FROM`
+- `RESEND_API_KEY` if using Resend
+- `GOOGLE_WORKSPACE_CLIENT_EMAIL` if using Gmail API / provisioning
+- `GOOGLE_WORKSPACE_DELEGATED_USER` if using Gmail API / provisioning
+- `GOOGLE_WORKSPACE_CUSTOMER_ID` for Workspace provisioning scripts
+- `GOOGLE_WORKSPACE_PRIVATE_KEY` for key-based Gmail API / provisioning
+- `GOOGLE_WORKSPACE_KEYLESS=true` for keyless Gmail API / provisioning
 - any reset/verify URL base values if separate from `APP_BASE_URL`
 
 Optional bootstrap/admin:
@@ -157,6 +170,8 @@ Notes:
 - API secrets do not belong in Vercel unless also required by the web app.
 - `AUTH_JWT_SECRET` must be unique per environment.
 - Production should use strong, rotated secrets and managed secret storage.
+- AO OS staff password reset emails now point to the web login route with a `resetToken` query string.
+- The staff admin console expects the API deployment to support Workspace provisioning and suspend/reactivate sync before operators use the provisioning UI.
 
 ### C. Cloudflare -> DNS and Tunnel
 
@@ -255,6 +270,13 @@ Before launch, verify all of the following agree:
 
 If one value points to the wrong environment, auth and verification flows can fail.
 
+For the staff admin flow, also verify these agree:
+
+- `EMAIL_FROM`
+- `GOOGLE_WORKSPACE_DELEGATED_USER`
+- the actual sender mailbox or configured send-as alias in Gmail
+- whether the environment is using `GOOGLE_WORKSPACE_PRIVATE_KEY` or `GOOGLE_WORKSPACE_KEYLESS=true`
+
 ## 3. GitHub Actions Secret Setup (`GH_TOKEN`)
 
 The deploy workflow uses `GH_TOKEN` to authenticate `git fetch` on the VM using a temporary `.netrc` file.
@@ -332,6 +354,22 @@ curl -i http://localhost:4000/v1/health
 ```bash
 docker compose -f infra/docker/docker-compose.api.yml logs -f api
 ```
+
+6. Run staff auth and Workspace smoke tests after deploy:
+
+```bash
+curl -i http://localhost:4000/v1/health
+```
+
+Then verify through the web app:
+
+1. Admin login succeeds.
+2. Staff roster loads.
+3. Provision a test `@aosanctuary.com` user from `/staff`.
+4. Confirm the Workspace user exists and alias creation succeeded if supplied.
+5. Request a staff password reset from `/login` and confirm email delivery.
+6. Deactivate the test user and confirm the Workspace account is suspended.
+7. Reactivate the test user and confirm suspension is removed.
 
 Node process path (alternate):
 

@@ -18,6 +18,7 @@ export class EmailService {
   private readonly resendApiKey = process.env.RESEND_API_KEY ?? "";
   private readonly from = process.env.EMAIL_FROM ?? "AO OS <noreply@aosanctuary.com>";
   private readonly appBaseUrl = process.env.APP_BASE_URL ?? "https://app.aosanctuary.com";
+  private readonly staffAppBaseUrl = process.env.STAFF_APP_BASE_URL ?? this.appBaseUrl;
   private readonly googleWorkspaceClientEmail = process.env.GOOGLE_WORKSPACE_CLIENT_EMAIL ?? "";
   private readonly googleWorkspacePrivateKey = (process.env.GOOGLE_WORKSPACE_PRIVATE_KEY ?? "").replace(/\\n/g, "\n");
   private readonly googleWorkspaceDelegatedUser = process.env.GOOGLE_WORKSPACE_DELEGATED_USER ?? "";
@@ -42,7 +43,7 @@ export class EmailService {
   }
 
   async sendStaffPasswordReset(to: string, rawToken: string): Promise<void> {
-    const link = `${this.appBaseUrl}/login?resetToken=${encodeURIComponent(rawToken)}`;
+    const link = `${this.staffAppBaseUrl}/login?resetToken=${encodeURIComponent(rawToken)}`;
     await this._send({
       to,
       subject: "Reset your AO OS staff password",
@@ -137,30 +138,35 @@ export class EmailService {
       return;
     }
 
-    const accessToken = await getWorkspaceDelegatedAccessToken(
-      this.googleWorkspaceClientEmail,
-      this.googleWorkspaceDelegatedUser,
-      ["https://www.googleapis.com/auth/gmail.send"],
-      this.googleWorkspacePrivateKey || undefined
-    );
+    try {
+      const accessToken = await getWorkspaceDelegatedAccessToken(
+        this.googleWorkspaceClientEmail,
+        this.googleWorkspaceDelegatedUser,
+        ["https://www.googleapis.com/auth/gmail.send"],
+        this.googleWorkspacePrivateKey || undefined
+      );
 
-    const rawMessage = this.buildRawMimeMessage(opts);
-    const response = await fetch(
-      `https://gmail.googleapis.com/gmail/v1/users/${encodeURIComponent(this.googleWorkspaceDelegatedUser)}/messages/send`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ raw: rawMessage })
+      const rawMessage = this.buildRawMimeMessage(opts);
+      const response = await fetch(
+        `https://gmail.googleapis.com/gmail/v1/users/${encodeURIComponent(this.googleWorkspaceDelegatedUser)}/messages/send`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ raw: rawMessage })
+        }
+      );
+
+      if (!response.ok) {
+        const body = await response.text();
+        this.logger.error(`Gmail send failed (${response.status}): ${body}`);
       }
-    );
-
-    if (!response.ok) {
-      const body = await response.text();
-      this.logger.error(`Gmail send failed (${response.status}): ${body}`);
-      throw new Error("GMAIL_SEND_FAILED");
+    } catch (error) {
+      this.logger.error(
+        `Gmail send failed: ${error instanceof Error ? error.message : "UNKNOWN_GMAIL_ERROR"}`
+      );
     }
   }
 

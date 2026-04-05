@@ -110,8 +110,13 @@ token=$(printf "%s" "$login_json" | sed -n 's/.*"accessToken":"\([^"]*\)".*/\1/p
 
 if [[ -n "$token" ]]; then
   members_code=$(curl -s -o /dev/null -w "%{http_code}" "$API_BASE/v1/members" -H "Authorization: Bearer $token" || true)
+  staff_users_code=$(curl -s -o /dev/null -w "%{http_code}" "$API_BASE/v1/staff-users" -H "Authorization: Bearer $token" || true)
+  staff_reset_body=$(printf '{"email":"%s"}' "$SEED_EMAIL")
+  staff_reset_code=$(http_code POST "$API_BASE/v1/auth/staff-password-reset/request" "$staff_reset_body")
 else
   members_code="000"
+  staff_users_code="000"
+  staff_reset_code="000"
 fi
 
 ts=$(date +%s)
@@ -129,6 +134,8 @@ check_result "API /v1/health" "200" "$api_health" "200"
 check_result "Web /login" "200" "$web_login" "200"
 check_result "POST /v1/auth/login (seed admin)" "200/201" "$login_code" "200,201"
 check_result "GET /v1/members (Bearer)" "200" "$members_code" "200"
+check_result "GET /v1/staff-users (Bearer)" "200" "$staff_users_code" "200"
+check_result "POST /v1/auth/staff-password-reset/request" "200/201" "$staff_reset_code" "200,201"
 check_result "POST /v1/auth/signup" "200/201" "$signup_code" "200,201"
 check_result "POST /v1/auth/password-reset/request" "200/201" "$reset_code" "200,201"
 check_result "GET /v1/members (no auth)" "401/403" "$members_noauth" "401,403"
