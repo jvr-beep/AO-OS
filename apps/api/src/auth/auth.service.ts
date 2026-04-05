@@ -391,6 +391,49 @@ export class AuthService {
     return { email: member.email || "" };
   }
 
+  // ── STAFF PASSWORD RESET ───────────────────────────────────────────
+
+  async staffPasswordResetRequest(input: PasswordResetRequestDto): Promise<void> {
+    const staffUser = await (this.prisma as any).staffUser.findUnique({ where: { email: input.email } });
+    if (!staffUser) {
+      // Security: don't reveal whether email exists
+      return;
+    }
+
+    const rawToken = crypto.randomBytes(32).toString("hex");
+    const tokenHash = crypto.createHash("sha256").update(rawToken).digest("hex");
+    const expiresAt = new Date(Date.now() + 30 * 60 * 1000);
+
+    await (this.prisma as any).staffUser.update({
+      where: { id: staffUser.id },
+      data: { passwordResetToken: tokenHash, passwordResetExpiresAt: expiresAt }
+    });
+
+    await this.emailService.sendStaffPasswordReset(input.email, rawToken);
+  }
+
+  async staffPasswordResetConfirm(input: PasswordResetConfirmDto): Promise<{ email: string }> {
+    const tokenHash = crypto.createHash("sha256").update(input.token).digest("hex");
+    const staffUser = await (this.prisma as any).staffUser.findFirst({
+      where: {
+        passwordResetToken: tokenHash,
+        passwordResetExpiresAt: { gte: new Date() },
+        active: true
+      }
+    });
+
+    if (!staffUser) throw new BadRequestException("INVALID_OR_EXPIRED_TOKEN");
+
+    const passwordHash = await bcrypt.hash(input.newPassword, 12);
+
+    await (this.prisma as any).staffUser.update({
+      where: { id: staffUser.id },
+      data: { passwordHash, passwordResetToken: null, passwordResetExpiresAt: null }
+    });
+
+    return { email: staffUser.email };
+  }
+
   async createAuthSession(
     memberId: string,
     method: AuthMethodType,

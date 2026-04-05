@@ -394,14 +394,16 @@ model AuthEvent {
 }
 
 model StaffUser {
-  id            String    @id @default(uuid())
-  email         String    @unique
-  passwordHash  String
-  fullName      String
-  role          StaffRole @default(front_desk)
-  active        Boolean   @default(true)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id                     String    @id @default(uuid())
+  email                  String    @unique
+  passwordHash           String
+  fullName               String
+  role                   StaffRole @default(front_desk)
+  active                 Boolean   @default(true)
+  passwordResetToken     String?   @unique @map("password_reset_token")
+  passwordResetExpiresAt DateTime? @map("password_reset_expires_at")
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
 
   assignedCleaningTasks CleaningTask[]
 }

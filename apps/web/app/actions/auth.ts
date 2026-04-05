@@ -105,7 +105,7 @@ export async function requestPasswordReset(formData: FormData) {
     redirect('/login?reset=error')
   }
 
-  const res = await fetch(`${API_BASE}/auth/password-reset/request`, {
+  const res = await fetch(`${API_BASE}/auth/staff/password-reset/request`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email }),
@@ -117,4 +117,26 @@ export async function requestPasswordReset(formData: FormData) {
   }
 
   redirect('/login?reset=sent')
+}
+
+export async function confirmPasswordReset(formData: FormData) {
+  const token = String(formData.get('token') ?? '').trim()
+  const newPassword = String(formData.get('newPassword') ?? '')
+
+  if (!token || !newPassword) {
+    redirect('/login?reset=error')
+  }
+
+  const res = await fetch(`${API_BASE}/auth/staff/password-reset/confirm`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token, newPassword }),
+    cache: 'no-store',
+  })
+
+  if (!res.ok) {
+    redirect(`/login?resetToken=${encodeURIComponent(token)}&reset=error`)
+  }
+
+  redirect('/login?reset=confirmed')
 }

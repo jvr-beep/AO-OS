@@ -160,7 +160,7 @@ export class EmailService {
     if (!response.ok) {
       const body = await response.text();
       this.logger.error(`Gmail send failed (${response.status}): ${body}`);
-      throw new Error("GMAIL_SEND_FAILED");
+      return;
     }
   }
 

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState, useTransition } from 'react'
-import { loginAction, requestPasswordReset } from '@/app/actions/auth'
+import { loginAction, requestPasswordReset, confirmPasswordReset } from '@/app/actions/auth'
 import { AoLogo } from '@/components/AoLogo'
 
 const USERS_KEY = 'ao-os-login-users'
@@ -9,7 +9,8 @@ const LAST_USER_KEY = 'ao-os-last-login-user'
 const MAX_USERS = 8
 
 type Props = {
-  resetState: 'sent' | 'error' | null
+  resetState: 'sent' | 'error' | 'confirmed' | null
+  resetToken: string | null
 }
 
 function SubmitButton({ pending }: { pending: boolean }) {
@@ -21,7 +22,7 @@ function SubmitButton({ pending }: { pending: boolean }) {
   )
 }
 
-export default function LoginClient({ resetState }: Props) {
+export default function LoginClient({ resetState, resetToken }: Props) {
   const [email, setEmail] = useState('')
   const [savedUsers, setSavedUsers] = useState<string[]>([])
   const [showReset, setShowReset] = useState(false)
@@ -59,6 +60,52 @@ export default function LoginClient({ resetState }: Props) {
     window.localStorage.setItem(LAST_USER_KEY, normalized)
   }
 
+  // When a resetToken is present in the URL the user clicked "set new password" from their email.
+  // Show the set-password form instead of the normal login form.
+  if (resetToken) {
+    return (
+      <div className="login-bg min-h-screen flex items-center justify-center px-4">
+        <div className="card login-card w-full max-w-sm relative z-10 border-border-subtle shadow-2xl shadow-black/60">
+          <div className="text-center mb-8">
+            <AoLogo className="mx-auto mb-6 h-16 w-16" />
+            <p className="font-heading text-xs text-text-primary uppercase tracking-[0.3em]">Staff Portal</p>
+            <p className="font-sans text-xs text-text-muted mt-2">Honor the body. Honor the man.</p>
+          </div>
+
+          {resetState === 'error' && (
+            <div className="mb-4 rounded border border-warning/40 bg-warning/10 px-4 py-3 text-sm text-text-primary font-sans">
+              That link is invalid or has expired. Please request a new one.
+            </div>
+          )}
+
+          <p className="mb-4 text-sm text-text-primary font-sans">Choose a new password for your account.</p>
+
+          <form action={confirmPasswordReset} className="space-y-4">
+            <input type="hidden" name="token" value={resetToken} />
+            <div>
+              <label className="form-label" htmlFor="newPassword">
+                New password
+              </label>
+              <input
+                id="newPassword"
+                name="newPassword"
+                type="password"
+                required
+                minLength={8}
+                autoComplete="new-password"
+                className="form-input"
+                placeholder="Min. 8 characters"
+              />
+            </div>
+            <button type="submit" className="w-full btn-primary">
+              Set new password
+            </button>
+          </form>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="login-bg min-h-screen flex items-center justify-center px-4">
       <div className="card login-card w-full max-w-sm relative z-10 border-border-subtle shadow-2xl shadow-black/60">
@@ -78,6 +125,12 @@ export default function LoginClient({ resetState }: Props) {
         {resetState === 'sent' && (
           <div className="mb-4 rounded border border-accent-primary/40 bg-accent-primary/10 px-4 py-3 text-sm text-text-primary font-sans">
             If that email exists, a password reset link has been sent.
+          </div>
+        )}
+
+        {resetState === 'confirmed' && (
+          <div className="mb-4 rounded border border-accent-primary/40 bg-accent-primary/10 px-4 py-3 text-sm text-text-primary font-sans">
+            Password updated. You can sign in with your new password.
           </div>
         )}
 
