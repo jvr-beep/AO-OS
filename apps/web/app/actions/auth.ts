@@ -20,6 +20,10 @@ type LoginResult =
   | { ok: true; data: LoginResponse }
   | { ok: false; error: string }
 
+function normalizeEmail(value: FormDataEntryValue | null): string {
+  return String(value ?? '').trim().toLowerCase()
+}
+
 async function saveLoginSession(data: LoginResponse) {
   const session = await getSession()
   session.accessToken = data.accessToken
@@ -33,7 +37,7 @@ async function saveLoginSession(data: LoginResponse) {
 }
 
 async function doLogin(formData: FormData): Promise<LoginResult> {
-  const email = String(formData.get('email') ?? '').trim()
+  const email = normalizeEmail(formData.get('email'))
   const password = String(formData.get('password') ?? '')
 
   if (!email || !password) {
@@ -99,22 +103,74 @@ export async function logout() {
 }
 
 export async function requestPasswordReset(formData: FormData) {
-  const email = String(formData.get('email') ?? '').trim()
+  const email = normalizeEmail(formData.get('email'))
 
   if (!email) {
     redirect('/login?reset=error')
   }
 
-  const res = await fetch(`${API_BASE}/auth/password-reset/request`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email }),
-    cache: 'no-store',
-  })
+  let res: Response
+
+  try {
+    res = await fetch(`${API_BASE}/auth/staff-password-reset/request`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+      cache: 'no-store',
+    })
+  } catch {
+    redirect('/login?reset=error')
+  }
 
   if (!res.ok) {
     redirect('/login?reset=error')
   }
 
   redirect('/login?reset=sent')
+}
+
+function buildResetPasswordUrl(token: string, state: 'invalid' | 'error' | 'mismatch') {
+  const params = new URLSearchParams({ resetToken: token, reset: state })
+  return `/login?${params.toString()}`
+}
+
+export async function confirmStaffPasswordReset(formData: FormData) {
+  const token = String(formData.get('token') ?? '').trim()
+  const newPassword = String(formData.get('newPassword') ?? '')
+  const confirmPassword = String(formData.get('confirmPassword') ?? '')
+
+  if (!token) {
+    redirect('/login?reset=invalid')
+  }
+
+  if (newPassword.length < 8) {
+    redirect(buildResetPasswordUrl(token, 'error'))
+  }
+
+  if (newPassword !== confirmPassword) {
+    redirect(buildResetPasswordUrl(token, 'mismatch'))
+  }
+
+  let res: Response
+
+  try {
+    res = await fetch(`${API_BASE}/auth/staff-password-reset/confirm`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, newPassword }),
+      cache: 'no-store',
+    })
+  } catch {
+    redirect(buildResetPasswordUrl(token, 'error'))
+  }
+
+  if (!res.ok) {
+    if (res.status === 400 || res.status === 401) {
+      redirect(buildResetPasswordUrl(token, 'invalid'))
+    }
+
+    redirect(buildResetPasswordUrl(token, 'error'))
+  }
+
+  redirect('/login?reset=changed')
 }
