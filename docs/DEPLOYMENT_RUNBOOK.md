@@ -33,6 +33,7 @@ Create at least two environments:
 2. `production`
 
 Never share database instances or JWT secrets across these environments.
+Never point staging and production hostnames at the same live API runtime.
 
 ## 2. Environment Variables
 
@@ -191,6 +192,7 @@ Notes:
 - Cloudflare is not an application secret manager.
 - Tunnel maps the public hostname to your internal API port.
 - Confirm the hostname used here matches web/API env vars and Google redirect registration.
+- `api-staging.aosanctuary.com` and `api.aosanctuary.com` must terminate at isolated runtimes. A single container behind both hostnames is not an acceptable release topology.
 
 ### D. Google OAuth -> Google Cloud Console
 

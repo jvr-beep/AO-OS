@@ -19,6 +19,13 @@ This document turns the repo's staging templates into a real reachable staging e
 4. A web deployment target for `staging.aosanctuary.com`.
 5. A Google OAuth staging redirect URI: `https://api-staging.aosanctuary.com/v1/auth/google/callback`.
 
+## Hard separation rules
+
+1. `api-staging.aosanctuary.com` must not point at the same running API container or process as `api.aosanctuary.com`.
+2. Staging must use its own runtime env with `NODE_ENV=staging` and staging URL values.
+3. Staging and production must not share the same `DATABASE_URL`, JWT secret, or Cloudflare tunnel token.
+4. A rebuild or restart of staging must not interrupt production traffic.
+
 ## Files already prepared in repo
 
 1. API env: `apps/api/.env.staging.example`
@@ -72,6 +79,19 @@ powershell -ExecutionPolicy Bypass -File scripts/cloudflared/Install-Cloudflared
 
 If you are installing cloudflared directly on Linux instead of Windows, use the same tunnel name and the config copied from `infra/cloudflared/config.staging.yml.example`.
 
+### Linux token-based install shortcut
+
+If the staging host does not already have `/root/.cloudflared/<TUNNEL_ID>.json` and you are using the Cloudflare dashboard's connector install flow, the fastest recovery path is the token-based install shown on the tunnel page:
+
+```bash
+sudo cloudflared service install <TUNNEL_TOKEN>
+sudo systemctl enable --now cloudflared
+sudo systemctl status cloudflared --no-pager
+sudo journalctl -u cloudflared -n 50 --no-pager
+```
+
+This path avoids the missing-credentials-json and missing-`cert.pem` errors that appear when trying to run the tunnel manually before the host has been fully bootstrapped.
+
 ## Web deployment
 
 1. Create a staging project or branch environment in Vercel.
@@ -107,6 +127,47 @@ The smoke script now validates:
 6. Staff password reset request for the seed admin
 7. Member signup and member password reset request
 8. Unauthorized access rejection for `GET /v1/members`
+
+## Troubleshooting
+
+### `530` with Cloudflare `1033`
+
+If `https://api-staging.aosanctuary.com/v1/health` returns Cloudflare `530` with `error code: 1033`, the staging tunnel is down. Check the `ao-os-api-staging` tunnel in Cloudflare Zero Trust, then verify `cloudflared` is installed and running on the staging host.
+
+### `200` on health but `404 Cannot POST /v1/auth/staff-password-reset/request`
+
+If health is green but the staff password reset endpoint returns `404`, staging is reachable but running an older API build that does not include the new staff reset routes. Deploy the branch that contains the auth hardening changes, rebuild the API container, and test again.
+
+### Staging and production resolve to the same live API
+
+If `api-staging.aosanctuary.com` and `api.aosanctuary.com` both hit the same running container or process, you do not have a real staging environment. Treat this as a deployment blocker.
+
+Common indicators:
+
+1. The staging host returns `NODE_ENV=production` or production `APP_BASE_URL` values.
+2. Restarting or rebuilding the staging API causes a brief production outage.
+3. Both hostnames are served by one Cloudflare tunnel token or one internal runtime.
+
+Required fix:
+
+1. Provision a separate staging VM or a fully isolated staging runtime on a different internal port and env file.
+2. Route `api-staging.aosanctuary.com` to that staging runtime only.
+3. Re-run the staging smoke tests before any production deploy.
+
+### Docker build fails with `no space left on device`
+
+If the API image build fails under `/var/lib/containerd/...` with `no space left on device`, free Docker cache before retrying:
+
+```bash
+docker builder prune -af
+docker image prune -af
+docker container prune -f
+docker system prune -af
+sudo apt-get clean
+sudo journalctl --vacuum-time=7d
+```
+
+Avoid `docker system prune -af --volumes` unless you have confirmed staging does not need any existing Docker volumes.
 
 ## Missing external inputs
 

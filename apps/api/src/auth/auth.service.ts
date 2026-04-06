@@ -3,6 +3,7 @@ import {
   ConflictException,
   Injectable,
   InternalServerErrorException,
+  Logger,
   NotFoundException,
   UnauthorizedException
 } from "@nestjs/common";
@@ -86,6 +87,8 @@ const STAFF_PASSWORD_RESET_TTL_MINUTES = 30;
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
@@ -123,17 +126,60 @@ export class AuthService {
   }
 
   async staffPasswordResetRequest(input: PasswordResetRequestDto): Promise<void> {
+    const requestId = crypto.randomUUID();
     const email = this.normalizeStaffEmail(input.email);
+
+    this.logger.log(
+      JSON.stringify({
+        event: "staff_password_reset_requested",
+        requestId,
+        email: this.maskEmail(email)
+      })
+    );
+
     const staffUser = (await (this.prisma as any).staffUser.findUnique({
       where: { email }
     })) as StaffUserRecord | null;
 
     if (!staffUser || !staffUser.active) {
+      this.logger.warn(
+        JSON.stringify({
+          event: "staff_password_reset_ignored",
+          requestId,
+          email: this.maskEmail(email),
+          reason: !staffUser ? "staff_user_not_found" : "staff_user_inactive"
+        })
+      );
       return;
     }
 
     const rawToken = await this._createStaffPasswordResetToken(staffUser);
-    await this.emailService.sendStaffPasswordReset(staffUser.email, rawToken);
+    this.logger.log(
+      JSON.stringify({
+        event: "staff_password_reset_token_issued",
+        requestId,
+        staffUserId: staffUser.id,
+        email: this.maskEmail(staffUser.email),
+        ttlMinutes: STAFF_PASSWORD_RESET_TTL_MINUTES
+      })
+    );
+
+    const delivery = await this.emailService.sendStaffPasswordReset(staffUser.email, rawToken);
+
+    this.logger.log(
+      JSON.stringify({
+        event: delivery.accepted ? "staff_password_reset_delivery_completed" : "staff_password_reset_delivery_failed",
+        requestId,
+        staffUserId: staffUser.id,
+        email: this.maskEmail(staffUser.email),
+        provider: delivery.provider,
+        deliveryId: delivery.deliveryId,
+        accepted: delivery.accepted,
+        statusCode: delivery.statusCode,
+        errorCode: delivery.errorCode,
+        errorMessage: delivery.errorMessage
+      })
+    );
   }
 
   async staffPasswordResetConfirm(input: PasswordResetConfirmDto): Promise<{ email: string }> {
@@ -542,5 +588,20 @@ export class AuthService {
 
   private _getStaffPasswordVersion(passwordHash: string): string {
     return crypto.createHash("sha256").update(passwordHash).digest("hex");
+  }
+
+  private maskEmail(value: string): string {
+    const normalized = value.trim().toLowerCase();
+    const [localPart, domain] = normalized.split("@");
+
+    if (!localPart || !domain) {
+      return normalized || "unknown";
+    }
+
+    if (localPart.length <= 2) {
+      return `${localPart[0] ?? "*"}*@${domain}`;
+    }
+
+    return `${localPart.slice(0, 2)}***@${domain}`;
   }
 }
