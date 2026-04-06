@@ -127,6 +127,58 @@ pnpm google-workspace:provision-user -- \
   --dry-run
 ```
 
+## Automated staff login and reset smoke
+
+For Windows-driven smoke testing, use `scripts/test-staff-login-reset.ps1`.
+
+This script can:
+
+- test login for an existing AO OS staff user
+- trigger `POST /v1/auth/staff-password-reset/request`
+- optionally provision a new Workspace-backed user first
+- optionally verify the reset/email lifecycle from remote API container logs over SSH
+
+Existing staff user example:
+
+```powershell
+$password = ConvertTo-SecureString 'KnownPass123!' -AsPlainText -Force
+
+powershell -ExecutionPolicy Bypass -File scripts/test-staff-login-reset.ps1 \
+   -ApiBase https://api.aosanctuary.com \
+   -WebBase https://ao-os.aosanctuary.com \
+   -Email existing.staff@aosanctuary.com \
+   -Password $password \
+   -VerifyRemoteLogs \
+   -HostName ao-os-api-gcp
+```
+
+Provision a new Workspace and AO OS staff user, then test it:
+
+```powershell
+$password = ConvertTo-SecureString 'TempPass123!' -AsPlainText -Force
+
+powershell -ExecutionPolicy Bypass -File scripts/test-staff-login-reset.ps1 \
+   -ApiBase https://api.aosanctuary.com \
+   -WebBase https://ao-os.aosanctuary.com \
+   -Email qa.reset.user@aosanctuary.com \
+   -Password $password \
+   -ProvisionWorkspaceUser \
+   -GivenName QA \
+   -FamilyName Reset \
+   -CreateAoStaffUser \
+   -AoRole front_desk \
+   -VerifyRemoteLogs \
+   -HostName ao-os-api-gcp
+```
+
+Notes:
+
+- `-ApiBase` accepts either the host root or a `/v1` URL.
+- Provisioning requires the same Google Workspace env vars documented above.
+- `-CreateAoStaffUser` also requires `DATABASE_URL` in the local shell.
+- Remote log verification checks for `staff_password_reset_requested`, `staff_password_reset_delivery_completed`, and `email_delivery_completed` for the masked target email.
+- This proves AO OS accepted the request and handed the email off successfully, but it does not prove the target inbox received the message.
+
 ## Production rollout
 
 1. Set the Gmail / Workspace env vars on the API host.

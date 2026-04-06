@@ -1,10 +1,9 @@
 'use server'
 
 import { redirect } from 'next/navigation'
+import { getApiBase } from '@/lib/api-base'
 import { getSession } from '@/lib/session'
 import type { Role } from '@/types/api'
-
-const API_BASE = process.env.API_BASE_URL ?? 'http://localhost:4000/v1'
 
 type LoginResponse = {
   accessToken: string
@@ -37,6 +36,7 @@ async function saveLoginSession(data: LoginResponse) {
 }
 
 async function doLogin(formData: FormData): Promise<LoginResult> {
+  const apiBase = getApiBase()
   const email = normalizeEmail(formData.get('email'))
   const password = String(formData.get('password') ?? '')
 
@@ -47,7 +47,7 @@ async function doLogin(formData: FormData): Promise<LoginResult> {
   let res: Response
 
   try {
-    res = await fetch(`${API_BASE}/auth/login`, {
+    res = await fetch(`${apiBase}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),
@@ -60,7 +60,7 @@ async function doLogin(formData: FormData): Promise<LoginResult> {
   if (!res.ok) {
     const failureBody = await res.json().catch(() => ({} as Record<string, unknown>))
     console.error('Staff login failed', {
-      apiBase: API_BASE,
+      apiBase,
       status: res.status,
       message: typeof failureBody.message === 'string' ? failureBody.message : null,
     })
@@ -114,6 +114,7 @@ export async function logout() {
 }
 
 export async function requestPasswordReset(formData: FormData) {
+  const apiBase = getApiBase()
   const email = normalizeEmail(formData.get('email'))
 
   if (!email) {
@@ -123,17 +124,29 @@ export async function requestPasswordReset(formData: FormData) {
   let res: Response
 
   try {
-    res = await fetch(`${API_BASE}/auth/staff-password-reset/request`, {
+    res = await fetch(`${apiBase}/auth/staff-password-reset/request`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email }),
       cache: 'no-store',
     })
-  } catch {
+  } catch (error) {
+    console.error('Staff password reset request failed to reach API', {
+      apiBase,
+      email,
+      error: error instanceof Error ? error.message : 'unknown_error',
+    })
     redirect('/login?reset=error')
   }
 
   if (!res.ok) {
+    const failureBody = await res.json().catch(() => ({} as Record<string, unknown>))
+    console.error('Staff password reset request failed', {
+      apiBase,
+      email,
+      status: res.status,
+      message: typeof failureBody.message === 'string' ? failureBody.message : null,
+    })
     redirect('/login?reset=error')
   }
 
@@ -146,6 +159,7 @@ function buildResetPasswordUrl(token: string, state: 'invalid' | 'error' | 'mism
 }
 
 export async function confirmStaffPasswordReset(formData: FormData) {
+  const apiBase = getApiBase()
   const token = String(formData.get('token') ?? '').trim()
   const newPassword = String(formData.get('newPassword') ?? '')
   const confirmPassword = String(formData.get('confirmPassword') ?? '')
@@ -165,13 +179,17 @@ export async function confirmStaffPasswordReset(formData: FormData) {
   let res: Response
 
   try {
-    res = await fetch(`${API_BASE}/auth/staff-password-reset/confirm`, {
+    res = await fetch(`${apiBase}/auth/staff-password-reset/confirm`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ token, newPassword }),
       cache: 'no-store',
     })
-  } catch {
+  } catch (error) {
+    console.error('Staff password reset confirm failed to reach API', {
+      apiBase,
+      error: error instanceof Error ? error.message : 'unknown_error',
+    })
     redirect(buildResetPasswordUrl(token, 'error'))
   }
 

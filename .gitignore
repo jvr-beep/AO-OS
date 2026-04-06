@@ -142,3 +142,5 @@ vite.config.ts.timestamp-*
 # Local smoke harness scratch artifacts
 smoke_out.txt
 check_location.mjs
+.vercel
+.env*.local
