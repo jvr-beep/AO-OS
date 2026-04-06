@@ -1,5 +1,5 @@
 import { PrismaClient } from "@prisma/client";
-import * as argon2 from "argon2";
+import * as bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
@@ -11,7 +11,7 @@ async function seed() {
   const staffUser = await prisma.staffUser.findUnique({ where: { email: staffEmail } });
 
   if (!staffUser) {
-    const passwordHash = await argon2.hash("TestPassword123!");
+    const passwordHash = await bcrypt.hash("TestPassword123!", 10);
     await prisma.staffUser.create({
       data: {
         email: staffEmail,

@@ -1,4 +1,4 @@
-const API_BASE = process.env.API_BASE_URL ?? 'http://localhost:4000/v1'
+import { getApiBase } from '@/lib/api-base'
 
 export class ApiError extends Error {
   constructor(
@@ -15,7 +15,8 @@ export async function apiFetch<T>(
   accessToken: string,
   options: RequestInit = {},
 ): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`, {
+  const apiBase = getApiBase()
+  const res = await fetch(`${apiBase}${path}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',

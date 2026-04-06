@@ -20,6 +20,19 @@
   }
 }
 
+@keyframes panel-glow {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.7;
+    transform: scale(1.05);
+  }
+}
+
 @layer base {
   html {
     @apply bg-surface-0 text-text-primary;
@@ -52,7 +65,8 @@
     @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded
            font-sans font-medium text-sm tracking-wide transition-all
            border border-accent-primary text-text-primary
-           hover:bg-accent-primary hover:text-surface-0
+           bg-[rgba(47,143,131,0.08)] shadow-[0_10px_24px_rgba(0,0,0,0.18)]
+           hover:bg-accent-primary hover:text-surface-0 hover:shadow-[0_14px_32px_rgba(47,143,131,0.22)]
            active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100;
   }
 
@@ -61,13 +75,13 @@
     @apply inline-flex items-center justify-center px-4 py-2 rounded
            font-sans font-medium text-sm transition-all
            border border-border-subtle text-text-secondary
-           hover:border-accent-primary hover:text-text-primary
+           bg-[rgba(255,255,255,0.02)] hover:border-accent-primary hover:text-text-primary hover:bg-[rgba(47,143,131,0.08)]
            active:scale-95;
   }
 
   /* Cards / content containers */
   .card {
-    @apply bg-surface-2 rounded border border-border-subtle p-4;
+    @apply bg-surface-2 rounded border border-border-subtle p-4 shadow-[0_18px_45px_rgba(0,0,0,0.22)];
   }
 
   /* Form inputs */
@@ -90,6 +104,15 @@
 
   .login-card {
     animation: login-enter 0.35s ease-out;
+    box-shadow: 0 28px 80px rgba(0, 0, 0, 0.52);
+  }
+
+  .login-card .form-input {
+    @apply bg-[rgba(8,12,17,0.72)] border-[rgba(237,233,227,0.12)] text-text-primary placeholder-text-muted;
+  }
+
+  .login-card .form-input:focus {
+    @apply border-accent-primary ring-accent-primary;
   }
 
   .login-spinner {
@@ -99,5 +122,45 @@
     border-top-color: rgba(237, 233, 227, 0.9);
     border-radius: 9999px;
     animation: spin 0.75s linear infinite;
+  }
+
+  .glass-panel {
+    @apply rounded-2xl border border-[rgba(237,233,227,0.10)] bg-[rgba(12,18,25,0.72)] backdrop-blur-md shadow-[0_24px_70px_rgba(0,0,0,0.42)];
+  }
+
+  .notice {
+    @apply rounded-xl border px-4 py-3 text-sm font-sans;
+  }
+
+  .notice-success {
+    @apply border-[rgba(47,143,131,0.4)] bg-[rgba(47,143,131,0.12)] text-text-primary;
+  }
+
+  .notice-warning {
+    @apply border-warning/40 bg-warning/10 text-text-primary;
+  }
+
+  .notice-critical {
+    @apply border-critical/40 bg-critical/10 text-text-primary;
+  }
+
+  .metric-card {
+    @apply rounded-2xl border border-border-subtle bg-[linear-gradient(180deg,rgba(28,34,43,0.92),rgba(15,22,32,0.96))] p-4 shadow-[0_18px_48px_rgba(0,0,0,0.20)];
+  }
+
+  .metric-kicker {
+    @apply text-[11px] font-sans uppercase tracking-[0.24em] text-text-muted;
+  }
+
+  .metric-value {
+    @apply mt-3 font-heading text-3xl tracking-[0.08em] text-text-primary;
+  }
+
+  .section-frame {
+    @apply rounded-3xl border border-[rgba(237,233,227,0.08)] bg-[linear-gradient(180deg,rgba(15,22,32,0.96),rgba(11,14,17,0.98))] shadow-[0_28px_70px_rgba(0,0,0,0.25)];
+  }
+
+  .ambient-orb {
+    animation: panel-glow 8s ease-in-out infinite;
   }
 }

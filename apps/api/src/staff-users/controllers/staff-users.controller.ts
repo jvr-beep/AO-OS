@@ -4,6 +4,7 @@ import { Roles } from "../../auth/decorators/roles.decorator";
 import { JwtAuthGuard } from "../../auth/guards/jwt-auth.guard";
 import { RolesGuard } from "../../auth/guards/roles.guard";
 import { CreateStaffUserDto } from "../dto/create-staff-user.dto";
+import { ProvisionStaffUserDto } from "../dto/provision-staff-user.dto";
 import { SetRoleDto } from "../dto/set-role.dto";
 import { StaffUserResponseDto } from "../dto/staff-user.response.dto";
 import { UpdateStaffPasswordDto } from "../dto/update-staff-password.dto";
@@ -21,6 +22,14 @@ export class StaffUsersController {
     @Req() req: { user: JwtPayload }
   ): Promise<StaffUserResponseDto> {
     return this.staffUsersService.createStaffUser(body, req.user);
+  }
+
+  @Post("provision")
+  provisionStaffUser(
+    @Body() body: ProvisionStaffUserDto,
+    @Req() req: { user: JwtPayload }
+  ): Promise<StaffUserResponseDto> {
+    return this.staffUsersService.provisionStaffUser(body, req.user);
   }
 
   @Get()

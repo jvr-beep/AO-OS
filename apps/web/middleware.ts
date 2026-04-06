@@ -1,10 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+const PUBLIC_FILE_PATH = /\.[^/]+$/
+
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
 
-  // Public paths — no session required
-  if (pathname.startsWith('/login') || pathname.startsWith('/_next')) {
+  // Public paths and static assets do not require a session.
+  if (
+    pathname === '/login' ||
+    pathname.startsWith('/auth/reset-password') ||
+    pathname.startsWith('/_next') ||
+    pathname.startsWith('/images/') ||
+    PUBLIC_FILE_PATH.test(pathname)
+  ) {
     return NextResponse.next()
   }
 
