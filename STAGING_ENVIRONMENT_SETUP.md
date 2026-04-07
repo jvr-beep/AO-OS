@@ -4,6 +4,40 @@ This document describes how to get the staging API reachable at
 `https://api-staging.aosanctuary.com` via a Cloudflare Tunnel on the Linux
 staging host.
 
+---
+
+## Staging VM — Network Details
+
+| Field | Value |
+|-------|-------|
+| GCP instance name | `ao-os-api-staging` |
+| GCP project | `AO-OS-VM` |
+| Internal IP | `10.128.0.3` |
+| External IP | `34.58.72.109` *(Ephemeral — changes on VM reset/restart)* |
+| IP stack | IPv4, Premium tier |
+| Storage | 100 GB Balanced disk (`ao-os-api`) |
+
+> **Note:** The external IP is ephemeral. After a VM stop/start, retrieve the
+> new IP from GCP Console → Compute Engine → VM instances, or run:
+> ```sh
+> gcloud compute instances describe ao-os-api-staging \
+>   --zone=us-central1-a \
+>   --format='get(networkInterfaces[0].accessConfigs[0].natIP)'
+> ```
+
+### SSH config (`~/.ssh/config`)
+
+```
+Host ao-os-api-staging
+  HostName 34.58.72.109
+  User <your-gcp-username>
+  IdentityFile ~/.ssh/google_compute_engine
+```
+
+Update `HostName` after any VM restart.
+
+---
+
 ## Prerequisites
 
 - The AO-OS API is already running on the host (verify: `curl http://localhost:4000/v1/health` returns `200`).
@@ -75,7 +109,7 @@ To obtain it:
 
 ```bash
 scp /path/to/bde6525b-327e-4630-960a-e58c641d2456.json \
-    root@<STAGING_HOST>:/root/.cloudflared/bde6525b-327e-4630-960a-e58c641d2456.json
+    ao-os-api-staging:/root/.cloudflared/bde6525b-327e-4630-960a-e58c641d2456.json
 ```
 
 Verify it is on the server:

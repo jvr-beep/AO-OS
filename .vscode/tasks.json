@@ -117,6 +117,18 @@
       }
     },
     {
+      "label": "GCP VM: SSH (staging)",
+      "type": "shell",
+      "command": "ssh ao-os-api-staging",
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "dedicated"
+      }
+    },
+    {
       "label": "GCP VM: SSH",
       "type": "shell",
       "command": "ssh ao-os-api-gcp",
