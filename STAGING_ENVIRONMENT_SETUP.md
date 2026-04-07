@@ -12,6 +12,9 @@ staging host.
 |-------|-------|
 | GCP instance name | `ao-os-api-staging` |
 | GCP project | `AO-OS-VM` |
+| Instance ID | `7017747346632804449` |
+| Status | Running |
+| Created | Apr 4, 2026, 2:58:22 AM UTC-04:00 |
 | Internal IP | `10.128.0.3` |
 | External IP | `34.58.72.109` *(Ephemeral — changes on VM reset/restart)* |
 | IP stack | IPv4, Premium tier |
