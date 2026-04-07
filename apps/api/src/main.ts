@@ -9,10 +9,32 @@ async function bootstrap(): Promise<void> {
 
   app.use(helmet());
 
-  const allowedOrigins = process.env.CORS_ORIGIN
-    ? process.env.CORS_ORIGIN.split(",").map((o) => o.trim())
-    : ["https://app.aosanctuary.com"];
-  app.enableCors({ origin: allowedOrigins, credentials: true });
+  // Build the allowed-origin list from explicit env var overrides plus any
+  // app URL vars that are already required by other features (email links,
+  // staff portal, etc.).  This means staging and local dev get the right
+  // CORS headers automatically without having to set a separate CORS_ORIGIN.
+  const originSet = new Set<string>([
+    // Explicit override list — highest priority, supports comma-separated values
+    ...(process.env.CORS_ORIGIN
+      ? process.env.CORS_ORIGIN.split(",").map((o) => o.trim()).filter(Boolean)
+      : []),
+    // Standard app URL env vars
+    ...[
+      process.env.APP_BASE_URL,
+      process.env.STAFF_APP_BASE_URL,
+      process.env.WEB_BASE_URL,
+    ].filter((u): u is string => Boolean(u)),
+    // Production fallbacks (safe to include — will only match production requests)
+    "https://app.aosanctuary.com",
+    "https://ao-os.aosanctuary.com",
+    // Staging fallbacks
+    "https://staging.aosanctuary.com",
+    "https://staff-staging.aosanctuary.com",
+    // Local development
+    "http://localhost:3000",
+    "http://localhost:3001",
+  ]);
+  app.enableCors({ origin: [...originSet], credentials: true });
 
   app.useGlobalPipes(
     new ValidationPipe({ transform: true })

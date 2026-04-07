@@ -164,3 +164,34 @@ the staging API and the password reset flow will work again.
 | `failed to connect to Cloudflare edge` | Network / firewall | Ensure outbound TCP 7844 or 443 is open |
 | `no ingress rule matched` | Hostname mismatch in config | Verify `config.yml` hostname matches DNS |
 | Service not starting after reboot | Systemd unit not enabled | `sudo systemctl enable cloudflared` |
+
+---
+
+## CORS — Staging origin coverage
+
+The API derives its allowed CORS origin list from the following env vars
+(set in `apps/api/.env` on the staging host):
+
+| Env var | Example staging value |
+|---------|----------------------|
+| `APP_BASE_URL` | `https://staging.aosanctuary.com` |
+| `STAFF_APP_BASE_URL` | `https://staff-staging.aosanctuary.com` |
+| `WEB_BASE_URL` | `https://staging.aosanctuary.com` |
+
+The API also accepts an explicit comma-separated override via `CORS_ORIGIN`.
+
+If any of the above vars are set, the corresponding origin is automatically
+added to the allowed list without requiring a separate `CORS_ORIGIN` entry.
+The fallback list always includes the two production origins, both staging
+origins, and `http://localhost:3000/3001` for local dev.
+
+To verify the staging API is returning the correct header after deploy:
+
+```bash
+curl -si -X OPTIONS https://api-staging.aosanctuary.com/v1/auth/login \
+  -H "Origin: https://staging.aosanctuary.com" \
+  -H "Access-Control-Request-Method: POST" \
+  | grep -i access-control-allow-origin
+```
+
+Expected: `access-control-allow-origin: https://staging.aosanctuary.com`
