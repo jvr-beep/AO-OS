@@ -1459,6 +1459,17 @@ model AuditLog {
   @@map("audit_log")
 }
 
+model Facility {
+  id          String    @id @default(uuid())
+  code        String    @unique
+  name        String
+  address     String?
+  timezone    String    @default("America/New_York")
+  active      Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
 model SystemException {
   id            String            @id @default(uuid()) @db.Uuid
   exceptionType String            @map("exception_type")
