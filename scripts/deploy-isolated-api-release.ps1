@@ -216,11 +216,13 @@ if (-not $SkipBuild) {
 Write-Step "Step 5 — Wait for API health"
 
 $healthCmd = @"
+healthy=0
 for i in \$(seq 1 30); do
   code=\$(curl -s -o /dev/null -w '%{http_code}' $ApiBase/v1/health || true)
-  if [ "\$code" = "200" ]; then echo "HEALTHY"; break; fi
+  if [ "\$code" = "200" ]; then echo "HEALTHY"; healthy=1; break; fi
   sleep 2
 done
+if [ "\$healthy" != "1" ]; then echo "ERROR: API did not become healthy after 60s"; exit 1; fi
 "@
 Invoke-Ssh $healthCmd
 
