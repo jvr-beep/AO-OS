@@ -4,6 +4,7 @@ import { JwtAuthGuard } from "../../auth/guards/jwt-auth.guard";
 import { RolesGuard } from "../../auth/guards/roles.guard";
 import { CreateFloorPlanAreaDto } from "../dto/create-floor-plan-area.dto";
 import { CreateFloorPlanDto } from "../dto/create-floor-plan.dto";
+import { FacilityMapResponseDto } from "../dto/facility-map.response.dto";
 import { FloorPlanAreaResponseDto } from "../dto/floor-plan-area.response.dto";
 import { FloorPlanResponseDto } from "../dto/floor-plan.response.dto";
 import { ListFloorPlansQueryDto } from "../dto/list-floor-plans.query.dto";
@@ -39,5 +40,11 @@ export class FloorPlansController {
   @Roles("front_desk", "operations", "admin")
   getFloorPlan(@Param("id") id: string): Promise<FloorPlanResponseDto> {
     return this.floorPlansService.getFloorPlan(id);
+  }
+
+  @Get("floor-plans/:id/facility-map")
+  @Roles("front_desk", "operations", "admin")
+  getFacilityMap(@Param("id") id: string): Promise<FacilityMapResponseDto> {
+    return this.floorPlansService.getFacilityMap(id);
   }
 }

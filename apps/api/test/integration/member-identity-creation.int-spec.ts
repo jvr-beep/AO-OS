@@ -297,7 +297,7 @@ describe("Integration - Member Identity & Creation Flows", () => {
       const resetResponse = await ctx.http
         .post(`/v1/admin/members/${memberId}/password-reset`)
         .set("Authorization", `Bearer ${staffToken}`)
-        .expect(200);
+        .expect(201);
 
       expect(resetResponse.body).toMatchObject({
         email,
@@ -326,6 +326,7 @@ describe("Integration - Member Identity & Creation Flows", () => {
       const flows = [
         {
           name: "anonymous",
+          expectsResponseWristband: true,
           fn: () =>
             ctx.http
               .post("/v1/identity/members/anonymous")
@@ -334,6 +335,7 @@ describe("Integration - Member Identity & Creation Flows", () => {
         },
         {
           name: "registered",
+          expectsResponseWristband: true,
           fn: () =>
             ctx.http
               .post("/v1/identity/members/registered")
@@ -342,6 +344,7 @@ describe("Integration - Member Identity & Creation Flows", () => {
         },
         {
           name: "signup",
+          expectsResponseWristband: false,
           fn: () =>
             ctx.http
               .post("/v1/auth/signup")
@@ -351,10 +354,26 @@ describe("Integration - Member Identity & Creation Flows", () => {
 
       for (const flow of flows) {
         const response = await flow.fn().expect(201);
-        expect(response.body.wristband, `${flow.name} should include wristband`).toBeDefined();
-        expect(response.body.wristband.id).toBeDefined();
-        expect(response.body.wristband.uid).toBeDefined();
-        expect(response.body.wristband.status).toBe("pending_activation");
+
+        if (flow.expectsResponseWristband) {
+          expect(response.body.wristband).toBeDefined();
+          expect(response.body.wristband.id).toBeDefined();
+          expect(response.body.wristband.uid).toBeDefined();
+          expect(response.body.wristband.status).toBe("pending_activation");
+          continue;
+        }
+
+        const member = await ctx.prisma.member.findUnique({ where: { email: response.body.email } });
+        expect(member).toBeDefined();
+
+        const assignment = await ctx.prisma.wristbandAssignment.findFirst({
+          where: { memberId: member!.id, active: true },
+          include: { wristband: true }
+        });
+
+        expect(assignment).toBeDefined();
+        expect(assignment?.wristband.uid).toBeDefined();
+        expect(assignment?.wristband.status).toBe("pending_activation");
       }
     });
   });

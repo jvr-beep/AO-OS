@@ -1,13 +1,8 @@
 import Link from 'next/link'
 import { getSession } from '@/lib/session'
 import { apiFetch } from '@/lib/api'
+import { BrowserApiForm } from '@/components/browser-api-form'
 import { StatusBadge } from '@/components/status-badge'
-import {
-  activateCredentialAction,
-  issueCredentialAction,
-  replaceCredentialAction,
-  suspendCredentialAction,
-} from '@/app/actions/operators'
 import type { Wristband } from '@/types/api'
 
 export default async function WristbandsPage({
@@ -60,7 +55,14 @@ export default async function WristbandsPage({
         <div className="card">
           <h2 className="text-sm font-semibold text-ao-primary mb-3 uppercase tracking-wide">Issue Credential</h2>
           <p className="text-xs text-gray-400 mb-3">Allowed roles: operations, admin.</p>
-          <form action={issueCredentialAction} className="space-y-3">
+          <BrowserApiForm
+            actionPath="/wristbands/issue"
+            redirectTo="/wristbands"
+            successMessage="Credential issued"
+            fallbackErrorMessage="Issue failed"
+            className="space-y-3"
+            disabled={!canManageCredentialLifecycle}
+          >
             <input
               name="uid"
               placeholder="New wristband UID"
@@ -79,13 +81,20 @@ export default async function WristbandsPage({
             >
               Issue
             </button>
-          </form>
+          </BrowserApiForm>
         </div>
 
         <div className="card">
           <h2 className="text-sm font-semibold text-ao-primary mb-3 uppercase tracking-wide">Activate Credential</h2>
           <p className="text-xs text-gray-400 mb-3">Allowed roles: front_desk, operations, admin.</p>
-          <form action={activateCredentialAction} className="space-y-3">
+          <BrowserApiForm
+            actionPath="/wristbands/activate"
+            redirectTo="/wristbands"
+            successMessage="Credential activated"
+            fallbackErrorMessage="Activate failed"
+            className="space-y-3"
+            disabled={!canActivateCredential}
+          >
             <input
               name="credentialId"
               placeholder="Credential ID"
@@ -98,13 +107,20 @@ export default async function WristbandsPage({
             >
               Activate
             </button>
-          </form>
+          </BrowserApiForm>
         </div>
 
         <div className="card">
           <h2 className="text-sm font-semibold text-ao-primary mb-3 uppercase tracking-wide">Suspend Credential</h2>
           <p className="text-xs text-gray-400 mb-3">Allowed roles: operations, admin.</p>
-          <form action={suspendCredentialAction} className="space-y-3">
+          <BrowserApiForm
+            actionPath="/wristbands/suspend"
+            redirectTo="/wristbands"
+            successMessage="Credential suspended"
+            fallbackErrorMessage="Suspend failed"
+            className="space-y-3"
+            disabled={!canManageCredentialLifecycle}
+          >
             <input
               name="credentialId"
               placeholder="Credential ID"
@@ -117,13 +133,20 @@ export default async function WristbandsPage({
             >
               Suspend
             </button>
-          </form>
+          </BrowserApiForm>
         </div>
 
         <div className="card">
           <h2 className="text-sm font-semibold text-ao-primary mb-3 uppercase tracking-wide">Replace Credential</h2>
           <p className="text-xs text-gray-400 mb-3">Allowed roles: operations, admin.</p>
-          <form action={replaceCredentialAction} className="space-y-3">
+          <BrowserApiForm
+            actionPath="/wristbands/replace"
+            redirectTo="/wristbands"
+            successMessage="Credential replaced"
+            fallbackErrorMessage="Replace failed"
+            className="space-y-3"
+            disabled={!canManageCredentialLifecycle}
+          >
             <input
               name="oldCredentialId"
               placeholder="Old credential ID"
@@ -142,7 +165,7 @@ export default async function WristbandsPage({
             >
               Replace
             </button>
-          </form>
+          </BrowserApiForm>
         </div>
       </div>
 

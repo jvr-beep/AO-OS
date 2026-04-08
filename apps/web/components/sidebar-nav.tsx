@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { logout } from '@/app/actions/auth'
+import { clearBrowserSession } from '@/lib/browser-auth'
 
 const NAV_ITEMS = [
   { href: '/dashboard', label: 'Dashboard' },
@@ -70,7 +71,12 @@ export function SidebarNav({ role, userLabel }: SidebarNavProps) {
       </nav>
 
       <div className="border-t border-[rgba(237,233,227,0.06)] px-3 py-4">
-        <form action={logout}>
+        <form
+          action={logout}
+          onSubmit={() => {
+            clearBrowserSession()
+          }}
+        >
           <button
             type="submit"
             className="w-full rounded px-3 py-2 text-left text-sm text-text-muted transition-colors hover:bg-[rgba(255,255,255,0.03)] hover:text-accent-primary"

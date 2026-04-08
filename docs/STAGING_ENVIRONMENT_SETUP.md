@@ -109,6 +109,49 @@ This path avoids the missing-credentials-json and missing-`cert.pem` errors that
 6. Verify `https://staging.aosanctuary.com/login`.
 7. Run the smoke script.
 
+## Avoid Branch Drift
+
+Do not rely on the staging VM's long-lived checkout branch when deploying API changes. If the host checkout drifts onto an older branch, a rebuild can appear successful while still serving stale code.
+
+Preferred approach:
+
+1. Use `scripts/deploy-isolated-api-release.ps1` from this machine.
+2. Pass the staging SSH alias.
+3. Pass an explicit git ref with `-RemoteGitRef` so the isolated release clone is pinned to the intended branch or commit.
+4. Use `-SkipOverlay` when the target code already exists on the remote branch and you do not want local uncommitted workspace files copied over it.
+
+Example:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/deploy-isolated-api-release.ps1 -HostName ao-os-api-staging -RemoteGitRef origin/copilot/manage-cloudflare-vercel-gcp -SkipOverlay -SeedFacilityTopology -ApiBase https://api-staging.aosanctuary.com -WebBase https://staging.aosanctuary.com
+```
+
+This keeps staging aligned with the branch you intend to validate even if the host checkout itself is still on an older branch such as `split/auth-hardening`.
+
+## Realign Host Checkout
+
+The isolated release flow no longer depends on the host checkout branch, but the long-lived checkout on the staging VM should still be moved off stale branches after recovery work is complete.
+
+Recommended host checkout baseline:
+
+1. SSH to `ao-os-api-staging`.
+2. Inspect `git status --short --branch` in `~/AO-OS`.
+3. Preserve any local-only changes before switching branches.
+4. Switch the long-lived checkout to `main` unless there is an explicit reason to keep another baseline branch there.
+
+Example:
+
+```bash
+cd ~/AO-OS
+git status --short --branch
+git stash push -u -m "pre-realign staging host checkout"
+git fetch origin --prune
+git checkout main
+git reset --hard origin/main
+```
+
+If you still need to preserve a host-only file change, move or copy that file out of the repo before the hard reset instead of relying on the checkout to carry environment-specific edits.
+
 ## Smoke validation
 
 From this machine, once a staging SSH alias exists:

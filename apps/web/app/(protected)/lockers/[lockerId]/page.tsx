@@ -2,8 +2,8 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { getSession } from '@/lib/session'
 import { apiFetch } from '@/lib/api'
+import { BrowserApiForm } from '@/components/browser-api-form'
 import { StatusBadge } from '@/components/status-badge'
-import { moveLockerAction, unassignLockerAction } from '@/app/actions/operators'
 import type { Locker, LockerAccessEvent } from '@/types/api'
 
 const HARD_BLOCKED_STATUSES = ['maintenance', 'offline', 'forced_open', 'out_of_service']
@@ -81,18 +81,31 @@ export default async function LockerDetailPage({
             <p className="text-xs text-gray-400 mb-2">
               Atomically releases this locker and assigns the member to the new one.
             </p>
-            <form action={moveLockerAction} className="space-y-2">
+            <BrowserApiForm
+              actionPath="/lockers/move"
+              redirectTo={`/lockers/${locker.id}`}
+              successMessage="Locker moved"
+              fallbackErrorMessage="Move failed"
+              augment="locker-move"
+              className="space-y-2"
+            >
               <input type="hidden" name="fromLockerId" value={locker.id} />
               <input type="hidden" name="memberId" value={locker.assignedMemberId!} />
               <input name="toLockerId" placeholder="New Locker ID" className="form-input" required />
               <button className="btn-primary w-full">Move</button>
-            </form>
+            </BrowserApiForm>
           </div>
 
           <div className="card">
             <h2 className="text-sm font-semibold text-ao-primary mb-3 uppercase tracking-wide">Release Locker</h2>
             <p className="text-xs text-gray-400 mb-2">Manually release this locker assignment.</p>
-            <form action={unassignLockerAction} className="space-y-2">
+            <BrowserApiForm
+              actionPath="/lockers/unassign"
+              redirectTo={`/lockers/${locker.id}`}
+              successMessage="Locker released"
+              fallbackErrorMessage="Release failed"
+              className="space-y-2"
+            >
               <input type="hidden" name="lockerId" value={locker.id} />
               <input
                 name="unassignedReason"
@@ -100,7 +113,7 @@ export default async function LockerDetailPage({
                 className="form-input"
               />
               <button className="btn-secondary w-full">Release</button>
-            </form>
+            </BrowserApiForm>
           </div>
         </div>
       )}

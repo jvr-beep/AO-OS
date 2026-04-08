@@ -1,54 +1,127 @@
+'use client'
+
 import Link from 'next/link'
-import { getSession } from '@/lib/session'
-import { apiFetch } from '@/lib/api'
+import { useEffect, useMemo, useState } from 'react'
 import { StatusBadge } from '@/components/status-badge'
+import { getBrowserApiBase, readBrowserAccessToken } from '@/lib/browser-auth'
 import type { Room } from '@/types/api'
 
-export default async function RoomsPage({
-  searchParams,
-}: {
-  searchParams?: { q?: string }
-}) {
-  const session = await getSession()
-  const rooms = await apiFetch<Room[]>('/rooms', session.accessToken!)
-  const query = searchParams?.q?.trim().toLowerCase() ?? ''
+export default function RoomsPage() {
+  const [rooms, setRooms] = useState<Room[]>([])
+  const [query, setQuery] = useState('')
+  const [pageErrorMessage, setPageErrorMessage] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
 
-  const filteredRooms = query
-    ? rooms.filter((room) => {
-        const code = room.code.toLowerCase()
-        const name = room.name.toLowerCase()
-        const roomType = room.roomType.toLowerCase()
-        const status = room.status.toLowerCase()
-        return (
-          code.includes(query) ||
-          name.includes(query) ||
-          roomType.includes(query) ||
-          status.includes(query)
-        )
-      })
-    : rooms
+  useEffect(() => {
+    const accessToken = readBrowserAccessToken()
 
-  const orderedRooms = [...filteredRooms].sort((a, b) => a.code.localeCompare(b.code))
+    if (!accessToken) {
+      window.location.assign('/login')
+      return
+    }
+
+    let isCancelled = false
+
+    async function loadRooms() {
+      try {
+        const response = await fetch(`${getBrowserApiBase()}/rooms`, {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${accessToken}`,
+          },
+          cache: 'no-store',
+        })
+
+        if (!response.ok) {
+          if (response.status === 401 || response.status === 403) {
+            window.location.assign('/login')
+            return
+          }
+
+          setPageErrorMessage('Could not load rooms right now.')
+          return
+        }
+
+        const data = await response.json() as Room[]
+        if (!isCancelled) {
+          setRooms(data)
+          setPageErrorMessage(null)
+        }
+      } catch {
+        if (!isCancelled) {
+          setPageErrorMessage('Could not load rooms right now.')
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsLoading(false)
+        }
+      }
+    }
+
+    void loadRooms()
+
+    return () => {
+      isCancelled = true
+    }
+  }, [])
+
+  const filteredRooms = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase()
+
+    if (!normalizedQuery) {
+      return rooms
+    }
+
+    return rooms.filter((room) => {
+      const code = room.code.toLowerCase()
+      const name = room.name.toLowerCase()
+      const roomType = room.roomType.toLowerCase()
+      const status = room.status.toLowerCase()
+      return (
+        code.includes(normalizedQuery) ||
+        name.includes(normalizedQuery) ||
+        roomType.includes(normalizedQuery) ||
+        status.includes(normalizedQuery)
+      )
+    })
+  }, [query, rooms])
+
+  const orderedRooms = useMemo(
+    () => [...filteredRooms].sort((a, b) => a.code.localeCompare(b.code)),
+    [filteredRooms],
+  )
 
   return (
     <div className="max-w-5xl">
       <h1 className="text-2xl font-semibold mb-6 text-gray-100">Rooms</h1>
 
+      {pageErrorMessage && (
+        <div className="mb-4 rounded-lg border border-red-700 bg-red-900 px-4 py-3 text-sm text-red-200">
+          {pageErrorMessage}
+        </div>
+      )}
+
       <div className="card overflow-hidden">
         <div className="p-4 border-b border-gray-700">
           <p className="text-xs text-gray-400 mb-2">Tip: partial matches are supported.</p>
-          <form method="get" className="flex flex-col sm:flex-row gap-2">
+          <form
+            className="flex flex-col sm:flex-row gap-2"
+            onSubmit={(event) => {
+              event.preventDefault()
+            }}
+          >
             <input
               name="q"
-              defaultValue={searchParams?.q ?? ''}
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
               placeholder="Search by code, name, type, or status"
               className="form-input flex-1"
             />
             <button type="submit" className="btn-primary">
               Search
             </button>
-            {searchParams?.q && (
-              <Link href="/rooms" className="btn-secondary text-center">
+            {query && (
+              <Link href="/rooms" className="btn-secondary text-center" onClick={() => setQuery('')}>
                 Clear Search
               </Link>
             )}
@@ -76,7 +149,13 @@ export default async function RoomsPage({
             </tr>
           </thead>
           <tbody className="divide-y">
-            {orderedRooms.length === 0 ? (
+            {isLoading ? (
+              <tr>
+                <td colSpan={6} className="px-4 py-8 text-center text-sm text-gray-400">
+                  Loading rooms...
+                </td>
+              </tr>
+            ) : orderedRooms.length === 0 ? (
               <tr>
                 <td colSpan={6} className="px-4 py-8 text-center text-sm text-gray-400">
                   No rooms found.

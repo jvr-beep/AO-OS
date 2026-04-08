@@ -19,6 +19,26 @@ type LoginResult =
   | { ok: true; data: LoginResponse }
   | { ok: false; error: string }
 
+function resolveLoginError(status: number, failureBody: Record<string, unknown>): string {
+  const rawMessage = failureBody.message
+  const message =
+    typeof rawMessage === 'string'
+      ? rawMessage.toLowerCase()
+      : Array.isArray(rawMessage)
+        ? rawMessage.join(' ').toLowerCase()
+        : ''
+
+  if (status === 401) {
+    return 'Invalid email or password.'
+  }
+
+  if (status === 403 && /(inactive|blocked|disabled)/.test(message)) {
+    return 'Sign-in is currently blocked. Please contact support.'
+  }
+
+  return 'Could not sign in right now. Please try again.'
+}
+
 function normalizeEmail(value: FormDataEntryValue | null): string {
   return String(value ?? '').trim().toLowerCase()
 }
@@ -33,6 +53,11 @@ async function saveLoginSession(data: LoginResponse) {
     role: data.staffUser.role,
   }
   await session.save()
+}
+
+export async function persistLoginSession(data: LoginResponse) {
+  await saveLoginSession(data)
+  return { ok: true as const }
 }
 
 async function doLogin(formData: FormData): Promise<LoginResult> {
@@ -65,15 +90,7 @@ async function doLogin(formData: FormData): Promise<LoginResult> {
       message: typeof failureBody.message === 'string' ? failureBody.message : null,
     })
 
-    if (res.status === 401) {
-      return { ok: false, error: 'Invalid email or password.' }
-    }
-
-    if (res.status === 403) {
-      return { ok: false, error: 'Sign-in is currently blocked. Please contact support.' }
-    }
-
-    return { ok: false, error: 'Could not sign in right now. Please try again.' }
+    return { ok: false, error: resolveLoginError(res.status, failureBody) }
   }
 
   const data = await res.json() as LoginResponse

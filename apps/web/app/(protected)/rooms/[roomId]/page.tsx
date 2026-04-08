@@ -2,8 +2,8 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { getSession } from '@/lib/session'
 import { apiFetch, ApiError } from '@/lib/api'
+import { BrowserApiForm } from '@/components/browser-api-form'
 import { StatusBadge } from '@/components/status-badge'
-import { createRoomAccessEventAction } from '@/app/actions/operators'
 import type { Room, RoomBooking, RoomAccessEvent } from '@/types/api'
 
 export default async function RoomDetailPage({
@@ -90,7 +90,13 @@ export default async function RoomDetailPage({
       <div id="log-access" className="card p-4 mb-4">
         <h2 className="text-sm font-semibold text-gray-200 mb-3">Log Room Access Event</h2>
         <p className="text-xs text-gray-400 mb-3">Allowed roles: front_desk, operations, admin.</p>
-        <form action={createRoomAccessEventAction} className="grid grid-cols-1 gap-2 md:grid-cols-3">
+        <BrowserApiForm
+          actionPath="/rooms/access"
+          redirectTo={`/rooms/${room.id}`}
+          successMessage="Room access event recorded"
+          fallbackErrorMessage="Room access event failed"
+          className="grid grid-cols-1 gap-2 md:grid-cols-3"
+        >
           <input type="hidden" name="redirectTo" value={`/rooms/${room.id}`} />
           <input type="hidden" name="roomId" value={room.id} />
           <input
@@ -123,7 +129,7 @@ export default async function RoomDetailPage({
             className="form-input"
           />
           <button className="btn-primary">Record Event</button>
-        </form>
+        </BrowserApiForm>
       </div>
 
       <div className="card overflow-hidden mb-4">

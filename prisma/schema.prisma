@@ -249,71 +249,91 @@ enum CleaningTaskStatus {
   cancelled
 }
 
-model Member {
-  id                   String                   @id @default(uuid())
-  publicMemberNumber   String                   @unique
-  type                 MemberType               @default(registered)
-  email                String?                  @unique
-  emailVerifiedAt      DateTime?                @map("email_verified_at")
-  firstName            String?
-  lastName             String?
-  alias                String?
-  displayName          String?
-  phone                String?
-  status               MemberStatus             @default(pending)
-  createdByStaffId     String?                  @map("created_by_staff_id")
-  createdAt            DateTime                 @default(now())
-  updatedAt            DateTime                 @updatedAt
+enum AccessNodeType {
+  entry
+  reader
+  camera
+  service_point
+}
 
-  profile              MemberProfile?
-  authAccount          AuthAccount?
-  authTokens           AuthToken[]
-  externalAuths        ExternalAuthIdentity[]
-  authSessions         AuthSession[]
-  authEvents           AuthEvent[]
-  subscriptions        MembershipSubscription[]
-  paymentMethods       PaymentMethodToken[]
-  wristbandAssignments WristbandAssignment[]
-  visitSessions        VisitSession[]
-  accessAttempts       AccessAttempt[]
-  accessGrants         MemberAccessGrant[]
-  accessOverrides      MemberAccessOverride[]
-  presenceEvents       PresenceEvent[]
-  wristbandTransactions WristbandTransaction[]
-  lockerAssignments     LockerAssignment[]
-  lockerAccessEvents    LockerAccessEvent[]
+enum DeviceType {
+  door_controller
+  reader
+  camera
+  environmental
+}
+
+enum DeviceStatus {
+  online
+  offline
+  degraded
+}
+
+model Member {
+  id                 String       @id @default(uuid())
+  publicMemberNumber String       @unique
+  type               MemberType   @default(registered)
+  email              String?      @unique
+  emailVerifiedAt    DateTime?    @map("email_verified_at")
+  firstName          String?
+  lastName           String?
+  alias              String?
+  displayName        String?
+  phone              String?
+  status             MemberStatus @default(pending)
+  createdByStaffId   String?      @map("created_by_staff_id")
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  profile                    MemberProfile?
+  authAccount                AuthAccount?
+  authTokens                 AuthToken[]
+  externalAuths              ExternalAuthIdentity[]
+  authSessions               AuthSession[]
+  authEvents                 AuthEvent[]
+  subscriptions              MembershipSubscription[]
+  paymentMethods             PaymentMethodToken[]
+  wristbandAssignments       WristbandAssignment[]
+  visitSessions              VisitSession[]
+  accessAttempts             AccessAttempt[]
+  accessGrants               MemberAccessGrant[]
+  accessOverrides            MemberAccessOverride[]
+  presenceEvents             PresenceEvent[]
+  wristbandTransactions      WristbandTransaction[]
+  lockerAssignments          LockerAssignment[]
+  lockerAccessEvents         LockerAccessEvent[]
   lockerPolicyDecisionEvents LockerPolicyDecisionEvent[]
-  accountEntries        MemberAccountEntry[]
-  roomBookings          RoomBooking[]
-  roomAccessEvents      RoomAccessEvent[]
+  accountEntries             MemberAccountEntry[]
+  roomBookings               RoomBooking[]
+  roomAccessEvents           RoomAccessEvent[]
 }
 
 model MemberProfile {
-  id                     String   @id @default(uuid())
-  memberId               String   @unique
-  preferredName          String?
-  pronouns               String?
-  emergencyContactName   String?
-  emergencyContactPhone  String?
-  marketingOptInEmail    Boolean  @default(false)
-  marketingOptInSms      Boolean  @default(false)
-  createdAt              DateTime @default(now())
-  updatedAt              DateTime @updatedAt
+  id                    String   @id @default(uuid())
+  memberId              String   @unique
+  preferredName         String?
+  pronouns              String?
+  emergencyContactName  String?
+  emergencyContactPhone String?
+  marketingOptInEmail   Boolean  @default(false)
+  marketingOptInSms     Boolean  @default(false)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
 
-  member                 Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  member Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
 }
 
 model ExternalAuthIdentity {
-  id               String               @id @default(uuid())
-  memberId         String               @map("member_id")
-  provider         ExternalAuthProvider
-  providerSubject  String               @map("provider_subject")
-  emailAtProvider  String?              @map("email_at_provider")
-  profileJson      Json?                @map("profile_json")
-  createdAt        DateTime             @default(now()) @map("created_at")
-  updatedAt        DateTime             @updatedAt @map("updated_at")
+  id              String               @id @default(uuid())
+  memberId        String               @map("member_id")
+  provider        ExternalAuthProvider
+  providerSubject String               @map("provider_subject")
+  emailAtProvider String?              @map("email_at_provider")
+  profileJson     Json?                @map("profile_json")
+  createdAt       DateTime             @default(now()) @map("created_at")
+  updatedAt       DateTime             @updatedAt @map("updated_at")
 
-  member           Member               @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  member Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerSubject])
   @@index([memberId])
@@ -329,21 +349,21 @@ model AuthAccount {
   createdAt      DateTime  @default(now()) @map("created_at")
   updatedAt      DateTime  @updatedAt @map("updated_at")
 
-  member         Member    @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  member Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
 
   @@map("auth_accounts")
 }
 
 model AuthToken {
-  id          String        @id @default(uuid())
-  memberId    String        @map("member_id")
-  type        AuthTokenType
-  tokenHash   String        @map("token_hash")
-  expiresAt   DateTime      @map("expires_at")
-  consumedAt  DateTime?     @map("consumed_at")
-  createdAt   DateTime      @default(now()) @map("created_at")
+  id         String        @id @default(uuid())
+  memberId   String        @map("member_id")
+  type       AuthTokenType
+  tokenHash  String        @map("token_hash")
+  expiresAt  DateTime      @map("expires_at")
+  consumedAt DateTime?     @map("consumed_at")
+  createdAt  DateTime      @default(now()) @map("created_at")
 
-  member      Member        @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  member Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
 
   @@index([tokenHash])
   @@index([memberId, type, consumedAt])
@@ -351,18 +371,18 @@ model AuthToken {
 }
 
 model AuthSession {
-  id                String      @id @default(uuid())
-  memberId          String      @map("member_id")
-  authMethod        AuthMethod  @map("auth_method")
-  refreshTokenHash  String?     @map("refresh_token_hash")
-  ipAddress         String?     @map("ip_address")
-  userAgent         String?     @map("user_agent")
-  expiresAt         DateTime    @map("expires_at")
-  revokedAt         DateTime?   @map("revoked_at")
-  createdAt         DateTime    @default(now()) @map("created_at")
+  id               String     @id @default(uuid())
+  memberId         String     @map("member_id")
+  authMethod       AuthMethod @map("auth_method")
+  refreshTokenHash String?    @map("refresh_token_hash")
+  ipAddress        String?    @map("ip_address")
+  userAgent        String?    @map("user_agent")
+  expiresAt        DateTime   @map("expires_at")
+  revokedAt        DateTime?  @map("revoked_at")
+  createdAt        DateTime   @default(now()) @map("created_at")
 
-  member            Member      @relation(fields: [memberId], references: [id], onDelete: Cascade)
-  authEvents        AuthEvent[]
+  member     Member      @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  authEvents AuthEvent[]
 
   @@index([memberId])
   @@index([expiresAt])
@@ -384,8 +404,8 @@ model AuthEvent {
   occurredAt        DateTime    @default(now()) @map("occurred_at")
   createdAt         DateTime    @default(now()) @map("created_at")
 
-  member            Member?     @relation(fields: [memberId], references: [id], onDelete: SetNull)
-  session           AuthSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  member  Member?      @relation(fields: [memberId], references: [id], onDelete: SetNull)
+  session AuthSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
 
   @@index([occurredAt])
   @@index([eventType, occurredAt])
@@ -394,118 +414,131 @@ model AuthEvent {
 }
 
 model StaffUser {
-  id            String    @id @default(uuid())
-  email         String    @unique
-  passwordHash  String
-  fullName      String
-  role          StaffRole @default(front_desk)
-  active        Boolean   @default(true)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id           String    @id @default(uuid())
+  email        String    @unique
+  passwordHash String
+  fullName     String
+  role         StaffRole @default(front_desk)
+  active       Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
   assignedCleaningTasks CleaningTask[]
 }
 
 model MembershipPlan {
-  id                String                   @id @default(uuid())
-  code              String                   @unique
-  name              String
-  description       String?
-  tierRank          Int
-  billingInterval   BillingInterval
-  priceAmount       Decimal                  @db.Decimal(10, 2)
-  currency          String
-  active            Boolean                  @default(true)
-  createdAt         DateTime                 @default(now())
-  updatedAt         DateTime                 @updatedAt
+  id              String          @id @default(uuid())
+  code            String          @unique
+  name            String
+  description     String?
+  tierRank        Int
+  billingInterval BillingInterval
+  priceAmount     Decimal         @db.Decimal(10, 2)
+  currency        String
+  active          Boolean         @default(true)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
 
-  subscriptions     MembershipSubscription[]
-  entitlements      MembershipEntitlement[]
+  subscriptions MembershipSubscription[]
+  entitlements  MembershipEntitlement[]
 }
 
 model MembershipSubscription {
-  id                        String               @id @default(uuid())
+  id                        String             @id @default(uuid())
   memberId                  String
   membershipPlanId          String
   billingProvider           String
   billingProviderCustomerId String?
   status                    SubscriptionStatus
-  cancelAtPeriodEnd         Boolean              @default(false)
+  cancelAtPeriodEnd         Boolean            @default(false)
   startDate                 DateTime
   currentPeriodStart        DateTime?
   currentPeriodEnd          DateTime?
   pausedAt                  DateTime?
   resumedAt                 DateTime?
-  createdAt                 DateTime             @default(now())
-  updatedAt                 DateTime             @updatedAt
+  createdAt                 DateTime           @default(now())
+  updatedAt                 DateTime           @updatedAt
 
-  member                    Member               @relation(fields: [memberId], references: [id], onDelete: Cascade)
-  membershipPlan            MembershipPlan       @relation(fields: [membershipPlanId], references: [id])
+  member         Member         @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  membershipPlan MembershipPlan @relation(fields: [membershipPlanId], references: [id])
 }
 
 model MembershipEntitlement {
-  id                String         @id @default(uuid())
-  membershipPlanId  String
-  entitlementCode   String
-  entitlementType   String
-  valueJson         Json
-  active            Boolean        @default(true)
-  createdAt         DateTime       @default(now())
+  id               String   @id @default(uuid())
+  membershipPlanId String
+  entitlementCode  String
+  entitlementType  String
+  valueJson        Json
+  active           Boolean  @default(true)
+  createdAt        DateTime @default(now())
 
-  membershipPlan    MembershipPlan @relation(fields: [membershipPlanId], references: [id], onDelete: Cascade)
+  membershipPlan MembershipPlan @relation(fields: [membershipPlanId], references: [id], onDelete: Cascade)
 }
 
 model PaymentMethodToken {
-  id                       String               @id @default(uuid())
-  memberId                 String
-  provider                 String
-  providerCustomerId       String?
-  providerPaymentMethodId  String
-  brand                    String?
-  last4                    String?
-  expMonth                 Int?
-  expYear                  Int?
-  isDefault                Boolean              @default(false)
-  status                   PaymentMethodStatus  @default(active)
-  createdAt                DateTime             @default(now())
-  updatedAt                DateTime             @updatedAt
+  id                      String              @id @default(uuid())
+  memberId                String
+  provider                String
+  providerCustomerId      String?
+  providerPaymentMethodId String
+  brand                   String?
+  last4                   String?
+  expMonth                Int?
+  expYear                 Int?
+  isDefault               Boolean             @default(false)
+  status                  PaymentMethodStatus @default(active)
+  createdAt               DateTime            @default(now())
+  updatedAt               DateTime            @updatedAt
 
-  member                   Member               @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  member Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
 }
 
 model Location {
-  id               String         @id @default(uuid())
-  code             String         @unique
-  name             String
-  createdAt        DateTime       @default(now())
+  id        String   @id @default(uuid())
+  code      String   @unique
+  name      String
+  createdAt DateTime @default(now())
 
-  wristbands       Wristband[]
-  accessPoints     AccessPoint[]
-  visitSessions    VisitSession[]
-  lockers          Locker[]
-  floorPlans       FloorPlan[]
-  rooms            Room[]
+  facility      Facility?
+  wristbands    Wristband[]
+  accessPoints  AccessPoint[]
+  visitSessions VisitSession[]
+  lockers       Locker[]
+  floorPlans    FloorPlan[]
+  rooms         Room[]
+}
+
+model Facility {
+  id         String   @id @default(uuid())
+  code       String   @unique
+  name       String
+  locationId String?  @unique
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  location Location? @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  floors   Floor[]
 }
 
 model Wristband {
-  id               String                @id @default(uuid())
-  uid              String                @unique
-  locationId       String?
-  homeLocationId   String?
-  status           WristbandStatus       @default(inventory)
-  globalAccessFlag Boolean               @default(false)
-  issuedAt         DateTime              @default(now())
-  activatedAt      DateTime?
-  suspendedAt      DateTime?
+  id                      String          @id @default(uuid())
+  uid                     String          @unique
+  locationId              String?
+  homeLocationId          String?
+  status                  WristbandStatus @default(inventory)
+  globalAccessFlag        Boolean         @default(false)
+  issuedAt                DateTime        @default(now())
+  activatedAt             DateTime?
+  suspendedAt             DateTime?
   replacedFromWristbandId String?
-  lastSeenLocationId String?
-  lastSeenAt       DateTime?
-  createdAt        DateTime              @default(now())
-  updatedAt        DateTime              @updatedAt
+  lastSeenLocationId      String?
+  lastSeenAt              DateTime?
+  createdAt               DateTime        @default(now())
+  updatedAt               DateTime        @updatedAt
 
-  location         Location?             @relation(fields: [locationId], references: [id])
-  assignments      WristbandAssignment[]
-  accessAttempts   AccessAttempt[]
+  location              Location?              @relation(fields: [locationId], references: [id])
+  assignments           WristbandAssignment[]
+  accessAttempts        AccessAttempt[]
   wristbandTransactions WristbandTransaction[]
   lockerAccessEvents    LockerAccessEvent[]
   roomAccessEvents      RoomAccessEvent[]
@@ -517,37 +550,37 @@ model Wristband {
 }
 
 model WristbandAssignment {
-  id                    String      @id @default(uuid())
+  id                    String    @id @default(uuid())
   wristbandId           String
   memberId              String
   assignedByStaffUserId String?
-  assignedAt            DateTime    @default(now())
+  assignedAt            DateTime  @default(now())
   unassignedAt          DateTime?
   unassignedReason      String?
-  active                Boolean     @default(true)
+  active                Boolean   @default(true)
 
-  wristband             Wristband   @relation(fields: [wristbandId], references: [id], onDelete: Cascade)
-  member                Member      @relation(fields: [memberId], references: [id], onDelete: Cascade)
-  visitSessions         VisitSession[]
-  lockerAssignments     LockerAssignment[]
+  wristband         Wristband          @relation(fields: [wristbandId], references: [id], onDelete: Cascade)
+  member            Member             @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  visitSessions     VisitSession[]
+  lockerAssignments LockerAssignment[]
 }
 
 model WristbandTransaction {
-  id              String                    @id @default(uuid())
+  id              String                     @id @default(uuid())
   memberId        String
   wristbandId     String
   transactionType WristbandTransactionType
   merchantType    String
-  amount          Decimal                   @db.Decimal(10, 2)
+  amount          Decimal                    @db.Decimal(10, 2)
   currency        String
   description     String?
   sourceReference String?
   status          WristbandTransactionStatus @default(completed)
   occurredAt      DateTime
-  createdAt       DateTime                  @default(now())
+  createdAt       DateTime                   @default(now())
 
-  member          Member                    @relation(fields: [memberId], references: [id], onDelete: Cascade)
-  wristband       Wristband                 @relation(fields: [wristbandId], references: [id], onDelete: Cascade)
+  member    Member    @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  wristband Wristband @relation(fields: [wristbandId], references: [id], onDelete: Cascade)
 
   @@index([occurredAt])
   @@index([memberId])
@@ -566,37 +599,37 @@ model MemberAccountEntry {
   occurredAt      DateTime
   createdAt       DateTime                 @default(now())
 
-  member          Member                   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  member Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
 
   @@index([memberId, occurredAt])
   @@index([memberId, status])
 }
 
 model Locker {
-  id              String              @id @default(uuid())
-  code            String              @unique
-  vendorLockId    String?
-  locationId      String?
-  zoneId          String?
-  bankId          String?
-  wallId          String?
-  lockerLabel     String?
-  lockerSize      String?
-  lockerType      String?
-  isAccessible    Boolean             @default(false)
-  isWetAreaRated  Boolean             @default(false)
-  hasPower        Boolean             @default(false)
-  tierClass       String?
-  status          LockerStatus        @default(available)
-  supportsDayUse  Boolean             @default(true)
-  supportsAssignedUse Boolean         @default(true)
-  active          Boolean             @default(true)
-  createdAt       DateTime            @default(now())
-  updatedAt       DateTime            @updatedAt
+  id                  String       @id @default(uuid())
+  code                String       @unique
+  vendorLockId        String?
+  locationId          String?
+  zoneId              String?
+  bankId              String?
+  wallId              String?
+  lockerLabel         String?
+  lockerSize          String?
+  lockerType          String?
+  isAccessible        Boolean      @default(false)
+  isWetAreaRated      Boolean      @default(false)
+  hasPower            Boolean      @default(false)
+  tierClass           String?
+  status              LockerStatus @default(available)
+  supportsDayUse      Boolean      @default(true)
+  supportsAssignedUse Boolean      @default(true)
+  active              Boolean      @default(true)
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
 
-  location        Location?           @relation(fields: [locationId], references: [id])
-  assignments     LockerAssignment[]
-  accessEvents    LockerAccessEvent[]
+  location             Location?                   @relation(fields: [locationId], references: [id])
+  assignments          LockerAssignment[]
+  accessEvents         LockerAccessEvent[]
   policyDecisionEvents LockerPolicyDecisionEvent[]
 }
 
@@ -614,18 +647,18 @@ model LockerAssignment {
   unassignedReason      String?
   active                Boolean              @default(true)
 
-  locker                Locker               @relation(fields: [lockerId], references: [id], onDelete: Cascade)
-  member                Member               @relation(fields: [memberId], references: [id], onDelete: Cascade)
-  visitSession          VisitSession?        @relation(fields: [visitSessionId], references: [id], onDelete: SetNull)
-  wristbandAssignment   WristbandAssignment? @relation(fields: [wristbandAssignmentId], references: [id], onDelete: SetNull)
-  accessEvents          LockerAccessEvent[]
+  locker              Locker               @relation(fields: [lockerId], references: [id], onDelete: Cascade)
+  member              Member               @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  visitSession        VisitSession?        @relation(fields: [visitSessionId], references: [id], onDelete: SetNull)
+  wristbandAssignment WristbandAssignment? @relation(fields: [wristbandAssignmentId], references: [id], onDelete: SetNull)
+  accessEvents        LockerAccessEvent[]
 
   @@index([lockerId, active])
   @@index([memberId])
 }
 
 model LockerAccessEvent {
-  id                 String              @id @default(uuid())
+  id                 String                @id @default(uuid())
   memberId           String?
   lockerId           String
   wristbandId        String?
@@ -636,39 +669,39 @@ model LockerAccessEvent {
   occurredAt         DateTime
   sourceReference    String?
   rawPayloadJson     Json?
-  createdAt          DateTime            @default(now())
+  createdAt          DateTime              @default(now())
 
-  member             Member?             @relation(fields: [memberId], references: [id], onDelete: SetNull)
-  locker             Locker              @relation(fields: [lockerId], references: [id], onDelete: Cascade)
-  wristband          Wristband?          @relation(fields: [wristbandId], references: [id], onDelete: SetNull)
-  lockerAssignment   LockerAssignment?   @relation(fields: [lockerAssignmentId], references: [id], onDelete: SetNull)
+  member           Member?           @relation(fields: [memberId], references: [id], onDelete: SetNull)
+  locker           Locker            @relation(fields: [lockerId], references: [id], onDelete: Cascade)
+  wristband        Wristband?        @relation(fields: [wristbandId], references: [id], onDelete: SetNull)
+  lockerAssignment LockerAssignment? @relation(fields: [lockerAssignmentId], references: [id], onDelete: SetNull)
 
   @@index([occurredAt])
   @@index([memberId])
 }
 
 model LockerPolicyDecisionEvent {
-  id                   String               @id @default(uuid())
-  memberId             String?
-  lockerId             String?
-  visitSessionId       String?
-  staffUserId          String?
-  siteId               String?
-  requestedZoneId      String?
-  requestedLockerId    String?
-  assignmentMode       LockerAssignmentMode
-  decision             LockerPolicyDecision
-  reasonCode           String
-  eligibleLockerIds    String[]
-  chosenLockerId       String?
-  inputSnapshotJson    Json
-  outputSnapshotJson   Json
-  correlationId        String?
-  createdAt            DateTime             @default(now())
+  id                 String               @id @default(uuid())
+  memberId           String?
+  lockerId           String?
+  visitSessionId     String?
+  staffUserId        String?
+  siteId             String?
+  requestedZoneId    String?
+  requestedLockerId  String?
+  assignmentMode     LockerAssignmentMode
+  decision           LockerPolicyDecision
+  reasonCode         String
+  eligibleLockerIds  String[]
+  chosenLockerId     String?
+  inputSnapshotJson  Json
+  outputSnapshotJson Json
+  correlationId      String?
+  createdAt          DateTime             @default(now())
 
-  member               Member?              @relation(fields: [memberId], references: [id], onDelete: SetNull)
-  locker               Locker?              @relation(fields: [lockerId], references: [id], onDelete: SetNull)
-  visitSession         VisitSession?        @relation(fields: [visitSessionId], references: [id], onDelete: SetNull)
+  member       Member?       @relation(fields: [memberId], references: [id], onDelete: SetNull)
+  locker       Locker?       @relation(fields: [lockerId], references: [id], onDelete: SetNull)
+  visitSession VisitSession? @relation(fields: [visitSessionId], references: [id], onDelete: SetNull)
 
   @@index([memberId, createdAt])
   @@index([lockerId, createdAt])
@@ -677,136 +710,158 @@ model LockerPolicyDecisionEvent {
 }
 
 model AccessZone {
-  id                 String               @id @default(uuid())
-  code               String               @unique
-  name               String
-  requiresBooking    Boolean              @default(false)
-  createdAt          DateTime             @default(now())
+  id              String   @id @default(uuid())
+  code            String   @unique
+  name            String
+  requiresBooking Boolean  @default(false)
+  createdAt       DateTime @default(now())
 
-  accessPoints       AccessPoint[]
-  accessAttempts     AccessAttempt[]
-  accessGrants       MemberAccessGrant[]
-  accessOverrides    MemberAccessOverride[]
-  bookings           Booking[]
-  presenceEvents     PresenceEvent[]
+  accessPoints    AccessPoint[]
+  accessAttempts  AccessAttempt[]
+  accessGrants    MemberAccessGrant[]
+  accessOverrides MemberAccessOverride[]
+  bookings        Booking[]
+  presenceEvents  PresenceEvent[]
 }
 
 model AccessPoint {
-  id                 String         @id @default(uuid())
-  locationId         String
-  accessZoneId       String
-  code               String         @unique
-  name               String
-  createdAt          DateTime       @default(now())
+  id           String   @id @default(uuid())
+  locationId   String
+  accessZoneId String
+  code         String   @unique
+  name         String
+  createdAt    DateTime @default(now())
 
-  location           Location       @relation(fields: [locationId], references: [id])
-  accessZone         AccessZone     @relation(fields: [accessZoneId], references: [id])
-  accessAttempts     AccessAttempt[]
+  location       Location        @relation(fields: [locationId], references: [id])
+  accessZone     AccessZone      @relation(fields: [accessZoneId], references: [id])
+  accessAttempts AccessAttempt[]
 }
 
 model MemberAccessGrant {
-  id                 String      @id @default(uuid())
-  memberId           String
-  accessZoneId       String
-  validFrom          DateTime?
-  validUntil         DateTime?
-  active             Boolean     @default(true)
-  createdAt          DateTime    @default(now())
+  id           String    @id @default(uuid())
+  memberId     String
+  accessZoneId String
+  validFrom    DateTime?
+  validUntil   DateTime?
+  active       Boolean   @default(true)
+  createdAt    DateTime  @default(now())
 
-  member             Member      @relation(fields: [memberId], references: [id], onDelete: Cascade)
-  accessZone         AccessZone  @relation(fields: [accessZoneId], references: [id], onDelete: Cascade)
+  member     Member     @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  accessZone AccessZone @relation(fields: [accessZoneId], references: [id], onDelete: Cascade)
 }
 
 model MemberAccessOverride {
-  id                    String      @id @default(uuid())
-  memberId              String
-  accessZoneId          String
-  action                String
-  reason                String?
-  grantedByStaffUserId  String?
-  validFrom             DateTime?
-  validUntil            DateTime?
-  createdAt             DateTime    @default(now())
+  id                   String    @id @default(uuid())
+  memberId             String
+  accessZoneId         String
+  action               String
+  reason               String?
+  grantedByStaffUserId String?
+  validFrom            DateTime?
+  validUntil           DateTime?
+  createdAt            DateTime  @default(now())
 
-  member                Member      @relation(fields: [memberId], references: [id], onDelete: Cascade)
-  accessZone            AccessZone  @relation(fields: [accessZoneId], references: [id], onDelete: Cascade)
+  member     Member     @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  accessZone AccessZone @relation(fields: [accessZoneId], references: [id], onDelete: Cascade)
 }
 
 model AccessAttempt {
-  id                 String          @id @default(uuid())
-  memberId           String?
-  wristbandId        String?
-  accessPointId      String
-  accessZoneId       String
-  attemptSource      String?
-  decision           AccessDecision
-  denialReasonCode   String?
-  occurredAt         DateTime
+  id               String         @id @default(uuid())
+  memberId         String?
+  wristbandId      String?
+  accessPointId    String
+  accessZoneId     String
+  attemptSource    String?
+  decision         AccessDecision
+  denialReasonCode String?
+  occurredAt       DateTime
 
-  member             Member?         @relation(fields: [memberId], references: [id], onDelete: SetNull)
-  wristband          Wristband?      @relation(fields: [wristbandId], references: [id], onDelete: SetNull)
-  accessPoint        AccessPoint     @relation(fields: [accessPointId], references: [id])
-  accessZone         AccessZone      @relation(fields: [accessZoneId], references: [id])
+  member      Member?     @relation(fields: [memberId], references: [id], onDelete: SetNull)
+  wristband   Wristband?  @relation(fields: [wristbandId], references: [id], onDelete: SetNull)
+  accessPoint AccessPoint @relation(fields: [accessPointId], references: [id])
+  accessZone  AccessZone  @relation(fields: [accessZoneId], references: [id])
 }
 
 model VisitSession {
-  id                    String               @id @default(uuid())
+  id                    String      @id @default(uuid())
   memberId              String
   locationId            String
   wristbandAssignmentId String?
   checkInAt             DateTime
   checkOutAt            DateTime?
   status                VisitStatus
-  createdAt             DateTime             @default(now())
+  createdAt             DateTime    @default(now())
 
-  member                Member               @relation(fields: [memberId], references: [id], onDelete: Cascade)
-  location              Location             @relation(fields: [locationId], references: [id])
-  wristbandAssignment   WristbandAssignment? @relation(fields: [wristbandAssignmentId], references: [id])
-  presenceEvents        PresenceEvent[]
-  lockerAssignments     LockerAssignment[]
+  member                     Member                      @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  location                   Location                    @relation(fields: [locationId], references: [id])
+  wristbandAssignment        WristbandAssignment?        @relation(fields: [wristbandAssignmentId], references: [id])
+  presenceEvents             PresenceEvent[]
+  lockerAssignments          LockerAssignment[]
   lockerPolicyDecisionEvents LockerPolicyDecisionEvent[]
 }
 
 model PresenceEvent {
-  id                 String       @id @default(uuid())
-  visitSessionId     String
-  memberId           String
-  accessZoneId       String?
-  eventType          String
-  sourceType         String?
-  sourceReference    String?
-  occurredAt         DateTime     @default(now())
-  payloadJson        Json?
+  id              String   @id @default(uuid())
+  visitSessionId  String
+  memberId        String
+  accessZoneId    String?
+  eventType       String
+  sourceType      String?
+  sourceReference String?
+  occurredAt      DateTime @default(now())
+  payloadJson     Json?
 
-  visitSession       VisitSession @relation(fields: [visitSessionId], references: [id], onDelete: Cascade)
-  member             Member       @relation(fields: [memberId], references: [id], onDelete: Cascade)
-  accessZone         AccessZone?  @relation(fields: [accessZoneId], references: [id], onDelete: SetNull)
+  visitSession VisitSession @relation(fields: [visitSessionId], references: [id], onDelete: Cascade)
+  member       Member       @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  accessZone   AccessZone?  @relation(fields: [accessZoneId], references: [id], onDelete: SetNull)
 }
 
 model Booking {
-  id                 String      @id @default(uuid())
-  memberId           String
-  accessZoneId       String
-  startsAt           DateTime
-  endsAt             DateTime
-  status             String
-  createdAt          DateTime    @default(now())
+  id           String   @id @default(uuid())
+  memberId     String
+  accessZoneId String
+  startsAt     DateTime
+  endsAt       DateTime
+  status       String
+  createdAt    DateTime @default(now())
 
-  accessZone         AccessZone  @relation(fields: [accessZoneId], references: [id])
+  accessZone AccessZone @relation(fields: [accessZoneId], references: [id])
 }
 
 model FloorPlan {
-  id          String          @id @default(uuid())
-  locationId  String
-  name        String
-  active      Boolean         @default(true)
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
+  id         String   @id @default(uuid())
+  locationId String
+  name       String
+  active     Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
-  location    Location        @relation(fields: [locationId], references: [id], onDelete: Cascade)
-  areas       FloorPlanArea[]
+  location Location        @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  floor    Floor?
+  areas    FloorPlanArea[]
 
   @@index([locationId, active])
+}
+
+model Floor {
+  id          String   @id @default(uuid())
+  facilityId  String
+  floorPlanId String?  @unique
+  code        String
+  name        String
+  levelIndex  Int
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  facility    Facility     @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+  floorPlan   FloorPlan?   @relation(fields: [floorPlanId], references: [id], onDelete: SetNull)
+  zones       Zone[]
+  accessNodes AccessNode[]
+  devices     Device[]
+
+  @@unique([facilityId, code])
+  @@index([facilityId, active, levelIndex])
 }
 
 model FloorPlanArea {
@@ -823,11 +878,79 @@ model FloorPlanArea {
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
 
-  floorPlan   FloorPlan         @relation(fields: [floorPlanId], references: [id], onDelete: Cascade)
-  room        Room?
+  floorPlan FloorPlan @relation(fields: [floorPlanId], references: [id], onDelete: Cascade)
+  room      Room?
+  zone      Zone?
 
   @@unique([floorPlanId, code])
   @@index([floorPlanId, active])
+}
+
+model Zone {
+  id              String            @id @default(uuid())
+  floorId         String
+  floorPlanAreaId String?           @unique
+  roomId          String?           @unique
+  code            String
+  name            String
+  zoneType        FloorPlanAreaType
+  polygonJson     Json
+  active          Boolean           @default(true)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  floor         Floor          @relation(fields: [floorId], references: [id], onDelete: Cascade)
+  floorPlanArea FloorPlanArea? @relation(fields: [floorPlanAreaId], references: [id], onDelete: SetNull)
+  room          Room?          @relation(fields: [roomId], references: [id], onDelete: SetNull)
+  accessNodes   AccessNode[]
+  devices       Device[]
+
+  @@unique([floorId, code])
+  @@index([floorId, active])
+}
+
+model AccessNode {
+  id           String         @id @default(uuid())
+  floorId      String
+  zoneId       String?
+  code         String         @unique
+  name         String
+  nodeType     AccessNodeType
+  x            Decimal        @db.Decimal(10, 2)
+  y            Decimal        @db.Decimal(10, 2)
+  status       DeviceStatus   @default(online)
+  active       Boolean        @default(true)
+  metadataJson Json?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  floor Floor @relation(fields: [floorId], references: [id], onDelete: Cascade)
+  zone  Zone? @relation(fields: [zoneId], references: [id], onDelete: SetNull)
+
+  @@index([floorId, active])
+  @@index([zoneId])
+}
+
+model Device {
+  id           String       @id @default(uuid())
+  floorId      String
+  zoneId       String?
+  code         String       @unique
+  name         String
+  deviceType   DeviceType
+  x            Decimal      @db.Decimal(10, 2)
+  y            Decimal      @db.Decimal(10, 2)
+  status       DeviceStatus @default(online)
+  active       Boolean      @default(true)
+  metadataJson Json?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  floor Floor @relation(fields: [floorId], references: [id], onDelete: Cascade)
+  zone  Zone? @relation(fields: [zoneId], references: [id], onDelete: SetNull)
+
+  @@index([floorId, active])
+  @@index([zoneId])
 }
 
 model Room {
@@ -846,11 +969,12 @@ model Room {
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
 
-  location         Location         @relation(fields: [locationId], references: [id])
-  floorPlanArea    FloorPlanArea    @relation(fields: [floorPlanAreaId], references: [id])
-  bookings         RoomBooking[]
-  accessEvents     RoomAccessEvent[]
-  cleaningTasks    CleaningTask[]
+  location      Location          @relation(fields: [locationId], references: [id])
+  floorPlanArea FloorPlanArea     @relation(fields: [floorPlanAreaId], references: [id])
+  bookings      RoomBooking[]
+  accessEvents  RoomAccessEvent[]
+  cleaningTasks CleaningTask[]
+  zone          Zone?
 
   @@index([locationId, status])
   @@index([roomType, privacyLevel])
@@ -872,10 +996,10 @@ model RoomBooking {
   createdAt        DateTime              @default(now())
   updatedAt        DateTime              @updatedAt
 
-  member           Member                @relation(fields: [memberId], references: [id], onDelete: Cascade)
-  room             Room                  @relation(fields: [roomId], references: [id], onDelete: Cascade)
-  accessEvents     RoomAccessEvent[]
-  cleaningTasks    CleaningTask[]
+  member        Member            @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  room          Room              @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  accessEvents  RoomAccessEvent[]
+  cleaningTasks CleaningTask[]
 
   @@index([roomId, startsAt])
   @@index([memberId, startsAt])
@@ -883,7 +1007,7 @@ model RoomBooking {
 }
 
 model RoomAccessEvent {
-  id               String              @id @default(uuid())
+  id               String               @id @default(uuid())
   bookingId        String?
   roomId           String
   memberId         String?
@@ -894,12 +1018,12 @@ model RoomAccessEvent {
   occurredAt       DateTime
   sourceType       RoomAccessSourceType
   sourceReference  String?
-  createdAt        DateTime            @default(now())
+  createdAt        DateTime             @default(now())
 
-  booking          RoomBooking?        @relation(fields: [bookingId], references: [id], onDelete: SetNull)
-  room             Room                @relation(fields: [roomId], references: [id], onDelete: Cascade)
-  member           Member?             @relation(fields: [memberId], references: [id], onDelete: SetNull)
-  wristband        Wristband?          @relation(fields: [wristbandId], references: [id], onDelete: SetNull)
+  booking   RoomBooking? @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  room      Room         @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  member    Member?      @relation(fields: [memberId], references: [id], onDelete: SetNull)
+  wristband Wristband?   @relation(fields: [wristbandId], references: [id], onDelete: SetNull)
 
   @@index([roomId, occurredAt])
   @@index([memberId, occurredAt])
@@ -913,13 +1037,13 @@ model CleaningTask {
   status                CleaningTaskStatus @default(open)
   createdAt             DateTime           @default(now())
   startedAt             DateTime?
-  completedAt             DateTime?
+  completedAt           DateTime?
   assignedToStaffUserId String?
   notes                 String?
 
-  room                  Room               @relation(fields: [roomId], references: [id], onDelete: Cascade)
-  booking               RoomBooking?       @relation(fields: [bookingId], references: [id], onDelete: SetNull)
-  assignedToStaffUser   StaffUser?         @relation(fields: [assignedToStaffUserId], references: [id], onDelete: SetNull)
+  room                Room         @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  booking             RoomBooking? @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  assignedToStaffUser StaffUser?   @relation(fields: [assignedToStaffUserId], references: [id], onDelete: SetNull)
 
   @@index([roomId, status])
   @@index([status, createdAt])
@@ -943,14 +1067,15 @@ model StaffAuditEvent {
 }
 
 model EventPollingCursor {
-  id          String   @id
-  eventType   String   @unique
+  id           String   @id
+  eventType    String   @unique
   lastPolledAt DateTime
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   @@index([eventType])
 }
+
 // ============================================================
 // AO-OS Guest / Visit / Inventory / Folio domains
 // ============================================================
@@ -1106,10 +1231,10 @@ model Guest {
   createdAt         DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt         DateTime              @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  waivers           GuestWaiver[]
-  guestBookings     GuestBooking[]
-  visits            Visit[]
-  wristbandLinks    WristbandLink[]
+  waivers        GuestWaiver[]
+  guestBookings  GuestBooking[]
+  visits         Visit[]
+  wristbandLinks WristbandLink[]
 
   @@map("guests")
 }
@@ -1123,28 +1248,28 @@ model GuestWaiver {
   isCurrent       Boolean  @default(true) @map("is_current")
   acceptedAt      DateTime @default(now()) @map("accepted_at") @db.Timestamptz(6)
 
-  guest           Guest    @relation(fields: [guestId], references: [id])
+  guest Guest @relation(fields: [guestId], references: [id])
 
   @@index([guestId, isCurrent])
   @@map("guest_waivers")
 }
 
 model Tier {
-  id                String             @id @default(uuid()) @db.Uuid
-  productType       ProductType        @map("product_type")
-  code              String             @unique
+  id                String      @id @default(uuid()) @db.Uuid
+  productType       ProductType @map("product_type")
+  code              String      @unique
   name              String
-  publicDescription String?            @map("public_description")
-  upgradeRank       Int                @default(0) @map("upgrade_rank")
-  basePriceCents    Int                @map("base_price_cents")
-  active            Boolean            @default(true)
-  createdAt         DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt         DateTime           @updatedAt @map("updated_at") @db.Timestamptz(6)
+  publicDescription String?     @map("public_description")
+  upgradeRank       Int         @default(0) @map("upgrade_rank")
+  basePriceCents    Int         @map("base_price_cents")
+  active            Boolean     @default(true)
+  createdAt         DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime    @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  durationOptions   TierDurationOption[]
-  resources         Resource[]
-  guestBookings     GuestBooking[]
-  visits            Visit[]
+  durationOptions TierDurationOption[]
+  resources       Resource[]
+  guestBookings   GuestBooking[]
+  visits          Visit[]
 
   @@map("tiers")
 }
@@ -1157,7 +1282,7 @@ model TierDurationOption {
   active          Boolean  @default(true)
   createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
-  tier            Tier     @relation(fields: [tierId], references: [id])
+  tier Tier @relation(fields: [tierId], references: [id])
 
   @@map("tier_duration_options")
 }
@@ -1175,28 +1300,28 @@ model Resource {
   createdAt             DateTime                   @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt             DateTime                   @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  tier                  Tier                       @relation(fields: [tierId], references: [id])
-  stateHistory          ResourceStateHistory[]
-  holds                 ResourceHold[]
-  assignedVisits        Visit[]                    @relation("VisitAssignedResource")
-  exceptions            SystemException[]
+  tier           Tier                   @relation(fields: [tierId], references: [id])
+  stateHistory   ResourceStateHistory[]
+  holds          ResourceHold[]
+  assignedVisits Visit[]                @relation("VisitAssignedResource")
+  exceptions     SystemException[]
 
   @@index([resourceType, status, tierId], map: "idx_resources_type_status_tier")
   @@map("resources")
 }
 
 model ResourceStateHistory {
-  id               String     @id @default(uuid()) @db.Uuid
-  resourceId       String     @map("resource_id") @db.Uuid
-  previousStatus   String?    @map("previous_status")
-  newStatus        String     @map("new_status")
-  reasonCode       String?    @map("reason_code")
-  reasonText       String?    @map("reason_text")
-  changedByUserId  String?    @map("changed_by_user_id")
-  visitId          String?    @map("visit_id") @db.Uuid
-  changedAt        DateTime   @default(now()) @map("changed_at") @db.Timestamptz(6)
+  id              String   @id @default(uuid()) @db.Uuid
+  resourceId      String   @map("resource_id") @db.Uuid
+  previousStatus  String?  @map("previous_status")
+  newStatus       String   @map("new_status")
+  reasonCode      String?  @map("reason_code")
+  reasonText      String?  @map("reason_text")
+  changedByUserId String?  @map("changed_by_user_id")
+  visitId         String?  @map("visit_id") @db.Uuid
+  changedAt       DateTime @default(now()) @map("changed_at") @db.Timestamptz(6)
 
-  resource         Resource   @relation(fields: [resourceId], references: [id])
+  resource Resource @relation(fields: [resourceId], references: [id])
 
   @@index([resourceId, changedAt(sort: Desc)], map: "idx_resource_state_history_resource_time")
   @@map("resource_state_history")
@@ -1213,8 +1338,8 @@ model ResourceHold {
   releaseReason String?    @map("release_reason")
   createdAt     DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
 
-  resource      Resource   @relation(fields: [resourceId], references: [id])
-  visit         Visit?     @relation(fields: [visitId], references: [id])
+  resource Resource @relation(fields: [resourceId], references: [id])
+  visit    Visit?   @relation(fields: [visitId], references: [id])
 
   @@index([resourceId, status, expiresAt], map: "idx_resource_holds_active")
   @@map("resource_holds")
@@ -1241,11 +1366,11 @@ model GuestBooking {
   createdAt           DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt           DateTime            @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  guest               Guest               @relation(fields: [guestId], references: [id])
-  tier                Tier                @relation(fields: [tierId], references: [id])
-  addOns              GuestBookingAddOn[]
-  visits              Visit[]
-  exceptions          SystemException[]
+  guest      Guest               @relation(fields: [guestId], references: [id])
+  tier       Tier                @relation(fields: [tierId], references: [id])
+  addOns     GuestBookingAddOn[]
+  visits     Visit[]
+  exceptions SystemException[]
 
   @@index([guestId, status], map: "idx_guest_bookings_guest_status")
   @@index([arrivalWindowStart, status], map: "idx_guest_bookings_arrival_status")
@@ -1253,14 +1378,14 @@ model GuestBooking {
 }
 
 model GuestBookingAddOn {
-  id              String       @id @default(uuid()) @db.Uuid
-  bookingId       String       @map("booking_id") @db.Uuid
-  addOnCode       String       @map("add_on_code")
-  quantity        Int          @default(1)
-  unitPriceCents  Int          @default(0) @map("unit_price_cents")
-  totalPriceCents Int          @default(0) @map("total_price_cents")
+  id              String @id @default(uuid()) @db.Uuid
+  bookingId       String @map("booking_id") @db.Uuid
+  addOnCode       String @map("add_on_code")
+  quantity        Int    @default(1)
+  unitPriceCents  Int    @default(0) @map("unit_price_cents")
+  totalPriceCents Int    @default(0) @map("total_price_cents")
 
-  booking         GuestBooking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  booking GuestBooking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
 
   @@map("guest_booking_add_ons")
 }
@@ -1288,18 +1413,18 @@ model Visit {
   createdAt          DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt          DateTime           @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  guest              Guest              @relation(fields: [guestId], references: [id])
-  booking            GuestBooking?      @relation(fields: [bookingId], references: [id])
-  tier               Tier               @relation(fields: [tierId], references: [id])
-  assignedResource   Resource?          @relation("VisitAssignedResource", fields: [assignedResourceId], references: [id])
-  statusHistory      VisitStatusHistory[]
-  wristbandLinks     WristbandLink[]
-  holds              ResourceHold[]
-  folio              Folio?
+  guest               Guest                @relation(fields: [guestId], references: [id])
+  booking             GuestBooking?        @relation(fields: [bookingId], references: [id])
+  tier                Tier                 @relation(fields: [tierId], references: [id])
+  assignedResource    Resource?            @relation("VisitAssignedResource", fields: [assignedResourceId], references: [id])
+  statusHistory       VisitStatusHistory[]
+  wristbandLinks      WristbandLink[]
+  holds               ResourceHold[]
+  folio               Folio?
   paymentTransactions PaymentTransaction[]
-  accessPermissions  AccessPermission[]
-  guestAccessEvents  GuestAccessEvent[]
-  exceptions         SystemException[]
+  accessPermissions   AccessPermission[]
+  guestAccessEvents   GuestAccessEvent[]
+  exceptions          SystemException[]
 
   @@index([guestId, status], map: "idx_visits_guest_status")
   @@index([status, createdAt(sort: Desc)], map: "idx_visits_status_created")
@@ -1316,25 +1441,25 @@ model VisitStatusHistory {
   changedByUserId String?  @map("changed_by_user_id")
   changedAt       DateTime @default(now()) @map("changed_at") @db.Timestamptz(6)
 
-  visit           Visit    @relation(fields: [visitId], references: [id])
+  visit Visit @relation(fields: [visitId], references: [id])
 
   @@index([visitId, changedAt(sort: Desc)], map: "idx_visit_status_history_visit_time")
   @@map("visit_status_history")
 }
 
 model WristbandLink {
-  id           String              @id @default(uuid()) @db.Uuid
-  wristbandId  String              @map("wristband_id")
-  guestId      String              @map("guest_id") @db.Uuid
-  visitId      String              @map("visit_id") @db.Uuid
-  linkStatus   WristbandLinkStatus @default(active) @map("link_status")
-  reasonCode   String?             @map("reason_code")
-  createdAt    DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt    DateTime            @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id          String              @id @default(uuid()) @db.Uuid
+  wristbandId String              @map("wristband_id")
+  guestId     String              @map("guest_id") @db.Uuid
+  visitId     String              @map("visit_id") @db.Uuid
+  linkStatus  WristbandLinkStatus @default(active) @map("link_status")
+  reasonCode  String?             @map("reason_code")
+  createdAt   DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime            @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  wristband    Wristband           @relation(fields: [wristbandId], references: [id])
-  guest        Guest               @relation(fields: [guestId], references: [id])
-  visit        Visit               @relation(fields: [visitId], references: [id])
+  wristband Wristband @relation(fields: [wristbandId], references: [id])
+  guest     Guest     @relation(fields: [guestId], references: [id])
+  visit     Visit     @relation(fields: [visitId], references: [id])
 
   @@index([wristbandId, linkStatus], map: "idx_wristband_links_band_status")
   @@index([visitId, linkStatus], map: "idx_wristband_links_visit_status")
@@ -1358,10 +1483,10 @@ model Folio {
   createdAt            DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt            DateTime           @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  visit                Visit              @relation(fields: [visitId], references: [id])
-  lineItems            FolioLineItem[]
-  paymentTransactions  PaymentTransaction[]
-  exceptions           SystemException[]
+  visit               Visit                @relation(fields: [visitId], references: [id])
+  lineItems           FolioLineItem[]
+  paymentTransactions PaymentTransaction[]
+  exceptions          SystemException[]
 
   @@map("folios")
 }
@@ -1378,7 +1503,7 @@ model FolioLineItem {
   metadata         Json     @default("{}")
   createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
-  folio            Folio    @relation(fields: [folioId], references: [id], onDelete: Cascade)
+  folio Folio @relation(fields: [folioId], references: [id], onDelete: Cascade)
 
   @@map("folio_line_items")
 }
@@ -1398,25 +1523,25 @@ model PaymentTransaction {
   providerResponse        Json?                  @map("provider_response")
   createdAt               DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
 
-  folio                   Folio                  @relation(fields: [folioId], references: [id])
-  visit                   Visit                  @relation(fields: [visitId], references: [id])
+  folio Folio @relation(fields: [folioId], references: [id])
+  visit Visit @relation(fields: [visitId], references: [id])
 
   @@map("payment_transactions")
 }
 
 model AccessPermission {
-  id               String                @id @default(uuid()) @db.Uuid
-  wristbandId      String                @map("wristband_id")
-  visitId          String                @map("visit_id") @db.Uuid
-  zoneCode         String                @map("zone_code")
+  id               String                 @id @default(uuid()) @db.Uuid
+  wristbandId      String                 @map("wristband_id")
+  visitId          String                 @map("visit_id") @db.Uuid
+  zoneCode         String                 @map("zone_code")
   permissionStatus AccessPermissionStatus @default(granted) @map("permission_status")
-  validFrom        DateTime              @map("valid_from") @db.Timestamptz(6)
-  validUntil       DateTime              @map("valid_until") @db.Timestamptz(6)
-  revokedAt        DateTime?             @map("revoked_at") @db.Timestamptz(6)
-  createdAt        DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+  validFrom        DateTime               @map("valid_from") @db.Timestamptz(6)
+  validUntil       DateTime               @map("valid_until") @db.Timestamptz(6)
+  revokedAt        DateTime?              @map("revoked_at") @db.Timestamptz(6)
+  createdAt        DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
 
-  wristband        Wristband             @relation(fields: [wristbandId], references: [id])
-  visit            Visit                 @relation(fields: [visitId], references: [id])
+  wristband Wristband @relation(fields: [wristbandId], references: [id])
+  visit     Visit     @relation(fields: [visitId], references: [id])
 
   @@index([wristbandId, zoneCode, permissionStatus], map: "idx_access_permissions_band_zone")
   @@map("access_permissions")
@@ -1433,8 +1558,8 @@ model GuestAccessEvent {
   eventTime    DateTime     @map("event_time") @db.Timestamptz(6)
   rawPayload   Json?        @map("raw_payload")
 
-  wristband    Wristband?   @relation(fields: [wristbandId], references: [id])
-  visit        Visit?       @relation(fields: [visitId], references: [id])
+  wristband Wristband? @relation(fields: [wristbandId], references: [id])
+  visit     Visit?     @relation(fields: [visitId], references: [id])
 
   @@index([wristbandId, eventTime(sort: Desc)], map: "idx_guest_access_events_band_time")
   @@map("guest_access_events")
@@ -1471,13 +1596,12 @@ model SystemException {
   createdAt     DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
   resolvedAt    DateTime?         @map("resolved_at") @db.Timestamptz(6)
 
-  visit         Visit?            @relation(fields: [visitId], references: [id])
-  booking       GuestBooking?     @relation(fields: [bookingId], references: [id])
-  folio         Folio?            @relation(fields: [folioId], references: [id])
-  resource      Resource?         @relation(fields: [resourceId], references: [id])
-  wristband     Wristband?        @relation(fields: [wristbandId], references: [id])
+  visit     Visit?        @relation(fields: [visitId], references: [id])
+  booking   GuestBooking? @relation(fields: [bookingId], references: [id])
+  folio     Folio?        @relation(fields: [folioId], references: [id])
+  resource  Resource?     @relation(fields: [resourceId], references: [id])
+  wristband Wristband?    @relation(fields: [wristbandId], references: [id])
 
   @@index([status, severity, createdAt(sort: Desc)], map: "idx_system_exceptions_status")
   @@map("system_exceptions")
 }
-

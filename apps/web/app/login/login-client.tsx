@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useMemo, useState, useTransition } from 'react'
-import { confirmStaffPasswordReset, loginAction, requestPasswordReset } from '@/app/actions/auth'
+import { persistLoginSession } from '@/app/actions/auth'
+import { getBrowserApiBase, storeBrowserSession } from '@/lib/browser-auth'
 
 const USERS_KEY = 'ao-os-login-users'
 const LAST_USER_KEY = 'ao-os-last-login-user'
@@ -13,6 +14,30 @@ type Props = {
   loginError: string | null
   resetState: 'sent' | 'error' | 'changed' | 'invalid' | 'mismatch' | null
   resetToken: string
+}
+
+type BrowserLoginResponse = {
+  accessToken: string
+  staffUser: {
+    id: string
+    email: string
+    fullName: string
+    role: 'front_desk' | 'operations' | 'admin'
+  }
+}
+
+function resolveLoginError(status: number, failureText: string): string {
+  const normalized = failureText.toLowerCase()
+
+  if (status === 401) {
+    return 'Invalid email or password.'
+  }
+
+  if (status === 403 && /(inactive|blocked|disabled)/.test(normalized)) {
+    return 'Sign-in is currently blocked. Please contact support.'
+  }
+
+  return 'Could not sign in right now. Please try again.'
 }
 
 function SubmitButton({ pending }: { pending: boolean }) {
@@ -30,11 +55,43 @@ export default function LoginClient({ loginError: initialLoginError, resetState,
   const [showReset, setShowReset] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [loginError, setLoginError] = useState<string | null>(initialLoginError)
+  const [resetNotice, setResetNotice] = useState<{ tone: 'success' | 'warning'; text: string } | null>(null)
   const [isPending, startTransition] = useTransition()
+  const [isResetPending, startResetTransition] = useTransition()
+  const [isConfirmPending, startConfirmTransition] = useTransition()
 
   useEffect(() => {
     setLoginError(initialLoginError)
   }, [initialLoginError])
+
+  useEffect(() => {
+    if (resetState === 'sent') {
+      setResetNotice({ tone: 'success', text: 'If that staff email exists, a password reset link has been sent.' })
+      return
+    }
+
+    if (resetState === 'changed') {
+      setResetNotice({ tone: 'success', text: 'Password updated. Sign in with your new password.' })
+      return
+    }
+
+    if (resetState === 'error') {
+      setResetNotice({ tone: 'warning', text: 'Could not complete the password reset flow. Please try again.' })
+      return
+    }
+
+    if (resetState === 'invalid') {
+      setResetNotice({ tone: 'warning', text: 'This password reset link is invalid or expired. Request a new link below.' })
+      return
+    }
+
+    if (resetState === 'mismatch') {
+      setResetNotice({ tone: 'warning', text: 'Passwords did not match. Try again.' })
+      return
+    }
+
+    setResetNotice(null)
+  }, [resetState])
 
   useEffect(() => {
     const rawUsers = window.localStorage.getItem(USERS_KEY)
@@ -155,33 +212,9 @@ export default function LoginClient({ loginError: initialLoginError, resetState,
               </div>
             )}
 
-            {resetState === 'sent' && (
-              <div className="notice notice-success mb-4">
-                If that staff email exists, a password reset link has been sent.
-              </div>
-            )}
-
-            {resetState === 'changed' && (
-              <div className="notice notice-success mb-4">
-                Password updated. Sign in with your new password.
-              </div>
-            )}
-
-            {resetState === 'error' && (
-              <div className="notice notice-warning mb-4">
-                Could not complete the password reset flow. Please try again.
-              </div>
-            )}
-
-            {resetState === 'invalid' && (
-              <div className="notice notice-warning mb-4">
-                This password reset link is invalid or expired. Request a new link below.
-              </div>
-            )}
-
-            {resetState === 'mismatch' && (
-              <div className="notice notice-warning mb-4">
-                Passwords did not match. Try again.
+            {resetNotice && (
+              <div className={`mb-4 ${resetNotice.tone === 'success' ? 'notice notice-success' : 'notice notice-warning'}`}>
+                {resetNotice.text}
               </div>
             )}
 
@@ -193,8 +226,47 @@ export default function LoginClient({ loginError: initialLoginError, resetState,
                 rememberUser(email)
                 setLoginError(null)
                 startTransition(async () => {
-                  const result = await loginAction(null, formData)
-                  if (result?.error) setLoginError(result.error)
+                  const loginEmail = String(formData.get('email') ?? '').trim().toLowerCase()
+                  const password = String(formData.get('password') ?? '')
+
+                  if (!loginEmail || !password) {
+                    setLoginError('Email and password are required.')
+                    return
+                  }
+
+                  try {
+                    const response = await fetch(`${getBrowserApiBase()}/auth/login`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ email: loginEmail, password }),
+                      credentials: 'include',
+                    })
+
+                    if (!response.ok) {
+                      const responseText = await response.text().catch(() => '')
+                      console.error('Staff login failed from browser', {
+                        apiBase: getBrowserApiBase(),
+                        email: loginEmail,
+                        status: response.status,
+                        body: responseText.slice(0, 500),
+                      })
+
+                      setLoginError(resolveLoginError(response.status, responseText))
+                      return
+                    }
+
+                    const data = await response.json() as BrowserLoginResponse
+                    storeBrowserSession(data.accessToken, data.staffUser)
+                    await persistLoginSession(data)
+                    window.location.assign('/dashboard')
+                  } catch (error) {
+                    console.error('Staff login failed from browser', {
+                      apiBase: getBrowserApiBase(),
+                      email: loginEmail,
+                      error: error instanceof Error ? error.message : 'unknown_error',
+                    })
+                    setLoginError('Could not sign in right now. Please try again.')
+                  }
                 })
               }}
             >
@@ -278,7 +350,70 @@ export default function LoginClient({ loginError: initialLoginError, resetState,
 
             {showReset && (
               resetToken ? (
-                <form action={confirmStaffPasswordReset} className="mt-5 space-y-3 rounded-2xl border border-[rgba(237,233,227,0.10)] bg-[rgba(255,255,255,0.02)] p-4">
+                <form
+                  className="mt-5 space-y-3 rounded-2xl border border-[rgba(237,233,227,0.10)] bg-[rgba(255,255,255,0.02)] p-4"
+                  onSubmit={(e) => {
+                    e.preventDefault()
+
+                    const formData = new FormData(e.currentTarget)
+                    const token = String(formData.get('token') ?? '').trim()
+                    const newPassword = String(formData.get('newPassword') ?? '')
+                    const confirmPassword = String(formData.get('confirmPassword') ?? '')
+
+                    if (!token) {
+                      setResetNotice({ tone: 'warning', text: 'This password reset link is invalid or expired. Request a new link below.' })
+                      return
+                    }
+
+                    if (newPassword.length < 8) {
+                      setResetNotice({ tone: 'warning', text: 'Password must be at least 8 characters.' })
+                      return
+                    }
+
+                    if (newPassword !== confirmPassword) {
+                      setResetNotice({ tone: 'warning', text: 'Passwords did not match. Try again.' })
+                      return
+                    }
+
+                    setResetNotice(null)
+
+                    startConfirmTransition(async () => {
+                      try {
+                        const response = await fetch(`${getBrowserApiBase()}/auth/staff-password-reset/confirm`, {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ token, newPassword }),
+                          credentials: 'include',
+                        })
+
+                        if (!response.ok) {
+                          const responseText = await response.text().catch(() => '')
+                          console.error('Staff password reset confirm failed from browser', {
+                            apiBase: getBrowserApiBase(),
+                            status: response.status,
+                            body: responseText.slice(0, 500),
+                          })
+
+                          if (response.status === 400 || response.status === 401) {
+                            setResetNotice({ tone: 'warning', text: 'This password reset link is invalid or expired. Request a new link below.' })
+                            return
+                          }
+
+                          setResetNotice({ tone: 'warning', text: 'Could not complete the password reset flow. Please try again.' })
+                          return
+                        }
+
+                        window.location.assign('/login?reset=changed')
+                      } catch (error) {
+                        console.error('Staff password reset confirm failed from browser', {
+                          apiBase: getBrowserApiBase(),
+                          error: error instanceof Error ? error.message : 'unknown_error',
+                        })
+                        setResetNotice({ tone: 'warning', text: 'Could not complete the password reset flow. Please try again.' })
+                      }
+                    })
+                  }}
+                >
                   <div>
                     <p className="text-xs font-sans uppercase tracking-[0.22em] text-text-secondary">Reset Password</p>
                     <p className="mt-2 text-xs text-text-muted font-sans">Set a new password for this staff account.</p>
@@ -302,12 +437,59 @@ export default function LoginClient({ loginError: initialLoginError, resetState,
                     className="form-input"
                     placeholder="Confirm new password"
                   />
-                  <button type="submit" className="w-full btn-secondary py-3">
-                    Set new password
+                  <button type="submit" className="w-full btn-secondary py-3" disabled={isConfirmPending}>
+                    {isConfirmPending ? 'Updating...' : 'Set new password'}
                   </button>
                 </form>
               ) : (
-                <form action={requestPasswordReset} className="mt-5 space-y-3 rounded-2xl border border-[rgba(237,233,227,0.10)] bg-[rgba(255,255,255,0.02)] p-4">
+                <form
+                  className="mt-5 space-y-3 rounded-2xl border border-[rgba(237,233,227,0.10)] bg-[rgba(255,255,255,0.02)] p-4"
+                  onSubmit={(e) => {
+                    e.preventDefault()
+
+                    const formData = new FormData(e.currentTarget)
+                    const resetEmail = String(formData.get('email') ?? '').trim().toLowerCase()
+
+                    if (!resetEmail) {
+                      setResetNotice({ tone: 'warning', text: 'Enter a staff email address first.' })
+                      return
+                    }
+
+                    setResetNotice(null)
+
+                    startResetTransition(async () => {
+                      try {
+                        const response = await fetch(`${getBrowserApiBase()}/auth/staff-password-reset/request`, {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ email: resetEmail }),
+                          credentials: 'include',
+                        })
+
+                        if (!response.ok) {
+                          const responseText = await response.text().catch(() => '')
+                          console.error('Staff password reset request failed from browser', {
+                            apiBase: getBrowserApiBase(),
+                            email: resetEmail,
+                            status: response.status,
+                            body: responseText.slice(0, 500),
+                          })
+                          setResetNotice({ tone: 'warning', text: 'Could not complete the password reset flow. Please try again.' })
+                          return
+                        }
+
+                        setResetNotice({ tone: 'success', text: 'If that staff email exists, a password reset link has been sent.' })
+                      } catch (error) {
+                        console.error('Staff password reset request failed from browser', {
+                          apiBase: getBrowserApiBase(),
+                          email: resetEmail,
+                          error: error instanceof Error ? error.message : 'unknown_error',
+                        })
+                        setResetNotice({ tone: 'warning', text: 'Could not complete the password reset flow. Please try again.' })
+                      }
+                    })
+                  }}
+                >
                   <div>
                     <p className="text-xs font-sans uppercase tracking-[0.22em] text-text-secondary">Reset Password</p>
                     <p className="mt-2 text-xs text-text-muted font-sans">Request a password reset link for this staff account.</p>
@@ -321,8 +503,8 @@ export default function LoginClient({ loginError: initialLoginError, resetState,
                     className="form-input"
                     placeholder="name@domain.com"
                   />
-                  <button type="submit" className="w-full btn-secondary py-3">
-                    Send reset link
+                  <button type="submit" className="w-full btn-secondary py-3" disabled={isResetPending}>
+                    {isResetPending ? 'Sending...' : 'Send reset link'}
                   </button>
                 </form>
               )

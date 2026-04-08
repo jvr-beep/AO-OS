@@ -1,12 +1,8 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import {
-  deactivateStaffUserAction,
-  provisionStaffUserAction,
-  reactivateStaffUserAction,
-} from '@/app/actions/staff'
 import { getSession } from '@/lib/session'
 import { ApiError, apiFetch } from '@/lib/api'
+import { BrowserApiForm } from '@/components/browser-api-form'
 import { StatusBadge } from '@/components/status-badge'
 import type { StaffUser } from '@/types/api'
 
@@ -140,7 +136,13 @@ export default async function StaffPage({
               <p className="text-sm text-text-secondary mb-5 max-w-xl">
                 Creates the Google Workspace account and matching AO OS staff login. Managed staff accounts should use the @aosanctuary.com domain.
               </p>
-              <form action={provisionStaffUserAction} className="space-y-3">
+              <BrowserApiForm
+                actionPath="/staff-users/provision"
+                redirectTo="/staff"
+                successMessage="Staff user provisioned"
+                fallbackErrorMessage="Could not provision the staff user."
+                className="space-y-3"
+              >
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                   <input
                     name="givenName"
@@ -189,7 +191,7 @@ export default async function StaffPage({
                     Provision User
                   </button>
                 </div>
-              </form>
+              </BrowserApiForm>
             </div>
           </div>
           <div className="border-t border-[rgba(237,233,227,0.08)] bg-[rgba(255,255,255,0.02)] p-5 lg:border-l lg:border-t-0 lg:p-6">
@@ -305,21 +307,33 @@ export default async function StaffPage({
                       {user.id === session.user?.id ? (
                         <span className="text-xs text-text-muted">Current user</span>
                       ) : user.active ? (
-                        <form action={deactivateStaffUserAction}>
+                        <BrowserApiForm
+                          actionPath="/staff-users/:staffUserId/deactivate"
+                          method="PATCH"
+                          redirectTo="/staff"
+                          successMessage="Staff user deactivated"
+                          fallbackErrorMessage="Could not deactivate that staff user."
+                        >
                           <input type="hidden" name="staffUserId" value={user.id} />
                           <input type="hidden" name="email" value={user.email} />
                           <button type="submit" className="btn-secondary text-xs px-2 py-1">
                             Deactivate
                           </button>
-                        </form>
+                        </BrowserApiForm>
                       ) : (
-                        <form action={reactivateStaffUserAction}>
+                        <BrowserApiForm
+                          actionPath="/staff-users/:staffUserId/reactivate"
+                          method="PATCH"
+                          redirectTo="/staff"
+                          successMessage="Staff user reactivated"
+                          fallbackErrorMessage="Could not reactivate that staff user."
+                        >
                           <input type="hidden" name="staffUserId" value={user.id} />
                           <input type="hidden" name="email" value={user.email} />
                           <button type="submit" className="btn-primary text-xs px-2 py-1">
                             Reactivate
                           </button>
-                        </form>
+                        </BrowserApiForm>
                       )}
                     </td>
                   </tr>

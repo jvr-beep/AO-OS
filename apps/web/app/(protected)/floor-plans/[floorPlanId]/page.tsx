@@ -2,13 +2,10 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { getSession } from '@/lib/session'
 import { apiFetch, ApiError } from '@/lib/api'
+import { LiveFacilityFloorExplorer } from '@/components/live-facility-floor-explorer'
 import { StatusBadge } from '@/components/status-badge'
-import type { FloorPlan } from '@/types/api'
-
-function pct(value: string) {
-  const parsed = Number.parseFloat(value)
-  return Number.isFinite(parsed) ? `${parsed}%` : '0%'
-}
+import { buildFacilityFloorMap, mapFacilityFloorApiToViewModel, type FacilityFloorMap } from '@/lib/facility-floor-map'
+import type { FacilityFloorMapResponse, FloorPlan, Room } from '@/types/api'
 
 export default async function FloorPlanDetailPage({
   params,
@@ -20,9 +17,16 @@ export default async function FloorPlanDetailPage({
   const { floorPlanId } = params
 
   let plan: FloorPlan
+  let siblingPlans: FloorPlan[]
+  let rooms: Room[]
+  let initialFloor: FacilityFloorMap
 
   try {
-    plan = await apiFetch<FloorPlan>(`/floor-plans/${floorPlanId}`, token)
+    ;[plan, siblingPlans, rooms] = await Promise.all([
+      apiFetch<FloorPlan>(`/floor-plans/${floorPlanId}`, token),
+      apiFetch<FloorPlan[]>('/floor-plans', token),
+      apiFetch<Room[]>('/rooms', token),
+    ])
   } catch (error) {
     const apiError = error as ApiError
     if (apiError.status === 404) notFound()
@@ -30,44 +34,73 @@ export default async function FloorPlanDetailPage({
   }
 
   const areas = [...plan.areas].sort((a, b) => a.code.localeCompare(b.code))
+  const areaIds = new Set(plan.areas.map((area) => area.id))
+  const mappedRooms = rooms.filter((room) => areaIds.has(room.floorPlanAreaId))
+  const relatedPlans = [...siblingPlans]
+    .filter((candidate) => candidate.locationId === plan.locationId)
+    .sort((left, right) => left.name.localeCompare(right.name))
+
+  try {
+    initialFloor = mapFacilityFloorApiToViewModel(
+      await apiFetch<FacilityFloorMapResponse>(`/floor-plans/${floorPlanId}/facility-map`, token),
+    )
+  } catch (error) {
+    const apiError = error as ApiError
+    if (apiError.status && apiError.status !== 404) {
+      throw error
+    }
+
+    initialFloor = buildFacilityFloorMap(plan, mappedRooms)
+  }
 
   return (
     <div className="max-w-6xl">
       <div className="flex items-center gap-3 mb-6">
         <Link href="/floor-plans" className="text-sm text-accent-primary hover:underline">
-           Floor Plans
+          Back to Floor Plans
         </Link>
         <h1 className="text-2xl font-semibold text-text-primary">{plan.name}</h1>
         <StatusBadge status={plan.active ? 'active' : 'inactive'} />
       </div>
 
-      <div className="grid lg:grid-cols-[1.5fr_1fr] gap-4">
-        <div className="bg-surface-1 rounded-lg border border-border-subtle p-4 shadow-sm">
-          <h2 className="text-sm font-semibold text-text-secondary mb-3">Area Map</h2>
-          <div className="relative w-full aspect-[16/10] border border-border-subtle rounded bg-surface-2 overflow-hidden">
-            {areas.map((area) => (
-              <div
-                key={area.id}
-                className="absolute border border-accent-active/40 bg-accent-active/10 text-[10px] text-accent-active px-1 py-0.5 overflow-hidden"
-                style={{
-                  left: pct(area.x),
-                  top: pct(area.y),
-                  width: pct(area.width),
-                  height: pct(area.height),
-                }}
-                title={`${area.code} · ${area.name}`}
-              >
-                <div className="font-semibold truncate">{area.code}</div>
-                <div className="truncate">{area.name}</div>
-              </div>
-            ))}
+      {relatedPlans.length > 1 && (
+        <div className="mb-4 rounded-lg border border-border-subtle bg-surface-1 px-4 py-3 shadow-sm">
+          <p className="text-[11px] uppercase tracking-[0.24em] text-text-muted">Facility Floors</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {relatedPlans.map((candidate) => {
+              const isActive = candidate.id === plan.id
+
+              return isActive ? (
+                <span
+                  key={candidate.id}
+                  className="rounded-full border border-accent-primary bg-[rgba(47,143,131,0.12)] px-3 py-1 text-sm text-text-primary"
+                >
+                  {candidate.name}
+                </span>
+              ) : (
+                <Link
+                  key={candidate.id}
+                  href={`/floor-plans/${candidate.id}`}
+                  className="rounded-full border border-border-subtle px-3 py-1 text-sm text-text-secondary transition-colors hover:border-accent-primary hover:text-text-primary"
+                >
+                  {candidate.name}
+                </Link>
+              )
+            })}
           </div>
-          <p className="text-xs text-text-muted mt-2">
-            Coordinates are rendered directly from area x/y/width/height values.
+        </div>
+      )}
+
+      <LiveFacilityFloorExplorer floorPlanId={floorPlanId} initialFloor={initialFloor} />
+
+      <div className="mt-4 bg-surface-1 rounded-lg border border-border-subtle overflow-hidden shadow-sm">
+        <div className="px-4 py-3 border-b border-border-subtle bg-surface-2/50">
+          <p className="text-[11px] uppercase tracking-[0.24em] text-text-muted">Source Geometry</p>
+          <p className="mt-2 text-sm text-text-secondary">
+            This floor view is currently derived from the existing AO OS floor-plan rectangles and live room states. It is the clean bridge into a future persisted Facility/Floor/Zone/AccessNode model.
           </p>
         </div>
-
-        <div className="bg-surface-1 rounded-lg border border-border-subtle overflow-hidden shadow-sm">
+        <div>
           <div className="px-4 py-3 border-b border-border-subtle">
             <h2 className="text-sm font-semibold text-text-secondary">Areas ({areas.length})</h2>
           </div>

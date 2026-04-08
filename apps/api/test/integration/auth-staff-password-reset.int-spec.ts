@@ -2,6 +2,12 @@ import { EmailService } from "../../src/email/email.service";
 import { closeIntegrationApp, createIntegrationApp, IntegrationApp } from "../helpers/test-app";
 import { cleanupByRunId, createStaffUserFixture, loginFixture } from "../helpers/fixtures";
 
+const successfulDelivery = {
+  provider: "dry-run" as const,
+  accepted: true,
+  deliveryId: "test-delivery-id"
+};
+
 describe("Integration - Staff password reset", () => {
   let ctx: IntegrationApp;
 
@@ -25,7 +31,7 @@ describe("Integration - Staff password reset", () => {
     const emailService = ctx.app.get(EmailService);
     const sendSpy = jest
       .spyOn(emailService, "sendStaffPasswordReset")
-      .mockResolvedValue(undefined);
+      .mockResolvedValue(successfulDelivery);
 
     await ctx.http
       .post("/v1/auth/staff-password-reset/request")
@@ -108,7 +114,7 @@ describe("Integration - Staff password reset", () => {
     const emailService = ctx.app.get(EmailService);
     const sendSpy = jest
       .spyOn(emailService, "sendStaffPasswordReset")
-      .mockResolvedValue(undefined);
+      .mockResolvedValue(successfulDelivery);
 
     await ctx.http
       .post("/v1/auth/staff-password-reset/request")

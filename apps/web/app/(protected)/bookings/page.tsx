@@ -1,13 +1,8 @@
 import Link from 'next/link'
 import { getSession } from '@/lib/session'
 import { apiFetch } from '@/lib/api'
+import { BrowserApiForm } from '@/components/browser-api-form'
 import { StatusBadge } from '@/components/status-badge'
-import {
-  cancelBookingAction,
-  checkInBookingAction,
-  checkOutBookingAction,
-  createBookingAction,
-} from '@/app/actions/operators'
 import type { RoomBooking, Room } from '@/types/api'
 
 export default async function BookingsPage({
@@ -72,7 +67,13 @@ export default async function BookingsPage({
         <p className="text-xs text-gray-400 mb-3">
           Allowed roles: front_desk, operations, admin.
         </p>
-        <form action={createBookingAction} className="grid grid-cols-1 gap-2 md:grid-cols-3">
+        <BrowserApiForm
+          actionPath="/bookings"
+          redirectTo="/bookings"
+          successMessage="Booking created"
+          fallbackErrorMessage="Create booking failed"
+          className="grid grid-cols-1 gap-2 md:grid-cols-3"
+        >
           <input type="hidden" name="redirectTo" value="/bookings" />
           <input
             name="memberId"
@@ -108,7 +109,7 @@ export default async function BookingsPage({
             className="form-input md:col-span-2"
           />
           <button className="btn-primary">Create Booking</button>
-        </form>
+        </BrowserApiForm>
       </div>
 
       <div className="card overflow-hidden">
@@ -203,14 +204,24 @@ export default async function BookingsPage({
                       <div className="flex flex-col gap-1">
                         {booking.status === 'reserved' && (
                           <>
-                            <form action={checkInBookingAction}>
+                            <BrowserApiForm
+                              actionPath="/bookings/:bookingId/check-in"
+                              redirectTo="/bookings"
+                              successMessage="Booking checked in"
+                              fallbackErrorMessage="Check-in failed"
+                            >
                               <input type="hidden" name="redirectTo" value="/bookings" />
                               <input type="hidden" name="bookingId" value={booking.id} />
                               <button className="btn-primary text-xs px-2 py-1">
                                 Check In
                               </button>
-                            </form>
-                            <form action={cancelBookingAction}>
+                            </BrowserApiForm>
+                            <BrowserApiForm
+                              actionPath="/bookings/:bookingId/cancel"
+                              redirectTo="/bookings"
+                              successMessage="Booking cancelled"
+                              fallbackErrorMessage="Cancel failed"
+                            >
                               <input type="hidden" name="redirectTo" value="/bookings" />
                               <input type="hidden" name="bookingId" value={booking.id} />
                               <input
@@ -222,17 +233,22 @@ export default async function BookingsPage({
                               <button className="btn-secondary text-xs px-2 py-1">
                                 Cancel
                               </button>
-                            </form>
+                            </BrowserApiForm>
                           </>
                         )}
                         {booking.status === 'checked_in' && (
-                          <form action={checkOutBookingAction}>
+                          <BrowserApiForm
+                            actionPath="/bookings/:bookingId/check-out"
+                            redirectTo="/bookings"
+                            successMessage="Booking checked out"
+                            fallbackErrorMessage="Check-out failed"
+                          >
                             <input type="hidden" name="redirectTo" value="/bookings" />
                             <input type="hidden" name="bookingId" value={booking.id} />
                             <button className="btn-secondary text-xs px-2 py-1">
                               Check Out
                             </button>
-                          </form>
+                          </BrowserApiForm>
                         )}
                         {booking.status !== 'reserved' && booking.status !== 'checked_in' && (
                           <span className="text-xs text-gray-500">No actions</span>

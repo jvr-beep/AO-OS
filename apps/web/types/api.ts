@@ -205,6 +205,96 @@ export interface FloorPlan {
   areas: FloorPlanArea[]
 }
 
+export interface FacilityPoint {
+  x: number
+  y: number
+}
+
+export interface FacilityBookingSummary {
+  id: string
+  memberId: string
+  status: 'reserved' | 'checked_in' | 'checked_out' | 'expired' | 'cancelled' | 'no_show' | 'waitlisted'
+  startsAt: string
+  endsAt: string
+  checkedInAt?: string
+  checkedOutAt?: string
+}
+
+export interface FacilityVisitSessionSummary {
+  id: string
+  memberId: string
+  status: 'checked_in' | 'checked_out'
+  checkInAt: string
+  checkOutAt?: string
+}
+
+export interface FacilityRoomAccessSummary {
+  id: string
+  bookingId?: string
+  memberId?: string
+  decision: 'allowed' | 'denied' | 'error'
+  denialReasonCode?: string
+  eventType: 'unlock' | 'lock' | 'open' | 'close' | 'check_in_gate' | 'check_out_gate'
+  occurredAt: string
+  sourceType: 'wristband_reader' | 'staff_console' | 'system'
+}
+
+export interface FacilityZoneMap {
+  id: string
+  sourceAreaId?: string
+  code: string
+  name: string
+  type: 'room' | 'corridor' | 'entry' | 'service' | 'bath' | 'lounge' | 'locker_bank'
+  polygon: FacilityPoint[]
+  roomId?: string
+  roomType?: Room['roomType']
+  roomState?: 'ready' | 'reserved' | 'in_use' | 'turnover' | 'out_of_service' | 'unknown'
+  currentBooking?: FacilityBookingSummary
+  upcomingBooking?: FacilityBookingSummary
+  activeVisitSession?: FacilityVisitSessionSummary
+  recentAccessEvents: FacilityRoomAccessSummary[]
+}
+
+export interface FacilityAccessNodeMap {
+  id: string
+  code: string
+  label: string
+  type: 'entry' | 'reader' | 'camera' | 'service_point'
+  x: number
+  y: number
+  zoneId?: string
+  status: 'online' | 'offline' | 'degraded'
+  detail?: string
+}
+
+export interface FacilityDeviceMap {
+  id: string
+  code: string
+  label: string
+  type: 'door_controller' | 'reader' | 'camera' | 'environmental'
+  x: number
+  y: number
+  zoneId?: string
+  status: 'online' | 'offline' | 'degraded'
+  detail?: string
+}
+
+export interface FacilityFloorMapResponse {
+  id: string
+  topologyMode: 'persisted' | 'derived'
+  facilityId?: string
+  facilityCode?: string
+  facilityName?: string
+  sourcePlanId: string
+  sourcePlanName: string
+  locationId: string
+  levelLabel: string
+  refreshedAt: string
+  zones: FacilityZoneMap[]
+  accessNodes: FacilityAccessNodeMap[]
+  devices: FacilityDeviceMap[]
+}
+
 export interface Room {
   id: string
   locationId: string
