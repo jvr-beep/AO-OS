@@ -185,14 +185,31 @@ docker compose -f infra/docker/docker-compose.api.yml run --rm --no-deps api pnp
 
 $verifyCommand = @'
 set -euo pipefail
-curl -fsS "$API_BASE/v1/health"
-printf "\n"
-floor_plans_status=$(curl -s -o /dev/null -w "%{http_code}" "$API_BASE/v1/floor-plans")
-printf "%s\n" "$floor_plans_status"
-if [ "$floor_plans_status" != "401" ]; then
-    echo "Unexpected /v1/floor-plans status: $floor_plans_status" >&2
-    exit 1
-fi
+attempt=1
+max_attempts=18
+
+while [ "$attempt" -le "$max_attempts" ]; do
+    health_response=$(curl -fsS "$API_BASE/v1/health" 2>/dev/null || true)
+    floor_plans_status=$(curl -s -o /dev/null -w "%{http_code}" "$API_BASE/v1/floor-plans" || true)
+
+    if [ -n "$health_response" ] && [ "$floor_plans_status" = "401" ]; then
+        printf "%s\n" "$health_response"
+        printf "%s\n" "$floor_plans_status"
+        exit 0
+    fi
+
+    echo "Attempt $attempt/$max_attempts: health_ready=$([ -n \"$health_response\" ] && echo yes || echo no), floor_plans_status=${floor_plans_status:-unknown}" >&2
+
+    if [ "$attempt" -eq "$max_attempts" ]; then
+        break
+    fi
+
+    sleep 5
+    attempt=$((attempt + 1))
+done
+
+echo "API verification failed after $max_attempts attempts" >&2
+exit 1
 '@
 
 $cleanupCommand = @'
