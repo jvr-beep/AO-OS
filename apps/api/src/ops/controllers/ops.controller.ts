@@ -35,7 +35,7 @@ export class OpsController {
   }
 
   @Post("exceptions")
-  @Roles("operations", "admin")
+  @Roles("front_desk", "operations", "admin")
   createException(@Body() dto: CreateSystemExceptionDto) {
     return this.opsService.createException(dto);
   }
