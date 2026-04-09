@@ -72,38 +72,44 @@ jobs:
         if: steps.health.outputs.degraded == 'true' && steps.incident.outputs.number == ''
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          API_CODE: ${{ steps.api.outputs.code }}
+          WEB_CODE: ${{ steps.web.outputs.code }}
+          API_BODY: ${{ steps.api.outputs.body }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           ts=$(date -u '+%Y-%m-%d %H:%M UTC')
-          BODY="## 🚨 Production Health Check Failed
-
-**Detected:** $ts
-**Run:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-
-| Service | HTTP Status |
-|---------|-------------|
-| API \`api.aosanctuary.com/v1/health\` | \`${{ steps.api.outputs.code }}\` |
-| Web \`app.aosanctuary.com/login\` | \`${{ steps.web.outputs.code }}\` |
-
-**API response body:**
-\`\`\`
-${{ steps.api.outputs.body }}
-\`\`\`
-
-## Requested Actions
-1. Check recent commits on \`main\` and identify the regression.
-2. Inspect live container logs: \`docker logs ao-os-api --tail 100\`
-3. Inspect web container logs: \`docker logs ao-os-web --tail 100\`
-4. Implement a targeted fix in the affected module.
-5. Open a PR — CI (typecheck + integration tests) must pass.
-6. The PR will auto-merge once CI is green; deploy runs automatically.
-
-This issue was auto-created by the production health monitor.
-It will auto-close when the next health check passes."
+          {
+            echo "## 🚨 Production Health Check Failed"
+            echo ""
+            echo "**Detected:** $ts"
+            echo "**Run:** $RUN_URL"
+            echo ""
+            echo "| Service | HTTP Status |"
+            echo "|---------|-------------|"
+            echo "| API \`api.aosanctuary.com/v1/health\` | \`$API_CODE\` |"
+            echo "| Web \`app.aosanctuary.com/login\` | \`$WEB_CODE\` |"
+            echo ""
+            echo "**API response body:**"
+            echo '```'
+            echo "$API_BODY"
+            echo '```'
+            echo ""
+            echo "## Requested Actions"
+            echo "1. Check recent commits on \`main\` and identify the regression."
+            echo "2. Inspect live container logs: \`docker logs ao-os-api --tail 100\`"
+            echo "3. Inspect web container logs: \`docker logs ao-os-web --tail 100\`"
+            echo "4. Implement a targeted fix in the affected module."
+            echo "5. Open a PR — CI (typecheck + integration tests) must pass."
+            echo "6. The PR will auto-merge once CI is green; deploy runs automatically."
+            echo ""
+            echo "This issue was auto-created by the production health monitor."
+            echo "It will auto-close when the next health check passes."
+          } > /tmp/incident-body.md
 
           gh issue create \
             --repo "${{ github.repository }}" \
             --title "🚨 Production incident – $ts" \
-            --body "$BODY" \
+            --body-file /tmp/incident-body.md \
             --label "incident,copilot"
 
       - name: Notify n8n on new incident
