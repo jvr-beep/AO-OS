@@ -1,0 +1,127 @@
+name: Self-Heal Monitor
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+permissions:
+  issues: write
+
+jobs:
+  check-exceptions:
+    name: Check Open Exceptions
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Fetch open exceptions from monitor endpoint
+        id: exceptions
+        env:
+          MONITOR_KEY: ${{ secrets.AO_OS_MONITOR_KEY }}
+        run: |
+          if [[ -z "${MONITOR_KEY:-}" ]]; then
+            echo "AO_OS_MONITOR_KEY secret not set — skipping"
+            echo "count=0" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          response=$(curl -s --max-time 15 \
+            -H "Authorization: Bearer ${MONITOR_KEY}" \
+            https://api.aosanctuary.com/v1/ops/exceptions/monitor || echo "[]")
+
+          count=$(echo "$response" | jq 'if type == "array" then length else 0 end' 2>/dev/null || echo "0")
+          critical_count=$(echo "$response" | jq '[.[] | select(.severity == "critical" and .status == "open")] | length' 2>/dev/null || echo "0")
+          summary=$(echo "$response" | jq -r '[.[] | select(.status == "open")] | map(.exception_type + " [" + .severity + "]") | join(", ")' 2>/dev/null || echo "")
+
+          echo "count=$count" >> "$GITHUB_OUTPUT"
+          echo "critical_count=$critical_count" >> "$GITHUB_OUTPUT"
+          echo "summary=$summary" >> "$GITHUB_OUTPUT"
+
+      - name: Look up open self-heal issue
+        id: incident
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          num=$(gh issue list \
+            --repo "${{ github.repository }}" \
+            --label self-heal \
+            --state open \
+            --json number \
+            --jq '.[0].number // ""' 2>/dev/null || echo "")
+          echo "number=$num" >> "$GITHUB_OUTPUT"
+
+      - name: Ensure labels exist
+        if: steps.exceptions.outputs.count != '0' && steps.incident.outputs.number == ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh label create self-heal \
+            --color 5319E7 \
+            --description "Auto-detected exception requiring self-healing" \
+            --repo "${{ github.repository }}" 2>/dev/null || true
+          gh label create copilot \
+            --color 0075CA \
+            --description "Assigned to Copilot coding agent" \
+            --repo "${{ github.repository }}" 2>/dev/null || true
+
+      - name: Open self-heal issue
+        if: steps.exceptions.outputs.count != '0' && steps.incident.outputs.number == ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EXCEPTION_COUNT: ${{ steps.exceptions.outputs.count }}
+          CRITICAL_COUNT: ${{ steps.exceptions.outputs.critical_count }}
+          SUMMARY: ${{ steps.exceptions.outputs.summary }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          ts=$(date -u '+%Y-%m-%d %H:%M UTC')
+          {
+            echo "## 🔧 Self-Heal Required — Open System Exceptions"
+            echo ""
+            echo "**Detected:** $ts"
+            echo "**Run:** $RUN_URL"
+            echo ""
+            echo "| Metric | Count |"
+            echo "|--------|-------|"
+            echo "| Open exceptions | \`$EXCEPTION_COUNT\` |"
+            echo "| Critical | \`$CRITICAL_COUNT\` |"
+            echo ""
+            echo "**Exception types detected:** $SUMMARY"
+            echo ""
+            echo "## Requested Actions"
+            echo "1. Review all open exceptions: \`GET https://api.aosanctuary.com/v1/ops/exceptions?status=open\`"
+            echo "2. For each \`WEB_PAGE_ERROR\` exception, check the \`payload.page\` field to identify the broken page."
+            echo "3. Reproduce the error locally, trace the root cause, and implement a targeted fix."
+            echo "4. Open a PR — CI (typecheck + integration tests) must pass before merge."
+            echo "5. After the fix is deployed, mark exceptions as resolved via:"
+            echo "   \`PATCH /v1/ops/exceptions/:id/status\` with \`{ \"status\": \"resolved\" }\`"
+            echo ""
+            echo "This issue was auto-created by the self-heal monitor."
+            echo "It will auto-close when all exceptions are resolved."
+          } > /tmp/self-heal-body.md
+
+          gh issue create \
+            --repo "${{ github.repository }}" \
+            --title "🔧 Self-Heal: $EXCEPTION_COUNT open exception(s) — $ts" \
+            --body-file /tmp/self-heal-body.md \
+            --label "self-heal,copilot"
+
+      - name: Add comment to existing open issue with new exceptions
+        if: steps.exceptions.outputs.count != '0' && steps.incident.outputs.number != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EXCEPTION_COUNT: ${{ steps.exceptions.outputs.count }}
+          SUMMARY: ${{ steps.exceptions.outputs.summary }}
+        run: |
+          ts=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
+          gh issue comment "${{ steps.incident.outputs.number }}" \
+            --repo "${{ github.repository }}" \
+            --body "🔄 Still open at $ts — $EXCEPTION_COUNT exception(s): $SUMMARY"
+
+      - name: Auto-close resolved issue
+        if: steps.exceptions.outputs.count == '0' && steps.incident.outputs.number != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue close "${{ steps.incident.outputs.number }}" \
+            --repo "${{ github.repository }}" \
+            --comment "✅ All exceptions resolved. Self-heal issue auto-closed at $(date -u '+%Y-%m-%dT%H:%M:%SZ')."
