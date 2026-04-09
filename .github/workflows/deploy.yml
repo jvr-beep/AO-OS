@@ -106,5 +106,25 @@ jobs:
 
       - name: Notify on failure
         if: failure()
+        env:
+          N8N_WEBHOOK_URL: ${{ secrets.N8N_WEBHOOK_URL }}
+          N8N_API_KEY: ${{ secrets.N8N_API_KEY }}
         run: |
           echo "::error::Production deploy failed. Check VM logs: ssh ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} 'docker logs ao-os-api --tail 50'"
+          if [[ -z "${N8N_WEBHOOK_URL:-}" ]]; then
+            echo "N8N_WEBHOOK_URL not set – skipping n8n deploy-failure notification"
+            exit 0
+          fi
+          if [[ -z "${N8N_API_KEY:-}" ]]; then
+            echo "N8N_API_KEY not set – skipping n8n deploy-failure notification"
+            exit 0
+          fi
+          curl -s -X POST "$N8N_WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -H "X-N8N-API-KEY: ${N8N_API_KEY}" \
+            -d "$(jq -n \
+              --arg event "production_deploy_failure" \
+              --arg run_url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+              --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+              '{event: $event, run_url: $run_url, timestamp: $ts}'
+            )" || echo "n8n notification failed (non-blocking)"
