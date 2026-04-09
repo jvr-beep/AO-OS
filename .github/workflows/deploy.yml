@@ -115,6 +115,10 @@ jobs:
             echo "N8N_WEBHOOK_URL not set – skipping n8n deploy-failure notification"
             exit 0
           fi
+          if [[ -z "${N8N_API_KEY:-}" ]]; then
+            echo "N8N_API_KEY not set – skipping n8n deploy-failure notification"
+            exit 0
+          fi
           curl -s -X POST "$N8N_WEBHOOK_URL" \
             -H "Content-Type: application/json" \
             -H "X-N8N-API-KEY: ${N8N_API_KEY}" \

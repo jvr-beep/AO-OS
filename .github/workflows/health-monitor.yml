@@ -44,7 +44,7 @@ jobs:
       - name: Look up open incident issue
         id: incident
         env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           num=$(gh issue list \
             --repo "${{ github.repository }}" \
@@ -57,7 +57,7 @@ jobs:
       - name: Ensure labels exist
         if: steps.health.outputs.degraded == 'true' && steps.incident.outputs.number == ''
         env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh label create incident \
             --color D93F0B \
@@ -71,7 +71,7 @@ jobs:
       - name: Open incident issue
         if: steps.health.outputs.degraded == 'true' && steps.incident.outputs.number == ''
         env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           ts=$(date -u '+%Y-%m-%d %H:%M UTC')
           BODY="## 🚨 Production Health Check Failed
@@ -116,6 +116,10 @@ It will auto-close when the next health check passes."
             echo "N8N_WEBHOOK_URL secret not set – skipping n8n notification"
             exit 0
           fi
+          if [[ -z "${N8N_API_KEY:-}" ]]; then
+            echo "N8N_API_KEY secret not set – skipping n8n notification"
+            exit 0
+          fi
           curl -s -X POST "$N8N_WEBHOOK_URL" \
             -H "Content-Type: application/json" \
             -H "X-N8N-API-KEY: ${N8N_API_KEY}" \
@@ -131,7 +135,7 @@ It will auto-close when the next health check passes."
       - name: Auto-close resolved incident
         if: steps.health.outputs.degraded == 'false' && steps.incident.outputs.number != ''
         env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh issue close "${{ steps.incident.outputs.number }}" \
             --repo "${{ github.repository }}" \
