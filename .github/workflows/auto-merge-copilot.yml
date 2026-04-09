@@ -1,0 +1,29 @@
+name: Auto-merge Copilot Fixes
+
+on:
+  pull_request:
+    types: [opened, labeled, synchronize, reopened]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  auto-merge:
+    name: Enable auto-merge for Copilot PRs
+    runs-on: ubuntu-latest
+    if: |
+      contains(github.event.pull_request.labels.*.name, 'copilot') ||
+      startsWith(github.head_ref, 'copilot/')
+
+    steps:
+      - name: Enable auto-merge
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
+          gh pr merge "${{ github.event.pull_request.number }}" \
+            --repo "${{ github.repository }}" \
+            --squash \
+            --auto \
+            --subject "fix: auto-merge Copilot fix (#${{ github.event.pull_request.number }})"
+          echo "Auto-merge enabled for PR #${{ github.event.pull_request.number }}. Will merge once all required checks pass."
