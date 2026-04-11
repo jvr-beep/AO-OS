@@ -3,6 +3,7 @@ import { APP_FILTER, APP_GUARD } from "@nestjs/core";
 import { ThrottlerModule, ThrottlerGuard } from "@nestjs/throttler";
 import { ScheduleModule } from "@nestjs/schedule";
 import { DatadogExceptionFilter } from "./common/datadog-exception.filter";
+import { PrismaService } from "./prisma/prisma.service";
 import { PrismaModule } from "./prisma/prisma.module";
 import { HealthModule } from "./health/health.module";
 import { MembersModule } from "./members/members.module";
@@ -80,7 +81,11 @@ import { OpsModule } from "./ops/ops.module";
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
-    { provide: APP_FILTER, useClass: DatadogExceptionFilter },
+    {
+      provide: APP_FILTER,
+      useFactory: (prisma: PrismaService) => new DatadogExceptionFilter(prisma),
+      inject: [PrismaService],
+    },
   ]
 })
 export class AppModule {}
