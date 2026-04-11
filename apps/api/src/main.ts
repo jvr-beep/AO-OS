@@ -3,7 +3,6 @@ import { NestFactory } from "@nestjs/core";
 import { ValidationPipe } from "@nestjs/common";
 import helmet from "helmet";
 import { AppModule } from "./app.module";
-import { DatadogExceptionFilter } from "./common/datadog-exception.filter";
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
@@ -14,8 +13,6 @@ async function bootstrap(): Promise<void> {
     ? process.env.CORS_ORIGIN.split(",").map((o) => o.trim())
     : ["https://app.aosanctuary.com"];
   app.enableCors({ origin: allowedOrigins, credentials: true });
-
-  app.useGlobalFilters(new DatadogExceptionFilter());
 
   app.useGlobalPipes(
     new ValidationPipe({ transform: true })
