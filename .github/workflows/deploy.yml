@@ -28,6 +28,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
           GH_ACTOR: ${{ github.actor }}
           GH_REPOSITORY: ${{ github.repository }}
+          DATADOG_API_KEY: ${{ secrets.DATADOG_API_KEY }}
         with:
           host: ${{ secrets.VM_HOST }}
           username: ${{ secrets.VM_USER }}
@@ -67,6 +68,21 @@ jobs:
             echo "=== Pull latest ==="
             git fetch origin
             git pull --ff-only
+
+            echo "=== Inject secrets into .env ==="
+            ENV_FILE="apps/api/.env"
+            touch "$ENV_FILE"
+            upsert_env() {
+              local key="$1" value="$2"
+              if grep -q "^${key}=" "$ENV_FILE" 2>/dev/null; then
+                sed -i "s|^${key}=.*|${key}=${value}|" "$ENV_FILE"
+              else
+                echo "${key}=${value}" >> "$ENV_FILE"
+              fi
+            }
+            if [ -n "${DATADOG_API_KEY:-}" ]; then
+              upsert_env "DATADOG_API_KEY" "$DATADOG_API_KEY"
+            fi
 
             echo "=== Deploy ==="
             bash scripts/vm-post-deploy-smoke.sh --build
