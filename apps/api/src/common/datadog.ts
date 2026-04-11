@@ -5,7 +5,7 @@ export async function logErrorToDatadog(
   error: unknown,
   context?: string,
 ): Promise<void> {
-  const apiKey = process.env.DATADOG_API_KEY;
+  const apiKey = process.env.AO_DATA_DOG_KEY;
   if (!apiKey) return;
 
   const message =

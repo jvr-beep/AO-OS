@@ -28,7 +28,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
           GH_ACTOR: ${{ github.actor }}
           GH_REPOSITORY: ${{ github.repository }}
-          DATADOG_API_KEY: ${{ secrets.DATADOG_API_KEY }}
+          DATADOG_API_KEY: ${{ secrets.AO_DATA_DOG_KEY }}
         with:
           host: ${{ secrets.VM_HOST }}
           username: ${{ secrets.VM_USER }}
@@ -81,7 +81,7 @@ jobs:
               fi
             }
             if [ -n "${DATADOG_API_KEY:-}" ]; then
-              upsert_env "DATADOG_API_KEY" "$DATADOG_API_KEY"
+              upsert_env "AO_DATA_DOG_KEY" "$DATADOG_API_KEY"
             fi
 
             echo "=== Deploy ==="
