@@ -23,36 +23,45 @@ export class StaleHoldService {
 
       this.logger.warn(`Detected ${expiredHolds.length} expired resource hold(s)`);
 
-      for (const hold of expiredHolds) {
-        // Avoid duplicate open exceptions for the same resource
-        const existing = await this.prisma.systemException.findFirst({
-          where: {
-            exceptionType: "STALE_RESOURCE_HOLD",
-            status: "open",
-            resourceId: hold.resourceId,
+      const affectedResourceIds = expiredHolds.map((h: { resourceId: string }) => h.resourceId);
+
+      // Batch-fetch all existing open exceptions for these resources to avoid N+1
+      const existingExceptions = await this.prisma.systemException.findMany({
+        where: {
+          exceptionType: "STALE_RESOURCE_HOLD",
+          status: "open",
+          resourceId: { in: affectedResourceIds },
+        },
+        select: { resourceId: true },
+      });
+
+      const resourcesWithOpenException = new Set(
+        existingExceptions.map((e: { resourceId: string | null }) => e.resourceId).filter(Boolean) as string[]
+      );
+
+      const toCreate = expiredHolds.filter(
+        (h: { resourceId: string }) => !resourcesWithOpenException.has(h.resourceId)
+      );
+
+      if (toCreate.length === 0) return;
+
+      await this.prisma.systemException.createMany({
+        data: toCreate.map((hold: { id: string; resourceId: string; visitId: string | null; expiresAt: Date }) => ({
+          exceptionType: "STALE_RESOURCE_HOLD",
+          severity: "warning",
+          status: "open",
+          resourceId: hold.resourceId,
+          visitId: hold.visitId ?? null,
+          payload: {
+            hold_id: hold.id,
+            expired_at: hold.expiresAt.toISOString(),
           },
-        });
+        })),
+      });
 
-        if (existing) continue;
-
-        await this.prisma.systemException.create({
-          data: {
-            exceptionType: "STALE_RESOURCE_HOLD",
-            severity: "warning",
-            status: "open",
-            resourceId: hold.resourceId,
-            visitId: hold.visitId ?? null,
-            payload: {
-              hold_id: hold.id,
-              expired_at: hold.expiresAt.toISOString(),
-            },
-          },
-        });
-
-        this.logger.warn(
-          `Created STALE_RESOURCE_HOLD exception for resource ${hold.resourceId} (hold ${hold.id})`
-        );
-      }
+      this.logger.warn(
+        `Created ${toCreate.length} STALE_RESOURCE_HOLD exception(s) for resources: ${toCreate.map((h: { resourceId: string }) => h.resourceId).join(", ")}`
+      );
     } catch (error) {
       this.logger.error("Failed to detect stale holds", error);
     }
