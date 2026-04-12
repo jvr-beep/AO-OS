@@ -135,7 +135,8 @@ jobs:
           echo "=== Fetching open exceptions ==="
           response=$(curl -s --max-time 15 \
             -H "Authorization: Bearer ${MONITOR_KEY}" \
-            https://api.aosanctuary.com/v1/ops/exceptions/monitor 2>/dev/null || echo "[]")
+            https://api.aosanctuary.com/v1/ops/exceptions/monitor 2>/dev/null) \
+            || { echo "Warning: monitor API request failed — skipping auto-resolve"; exit 0; }
 
           ids=$(echo "$response" | jq -r '[.[] | select(.status == "open")] | .[].id' 2>/dev/null || true)
 
