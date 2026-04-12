@@ -23,6 +23,7 @@ jobs:
 
     steps:
       - name: Deploy via SSH
+        id: deploy-ssh
         uses: appleboy/ssh-action@v1.2.0
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
@@ -119,6 +120,49 @@ jobs:
         env:
           SWAGGERHUB_TOKEN: ${{ secrets.SMARTBEAR_ACCESS_KEY }}
         run: pnpm swaggerhub:push
+
+      - name: Auto-resolve open exceptions post-deploy
+        if: steps.deploy-ssh.outcome == 'success'
+        env:
+          MONITOR_KEY: ${{ secrets.AO_OS_MONITOR_KEY }}
+          GH_SHA: ${{ github.sha }}
+        run: |
+          if [[ -z "${MONITOR_KEY:-}" ]]; then
+            echo "AO_OS_MONITOR_KEY not set — skipping post-deploy exception auto-resolve"
+            exit 0
+          fi
+
+          echo "=== Fetching open exceptions ==="
+          response=$(curl -s --max-time 15 \
+            -H "Authorization: Bearer ${MONITOR_KEY}" \
+            https://api.aosanctuary.com/v1/ops/exceptions/monitor 2>/dev/null || echo "[]")
+
+          ids=$(echo "$response" | jq -r '[.[] | select(.status == "open")] | .[].id' 2>/dev/null || true)
+
+          if [[ -z "$ids" ]]; then
+            echo "No open exceptions to resolve."
+            exit 0
+          fi
+
+          resolved=0
+          failed=0
+          while IFS= read -r id; do
+            [[ -z "$id" ]] && continue
+            http_code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 -X PATCH \
+              -H "Authorization: Bearer ${MONITOR_KEY}" \
+              -H "Content-Type: application/json" \
+              -d "{\"status\":\"resolved\",\"note\":\"resolved by deploy ${GH_SHA}\"}" \
+              "https://api.aosanctuary.com/v1/ops/exceptions/${id}/status" 2>/dev/null || echo "000")
+            if [[ "$http_code" =~ ^2 ]]; then
+              echo "Resolved exception $id (HTTP $http_code)"
+              resolved=$((resolved + 1))
+            else
+              echo "Warning: failed to resolve exception $id (HTTP $http_code)"
+              failed=$((failed + 1))
+            fi
+          done <<< "$ids"
+
+          echo "Auto-resolve complete: $resolved resolved, $failed failed (non-blocking)"
 
       - name: Notify on failure
         if: failure()
