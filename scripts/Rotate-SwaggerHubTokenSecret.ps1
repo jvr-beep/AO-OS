@@ -3,7 +3,7 @@ param(
   [string]$Repository,
   [string]$GithubPat,
   [string]$SwaggerHubToken,
-  [string]$SecretName = "SWAGGERHUB_TOKEN"
+  [string]$SecretName = "SMARTBEAR_ACCESS_KEY"
 )
 
 Set-StrictMode -Version Latest

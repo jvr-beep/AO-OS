@@ -105,19 +105,19 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Validate OpenAPI in SwaggerHub CLI
-        if: ${{ secrets.SWAGGERHUB_TOKEN != '' }}
+        if: ${{ secrets.SMARTBEAR_ACCESS_KEY != '' }}
         env:
-          SWAGGERHUB_TOKEN: ${{ secrets.SWAGGERHUB_TOKEN }}
+          SWAGGERHUB_TOKEN: ${{ secrets.SMARTBEAR_ACCESS_KEY }}
         run: pnpm swaggerhub:validate
 
       - name: Skip SwaggerHub publish (missing token)
-        if: ${{ secrets.SWAGGERHUB_TOKEN == '' }}
-        run: echo "SWAGGERHUB_TOKEN is not set; skipping SwaggerHub validation and publish."
+        if: ${{ secrets.SMARTBEAR_ACCESS_KEY == '' }}
+        run: echo "SMARTBEAR_ACCESS_KEY is not set; skipping SwaggerHub validation and publish."
 
       - name: Publish OpenAPI to SwaggerHub
-        if: ${{ secrets.SWAGGERHUB_TOKEN != '' }}
+        if: ${{ secrets.SMARTBEAR_ACCESS_KEY != '' }}
         env:
-          SWAGGERHUB_TOKEN: ${{ secrets.SWAGGERHUB_TOKEN }}
+          SWAGGERHUB_TOKEN: ${{ secrets.SMARTBEAR_ACCESS_KEY }}
         run: pnpm swaggerhub:push
 
       - name: Notify on failure

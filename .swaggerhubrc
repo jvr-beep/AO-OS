@@ -5,4 +5,4 @@
 organization: AO-Sanctuary
 api: ao-os
 version: 0.2.0
-# Token is read from SWAGGERHUB_TOKEN env var
+# Token is read from SWAGGERHUB_TOKEN env var (populated from SMARTBEAR_ACCESS_KEY secret)
