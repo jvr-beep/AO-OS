@@ -1,0 +1,148 @@
+# AO OS — GitHub Actions Secrets Registry
+
+This document is the authoritative reference for every secret stored under
+`Settings → Secrets and variables → Actions` in the `jvr-beep/AO-OS` repository.
+
+Secrets are **never** committed to the repo. This file records the purpose,
+destination system, and workflow usage of each secret so that any team member or
+agent can understand what to set and why.
+
+---
+
+## How to read this table
+
+| Column | Meaning |
+|---|---|
+| **Secret name** | Exact name as it appears in GitHub Actions secrets |
+| **Service / system** | The external platform the value belongs to |
+| **Used by** | Workflows or runtime systems that consume it |
+| **Purpose** | What the value does |
+| **Where to find / rotate** | Where to retrieve or regenerate the value |
+
+---
+
+## Secrets registry
+
+### AI / LLM
+
+| Secret name | Service / system | Used by | Purpose | Where to find / rotate |
+|---|---|---|---|---|
+| `AI_GATEWAY_API_KEY` | AI gateway proxy (e.g. OpenRouter, LiteLLM, or similar) | Agent workflows, future routing layer | Authenticates requests to the centralised AI gateway that routes to multiple LLM backends | AI gateway dashboard → API keys |
+| `CLAUDE_AO_KEY` | Anthropic Claude | Agent workflows, Copilot integrations | Anthropic API key scoped to AO Sanctuary; used when calling Claude models directly | [console.anthropic.com](https://console.anthropic.com) → API keys |
+| `OPEN_AI_AO` | OpenAI | Agent workflows, Copilot integrations | OpenAI API key scoped to AO Sanctuary | [platform.openai.com](https://platform.openai.com) → API keys |
+| `ELEVENLABS_AO_KEY` | ElevenLabs | Future voice / audio workflows | ElevenLabs API key for AI voice generation (member-facing or staff notifications) | [elevenlabs.io](https://elevenlabs.io) → Profile → API key |
+
+---
+
+### Infrastructure — GCP
+
+| Secret name | Service / system | Used by | Purpose | Where to find / rotate |
+|---|---|---|---|---|
+| `AO_OS_GCP_KEY` | Google Cloud Platform | Deploy pipeline, GCP service calls | Restricted GCP API key (`GCP_COMPUTE_KEY_AO`) with access to ~39 GCP APIs; used for direct GCP service calls from CI/CD or the API server | GCP Console → `ao-os-vm` project → APIs & Services → Credentials |
+| `GCP_INTEGRATIONS` | Google Cloud Platform | GCP integration workflows | Service account JSON key used for broader GCP integration tasks (separate from the compute key) | GCP Console → IAM & Admin → Service accounts |
+| `AO_OS_API_HEALTH` | Google Cloud Platform | Self-heal / health monitor workflows | Service account JSON key (`ao-os-health@ao-os-vm.iam.gserviceaccount.com`) used by GitHub Actions to perform GCP-side health checks | GCP Console → IAM & Admin → Service accounts → `ao-os-health` |
+
+---
+
+### Infrastructure — Cloudflare & Vercel
+
+| Secret name | Service / system | Used by | Purpose | Where to find / rotate |
+|---|---|---|---|---|
+| `CLOUDFLARE_API_TOKEN` | Cloudflare | Deploy pipeline, tunnel management scripts | Scoped API token for zone/DNS management and Cloudflare Tunnel operations (`api.aosanctuary.com` ingress) | Cloudflare dashboard → My Profile → API Tokens |
+| `VERCEL_TOKEN` | Vercel | Web deploy pipeline | Authenticates GitHub Actions (or CLI) to deploy `apps/web` (Next.js operator UI) to Vercel | Vercel dashboard → Settings → Tokens |
+
+---
+
+### Infrastructure — VM & Database
+
+| Secret name | Service / system | Used by | Purpose | Where to find / rotate |
+|---|---|---|---|---|
+| `AO_PRISMA_KEY` | Prisma Data Platform (Accelerate / Pulse) | API server runtime | Prisma Data Platform API key; used for Prisma Accelerate connection pooling or Prisma Pulse real-time subscriptions | [console.prisma.io](https://console.prisma.io) → Projects → API keys |
+
+> **Note:** VM secrets `VM_HOST`, `VM_USER`, and `VM_SSH_KEY` are required by `deploy.yml`
+> but are not shown in this screenshot — they may appear further down the list or may be
+> configured as environment-level secrets under the `production` environment.
+
+---
+
+### Monitoring & Observability
+
+| Secret name | Service / system | Used by | Purpose | Where to find / rotate |
+|---|---|---|---|---|
+| `AO_DATA_DOG_KEY` | Datadog | `deploy.yml` | Datadog API key; injected into `apps/api/.env` as `AO_DATA_DOG_KEY` on each deploy. Enables APM / error forwarding from the API server | [app.datadoghq.com](https://app.datadoghq.com) → Organization settings → API keys |
+
+> **Note:** `AO_OS_MONITOR_KEY` (used by `self-heal.yml` to authenticate calls to
+> `GET /v1/ops/exceptions/monitor`) must also be set. It must match `MONITOR_API_KEY` in
+> `apps/api/.env`. See `apps/api/.env.example` for details.
+
+---
+
+### Automation — n8n
+
+| Secret name | Service / system | Used by | Purpose | Where to find / rotate |
+|---|---|---|---|---|
+| `N8N_AO_OS` | n8n Cloud | n8n workflows | Base URL or instance identifier for the AO OS n8n Cloud workspace | n8n Cloud dashboard → Settings |
+| `N8N_API_KEY` | n8n Cloud | `deploy.yml`, `health-monitor.yml` | API key used to authenticate webhook calls sent **to** n8n (passed as `X-N8N-API-KEY` header). Required for deploy-failure and health-degraded notifications | n8n Cloud → Settings → API → Create API key |
+| `N8N_WEBHOOK_URL` | n8n Cloud | `deploy.yml`, `health-monitor.yml` | Full webhook URL for the n8n workflow that receives production incident and deploy-failure events | n8n Cloud → Workflow → Webhook trigger node → copy URL |
+
+---
+
+### Design & Frontend tooling
+
+| Secret name | Service / system | Used by | Purpose | Where to find / rotate |
+|---|---|---|---|---|
+| `FIGMA_AO_KEY` | Figma | Design-to-code or asset export workflows | Figma personal access token for accessing AO Sanctuary design files programmatically | Figma → Account settings → Personal access tokens |
+| `FRAMER_API_TOKEN` | Framer | Framer publish / sync workflows | Framer API token for publishing or syncing the public-facing AO Sanctuary website (framer-hosted) | Framer project → Site settings → Integrations |
+| `AO_WEB_FRAMER_KEY` | Framer | Framer site workflows | Secondary or scoped Framer key; may be used for a specific site or component library separate from `FRAMER_API_TOKEN` | Framer project → Site settings → Integrations |
+
+---
+
+### API / Access keys
+
+| Secret name | Service / system | Used by | Purpose | Where to find / rotate |
+|---|---|---|---|---|
+| `API_KEY_JVR_AOSANCTUARY` | AO OS API | External integrations, personal scripts | A named API key issued by the AO OS API itself for Jason's personal account or an integration service account (`JVR_AOSANCTUARY`). Used when a full JWT auth flow is not practical | AO OS admin panel or `POST /v1/auth/login` then issue a persistent token |
+| `SMARTBEAR_ACCESS_KEY` | SmartBear / SwaggerHub | `deploy.yml` | SwaggerHub CLI token; mapped to `SWAGGERHUB_TOKEN` env var. Used to validate and publish the OpenAPI spec (`openapi/ao-os.openapi.yaml`) to SwaggerHub on every production deploy | [app.swaggerhub.com](https://app.swaggerhub.com) → Settings → API keys |
+
+---
+
+## Secrets required by workflows but not shown in this screenshot
+
+The following secrets are consumed by existing workflows and must also be set:
+
+| Secret name | Required by | Purpose |
+|---|---|---|
+| `GH_TOKEN` | `deploy.yml` | GitHub PAT used on the VM to `git pull` the latest code during SSH deploy |
+| `VM_HOST` | `deploy.yml` | Hostname or IP of the production API server |
+| `VM_USER` | `deploy.yml` | SSH user on the production API server |
+| `VM_SSH_KEY` | `deploy.yml` | Private SSH key for connecting to the production API server |
+| `AO_OS_MONITOR_KEY` | `self-heal.yml` | Shared key authenticating the self-heal monitor against `GET /v1/ops/exceptions/monitor`; must match `MONITOR_API_KEY` in `apps/api/.env` |
+| `AUTH_SEED_ADMIN_PASSWORD` | `locker-credential-smoke.yml` | Admin password used when seeding the smoke-test database |
+
+---
+
+## Secret rotation policy
+
+- Rotate all secrets if a team member with access leaves.
+- Rotate `AUTH_JWT_SECRET`, `SESSION_SECRET`, and DB credentials on any suspected
+  compromise.
+- Rotate AI keys (Claude, OpenAI, ElevenLabs, AI Gateway) quarterly or sooner if usage
+  anomalies appear in provider dashboards.
+- `GH_TOKEN` should be a fine-grained PAT with the minimum required scopes; rotate
+  annually or on role change.
+- After rotating any key that is injected into `apps/api/.env` via `deploy.yml`, trigger
+  a manual deploy run so the new value takes effect on the server.
+
+---
+
+## Related files
+
+| File | Purpose |
+|---|---|
+| `apps/api/.env.example` | Template for all API server env vars; includes the mapping between GitHub secret names and `.env` key names |
+| `docs/DEPLOYMENT_RUNBOOK.md` | Step-by-step deploy guide; references which secrets go to which system |
+| `docs/ENVIRONMENT_PARITY_MATRIX.md` | Confirms staging and production env var parity before cutover |
+| `.github/workflows/deploy.yml` | Production deploy — uses `GH_TOKEN`, `VM_*`, `AO_DATA_DOG_KEY`, `SMARTBEAR_ACCESS_KEY`, `N8N_*` |
+| `.github/workflows/health-monitor.yml` | Production health check every 5 min — uses `N8N_WEBHOOK_URL`, `N8N_API_KEY` |
+| `.github/workflows/self-heal.yml` | Exception monitor every 5 min — uses `AO_OS_MONITOR_KEY` |
+| `.github/workflows/locker-credential-smoke.yml` | On-demand smoke test — uses `AUTH_SEED_ADMIN_PASSWORD` |
