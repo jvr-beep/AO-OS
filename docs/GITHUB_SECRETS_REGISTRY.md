@@ -28,9 +28,9 @@ agent can understand what to set and why.
 | Secret name | Service / system | Used by | Purpose | Where to find / rotate |
 |---|---|---|---|---|
 | `AI_GATEWAY_API_KEY` | AI gateway proxy (e.g. OpenRouter, LiteLLM, or similar) | Agent workflows, future routing layer | Authenticates requests to the centralised AI gateway that routes to multiple LLM backends | AI gateway dashboard → API keys |
-| `CLAUDE_AO_KEY` | Anthropic Claude | Agent workflows, Copilot integrations | Anthropic API key scoped to AO Sanctuary; used when calling Claude models directly | [console.anthropic.com](https://console.anthropic.com) → API keys |
+| `CLAUDE_AO_KEY` | Anthropic Claude | Agent workflows, Copilot integrations, `secret-smoke.yml` | Anthropic API key scoped to AO Sanctuary; used when calling Claude models directly | [console.anthropic.com](https://console.anthropic.com) → API keys |
 | `OPEN_AI_AO` | OpenAI | Agent workflows, Copilot integrations | OpenAI API key scoped to AO Sanctuary | [platform.openai.com](https://platform.openai.com) → API keys |
-| `ELEVENLABS_AO_KEY` | ElevenLabs | Future voice / audio workflows | ElevenLabs API key for AI voice generation (member-facing or staff notifications) | [elevenlabs.io](https://elevenlabs.io) → Profile → API key |
+| `ELEVENLABS_AO_KEY` | ElevenLabs | Future voice / audio workflows, `secret-smoke.yml` | ElevenLabs API key for AI voice generation (member-facing or staff notifications) | [elevenlabs.io](https://elevenlabs.io) → Profile → API key |
 
 ---
 
@@ -48,7 +48,7 @@ agent can understand what to set and why.
 
 | Secret name | Service / system | Used by | Purpose | Where to find / rotate |
 |---|---|---|---|---|
-| `CLOUDFLARE_API_TOKEN` | Cloudflare | Deploy pipeline, tunnel management scripts | Scoped API token for zone/DNS management and Cloudflare Tunnel operations (`api.aosanctuary.com` ingress) | Cloudflare dashboard → My Profile → API Tokens |
+| `CLOUDFLARE_API_TOKEN` | Cloudflare | Deploy pipeline, tunnel management scripts, `secret-smoke.yml` | Scoped API token for zone/DNS management and Cloudflare Tunnel operations (`api.aosanctuary.com` ingress) | Cloudflare dashboard → My Profile → API Tokens |
 | `VERCEL_TOKEN` | Vercel | Web deploy pipeline | Authenticates GitHub Actions (or CLI) to deploy `apps/web` (Next.js operator UI) to Vercel | Vercel dashboard → Settings → Tokens |
 
 ---
@@ -57,7 +57,7 @@ agent can understand what to set and why.
 
 | Secret name | Service / system | Used by | Purpose | Where to find / rotate |
 |---|---|---|---|---|
-| `AO_PRISMA_KEY` | Prisma Data Platform (Accelerate / Pulse) | API server runtime | Prisma Data Platform API key; used for Prisma Accelerate connection pooling or Prisma Pulse real-time subscriptions | [console.prisma.io](https://console.prisma.io) → Projects → API keys |
+| `AO_PRISMA_KEY` | Prisma Data Platform (Accelerate / Pulse) | API server runtime, `secret-smoke.yml` | Prisma Data Platform API key; used for Prisma Accelerate connection pooling or Prisma Pulse real-time subscriptions | [console.prisma.io](https://console.prisma.io) → Projects → API keys |
 
 > **Note:** VM secrets `VM_HOST`, `VM_USER`, and `VM_SSH_KEY` are required by `deploy.yml`
 > but are not shown in this screenshot — they may appear further down the list or may be
@@ -91,9 +91,9 @@ agent can understand what to set and why.
 
 | Secret name | Service / system | Used by | Purpose | Where to find / rotate |
 |---|---|---|---|---|
-| `FIGMA_AO_KEY` | Figma | Design-to-code or asset export workflows | Figma personal access token for accessing AO Sanctuary design files programmatically | Figma → Account settings → Personal access tokens |
-| `FRAMER_API_TOKEN` | Framer | Framer publish / sync workflows | Framer API token for publishing or syncing the public-facing AO Sanctuary website (framer-hosted) | Framer project → Site settings → Integrations |
-| `AO_WEB_FRAMER_KEY` | Framer | Framer site workflows | Secondary or scoped Framer key; may be used for a specific site or component library separate from `FRAMER_API_TOKEN` | Framer project → Site settings → Integrations |
+| `FIGMA_AO_KEY` | Figma | Design-to-code or asset export workflows, `secret-smoke.yml` | Figma personal access token for accessing AO Sanctuary design files programmatically | Figma → Account settings → Personal access tokens |
+| `FRAMER_API_TOKEN` | Framer | Framer publish / sync workflows, `secret-smoke.yml` | Framer API token for publishing or syncing the public-facing AO Sanctuary website (framer-hosted) | Framer project → Site settings → Integrations |
+| `AO_WEB_FRAMER_KEY` | Framer | Framer site workflows, `secret-smoke.yml` | Secondary or scoped Framer key; may be used for a specific site or component library separate from `FRAMER_API_TOKEN` | Framer project → Site settings → Integrations |
 
 ---
 
@@ -101,7 +101,7 @@ agent can understand what to set and why.
 
 | Secret name | Service / system | Used by | Purpose | Where to find / rotate |
 |---|---|---|---|---|
-| `API_KEY_JVR_AOSANCTUARY` | AO OS API | External integrations, personal scripts | A named API key issued by the AO OS API itself for Jason's personal account or an integration service account (`JVR_AOSANCTUARY`). Used when a full JWT auth flow is not practical | AO OS admin panel or `POST /v1/auth/login` then issue a persistent token |
+| `API_KEY_JVR_AOSANCTUARY` | AO OS API | External integrations, personal scripts, `secret-smoke.yml` | A named API key issued by the AO OS API itself for Jason's personal account or an integration service account (`JVR_AOSANCTUARY`). Used when a full JWT auth flow is not practical | AO OS admin panel or `POST /v1/auth/login` then issue a persistent token |
 | `SMARTBEAR_ACCESS_KEY` | SmartBear / SwaggerHub | `deploy.yml` | SwaggerHub CLI token; mapped to `SWAGGERHUB_TOKEN` env var. Used to validate and publish the OpenAPI spec (`openapi/ao-os.openapi.yaml`) to SwaggerHub on every production deploy | [app.swaggerhub.com](https://app.swaggerhub.com) → Settings → API keys |
 
 ---
@@ -178,3 +178,4 @@ Or via GitHub UI:
 | `.github/workflows/health-monitor.yml` | Production health check every 5 min — uses `N8N_WEBHOOK_URL`, `N8N_API_KEY` |
 | `.github/workflows/self-heal.yml` | Exception monitor every 5 min — uses `AO_OS_MONITOR_KEY` |
 | `.github/workflows/locker-credential-smoke.yml` | On-demand smoke test — uses `AUTH_SEED_ADMIN_PASSWORD` |
+| `.github/workflows/secret-smoke.yml` | Weekly (Mon 09:00 UTC) + on-demand secret validation — presence check for all 8 integration secrets; live API check for `CLAUDE_AO_KEY`, `CLOUDFLARE_API_TOKEN`, `ELEVENLABS_AO_KEY`, `FIGMA_AO_KEY` |
