@@ -113,11 +113,43 @@ The following secrets are consumed by existing workflows and must also be set:
 | Secret name | Required by | Purpose |
 |---|---|---|
 | `GH_TOKEN` | `deploy.yml` | GitHub PAT used on the VM to `git pull` the latest code during SSH deploy |
-| `VM_HOST` | `deploy.yml` | Hostname or IP of the production API server |
-| `VM_USER` | `deploy.yml` | SSH user on the production API server |
-| `VM_SSH_KEY` | `deploy.yml` | Private SSH key for connecting to the production API server |
+| `VM_HOST` | `deploy.yml` | External IP of the **production** API server (`ao-os-api`, `us-central1-c`) — see GCP instance details below |
+| `VM_HOST_STAGING` | future staging deploy workflow | External IP of the **staging** API server (`ao-os-api-staging`, `us-central1-a`) — see GCP instance details below |
+| `VM_USER` | `deploy.yml` | SSH user on the API server (typically `root` or the provisioned deploy user) |
+| `VM_SSH_KEY` | `deploy.yml` | Private SSH key for connecting to the API server |
 | `AO_OS_MONITOR_KEY` | `self-heal.yml` | Shared key authenticating the self-heal monitor against `GET /v1/ops/exceptions/monitor`; must match `MONITOR_API_KEY` in `apps/api/.env` |
 | `AUTH_SEED_ADMIN_PASSWORD` | `locker-credential-smoke.yml` | Admin password used when seeding the smoke-test database |
+
+### GCP VM instance reference
+
+These are the GCP Compute Engine instances in project `ao-os-vm` as of 2026-04-12.
+Use the **external IP** in GitHub secrets so workflows can reach the VMs over the internet.
+Use the **internal IP** only if a workflow runs inside the same GCP VPC (rare).
+
+| Secret name | GCP instance | Zone | Internal IP | External IP |
+|---|---|---|---|---|
+| `VM_HOST` | `ao-os-api` (production) | `us-central1-c` | `10.128.0.2` | `34.41.70.216` |
+| `VM_HOST_STAGING` | `ao-os-api-staging` | `us-central1-a` | `10.128.0.3` | `34.58.72.109` |
+
+> **Note:** External IPs assigned to preemptible or standard VMs can change if the instance
+> is stopped and restarted. If that happens, re-run `gcloud compute instances list` and update
+> the secret value. Consider reserving a static IP in GCP to make this permanent.
+
+#### How to set these secrets (one-time setup)
+
+Using the GitHub CLI (recommended — run locally where you have `gh` auth):
+
+```bash
+gh secret set VM_HOST        --body "34.41.70.216"  --repo jvr-beep/AO-OS
+gh secret set VM_HOST_STAGING --body "34.58.72.109" --repo jvr-beep/AO-OS
+```
+
+Or via GitHub UI:
+
+1. Open `Settings → Secrets and variables → Actions` in the repository.
+2. Click **New repository secret**.
+3. Name: `VM_HOST`, Value: `34.41.70.216` → Save.
+4. Repeat for `VM_HOST_STAGING` with value `34.58.72.109`.
 
 ---
 
