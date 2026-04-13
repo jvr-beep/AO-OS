@@ -36,6 +36,7 @@ jobs:
           key: ${{ secrets.VM_SSH_KEY }}
           timeout: 10m
           command_timeout: 10m
+          envs: GH_TOKEN,GH_ACTOR,GH_REPOSITORY
           script: |
             set -euo pipefail
             cd ~/AO-OS
