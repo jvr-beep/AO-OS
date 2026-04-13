@@ -89,7 +89,7 @@ jobs:
             echo ""
             echo "## Requested Actions"
             echo "1. Review all open exceptions: \`GET https://api.aosanctuary.com/v1/ops/exceptions?status=open\`"
-            echo "2. For each \`WEB_PAGE_ERROR\` exception, check the \`payload.page\` field to identify the broken page."
+            echo "2. For each \`WEB_API_FETCH_ERROR\` or \`WEB_RENDER_ERROR\` exception, check \`payload.page\`, \`payload.api_url\`, and \`payload.http_status\` to identify the broken page and root cause."
             echo "3. Reproduce the error locally, trace the root cause, and implement a targeted fix."
             echo "4. Open a PR — CI (typecheck + integration tests) must pass before merge."
             echo "5. After the fix is deployed, mark exceptions as resolved via:"

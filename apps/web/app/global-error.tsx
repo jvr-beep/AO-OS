@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react'
 import { reportErrorAction } from '@/app/actions/report-error'
+import { ApiError } from '@/lib/api'
 
 export default function GlobalError({
   error,
@@ -15,6 +16,9 @@ export default function GlobalError({
       message: error.message || 'Unknown global error',
       page: typeof window !== 'undefined' ? window.location.pathname : 'global',
       digest: error.digest,
+      errorName: error.name,
+      httpStatus: error instanceof ApiError ? error.status : undefined,
+      apiUrl: error instanceof ApiError ? error.url : undefined,
     })
   }, [error])
 
