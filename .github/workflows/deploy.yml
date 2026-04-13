@@ -16,6 +16,8 @@ jobs:
     name: Deploy to Production
     runs-on: ubuntu-latest
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    env:
+      SWAGGERHUB_TOKEN: ${{ secrets.SWAGGERHUB_TOKEN }}
 
     environment:
       name: production
@@ -89,19 +91,15 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Validate OpenAPI in SwaggerHub CLI
-        if: ${{ secrets.SWAGGERHUB_TOKEN != '' }}
-        env:
-          SWAGGERHUB_TOKEN: ${{ secrets.SWAGGERHUB_TOKEN }}
+        if: ${{ env.SWAGGERHUB_TOKEN != '' }}
         run: pnpm swaggerhub:validate
 
       - name: Skip SwaggerHub publish (missing token)
-        if: ${{ secrets.SWAGGERHUB_TOKEN == '' }}
+        if: ${{ env.SWAGGERHUB_TOKEN == '' }}
         run: echo "SWAGGERHUB_TOKEN is not set; skipping SwaggerHub validation and publish."
 
       - name: Publish OpenAPI to SwaggerHub
-        if: ${{ secrets.SWAGGERHUB_TOKEN != '' }}
-        env:
-          SWAGGERHUB_TOKEN: ${{ secrets.SWAGGERHUB_TOKEN }}
+        if: ${{ env.SWAGGERHUB_TOKEN != '' }}
         run: pnpm swaggerhub:push
 
       - name: Notify on failure
