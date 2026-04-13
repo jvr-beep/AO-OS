@@ -1,0 +1,18 @@
+name: Test VM Key
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Test SSH connection
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: 34.41.70.216
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.AO_OS_GCP_KEY }}
+          timeout: 30s
+          command_timeout: 30s
+          script: echo "SSH OK — $(hostname) — $(date -u)"
