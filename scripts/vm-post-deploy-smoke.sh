@@ -9,7 +9,7 @@ fi
 
 REPO_ROOT="${REPO_ROOT:-$HOME/AO-OS}"
 API_BASE="${API_BASE:-http://localhost:4000}"
-WEB_BASE="${WEB_BASE:-http://localhost:3000}"
+WEB_BASE="${WEB_BASE-http://localhost:3000}"
 
 SEED_EMAIL="${SMOKE_ADMIN_EMAIL:-staff@ao-os.local}"
 SEED_PASSWORD="${SMOKE_ADMIN_PASSWORD:-TestPassword123!}"
