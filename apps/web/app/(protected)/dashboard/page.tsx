@@ -12,6 +12,39 @@ async function getApiHealth(): Promise<'ok' | 'degraded' | 'unreachable'> {
   }
 }
 
+type IntegrationStatus = {
+  name: string
+  label: string
+  configured: boolean
+}
+
+type IntegrationHealthResult = {
+  status: 'ok' | 'degraded'
+  checkedAt: string
+  integrations: IntegrationStatus[]
+} | null
+
+async function getIntegrationHealth(): Promise<IntegrationHealthResult> {
+  try {
+    const apiBase = process.env.API_BASE_URL ?? 'http://localhost:4000/v1'
+    const monitorKey = process.env.MONITOR_API_KEY
+    if (!monitorKey) return null
+    const res = await fetch(`${apiBase}/ops/integration-health`, {
+      cache: 'no-store',
+      headers: { Authorization: `Bearer ${monitorKey}` },
+    })
+    if (!res.ok) return null
+    const data: unknown = await res.json()
+    if (
+      typeof data !== 'object' || data === null ||
+      !('status' in data) || !('checkedAt' in data) || !('integrations' in data)
+    ) return null
+    return data as IntegrationHealthResult
+  } catch {
+    return null
+  }
+}
+
 const QUICK_LINKS = [
   { href: '/members', label: 'Members' },
   { href: '/rooms', label: 'Rooms' },
@@ -37,7 +70,11 @@ function HealthPill({ health }: { health: string }) {
 }
 
 export default async function DashboardPage() {
-  const [session, health] = await Promise.all([getSession(), getApiHealth()])
+  const [session, health, integrationHealth] = await Promise.all([
+    getSession(),
+    getApiHealth(),
+    getIntegrationHealth(),
+  ])
 
   return (
     <div className="max-w-4xl mx-auto py-8 px-4">
@@ -62,6 +99,33 @@ export default async function DashboardPage() {
           </span>
         </div>
       </div>
+
+      {integrationHealth && (
+        <div className="rounded-lg bg-surface-1 border border-border-subtle p-6 mb-8 shadow-sm">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold text-accent-primary uppercase tracking-wide">Integration Health</h2>
+            <HealthPill health={integrationHealth.status} />
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {integrationHealth.integrations.map((integration) => (
+              <div
+                key={integration.name}
+                className="flex items-center gap-2 text-xs text-text-secondary"
+              >
+                <span className={integration.configured ? 'text-success' : 'text-critical'}>
+                  {integration.configured ? '✓' : '✗'}
+                </span>
+                <span className={integration.configured ? '' : 'text-critical font-semibold'}>
+                  {integration.label}
+                </span>
+              </div>
+            ))}
+          </div>
+          <p className="text-xs text-text-muted mt-3">
+            Last checked: {new Date(integrationHealth.checkedAt).toLocaleString()}
+          </p>
+        </div>
+      )}
 
       <div className="rounded-lg bg-surface-1 border border-border-subtle p-6 mb-8 shadow-sm">
         <h2 className="text-sm font-semibold text-accent-primary mb-3 uppercase tracking-wide">Quick Links</h2>

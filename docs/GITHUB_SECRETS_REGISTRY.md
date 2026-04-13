@@ -119,6 +119,7 @@ The following secrets are consumed by existing workflows and must also be set:
 | `VM_SSH_KEY` | `deploy.yml` | Private SSH key for connecting to the API server |
 | `AO_OS_MONITOR_KEY` | `self-heal.yml` | Shared key authenticating the self-heal monitor against `GET /v1/ops/exceptions/monitor`; must match `MONITOR_API_KEY` in `apps/api/.env` |
 | `AUTH_SEED_ADMIN_PASSWORD` | `locker-credential-smoke.yml` | Admin password used when seeding the smoke-test database |
+| `SLACK_WEBHOOK_URL` | `secret-smoke.yml` | Incoming Webhook URL for posting success/failure notifications to Slack; optional — notifications are skipped if unset. Create at [api.slack.com/apps](https://api.slack.com/apps) → Incoming Webhooks |
 
 ### GCP VM instance reference
 
