@@ -101,7 +101,11 @@ done
 FAILED=0
 
 api_health=$(http_code GET "$API_BASE/v1/health")
-web_login=$(http_code GET "$WEB_BASE/login")
+if [[ -n "${WEB_BASE:-}" ]]; then
+  web_login=$(http_code GET "$WEB_BASE/login")
+else
+  web_login="SKIP"
+fi
 
 login_body=$(printf '{"email":"%s","password":"%s"}' "$SEED_EMAIL" "$SEED_PASSWORD")
 login_code=$(http_code POST "$API_BASE/v1/auth/login" "$login_body")
@@ -126,7 +130,11 @@ members_noauth=$(http_code GET "$API_BASE/v1/members")
 
 echo "CHECK|EXPECTED|ACTUAL|RESULT"
 check_result "API /v1/health" "200" "$api_health" "200"
-check_result "Web /login" "200" "$web_login" "200"
+if [[ "$web_login" == "SKIP" ]]; then
+  echo "Web /login|SKIP|SKIP|SKIP (WEB_BASE not set)"
+else
+  check_result "Web /login" "200" "$web_login" "200"
+fi
 check_result "POST /v1/auth/login (seed admin)" "200/201" "$login_code" "200,201"
 check_result "GET /v1/members (Bearer)" "200" "$members_code" "200"
 check_result "POST /v1/auth/signup" "200/201" "$signup_code" "200,201"
