@@ -179,4 +179,4 @@ Or via GitHub UI:
 | `.github/workflows/health-monitor.yml` | Production health check every 5 min — uses `N8N_WEBHOOK_URL`, `N8N_API_KEY` |
 | `.github/workflows/self-heal.yml` | Exception monitor every 5 min — uses `AO_OS_MONITOR_KEY` |
 | `.github/workflows/locker-credential-smoke.yml` | On-demand smoke test — uses `AUTH_SEED_ADMIN_PASSWORD` |
-| `.github/workflows/secret-smoke.yml` | Weekly (Mon 09:00 UTC) + on-demand secret validation — presence check for all 8 integration secrets; live API check for `CLAUDE_AO_KEY`, `CLOUDFLARE_API_TOKEN`, `ELEVENLABS_AO_KEY`, `FIGMA_AO_KEY` |
+| `.github/workflows/secret-smoke.yml` | Weekly (Mon 09:00 UTC) + on-demand secret validation — presence check for all 10 integration secrets; live API check for `CLAUDE_AO_KEY`, `CLOUDFLARE_API_TOKEN`, `ELEVENLABS_AO_KEY`, `FIGMA_AO_KEY` |
