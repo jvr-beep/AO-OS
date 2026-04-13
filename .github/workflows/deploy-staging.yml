@@ -67,6 +67,7 @@ jobs:
 
             echo "=== Pull latest (${DEPLOY_REF}) ==="
             find .git -name "*.lock" -delete 2>/dev/null || true
+            sudo chown -R "$(whoami)" .git 2>/dev/null || true
             git fetch origin
             git checkout "${DEPLOY_REF}"
             git pull --ff-only
