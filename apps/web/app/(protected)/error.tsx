@@ -3,6 +3,7 @@
 import { useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import { reportErrorAction } from '@/app/actions/report-error'
+import { ApiError } from '@/lib/api'
 
 export default function ProtectedError({
   error,
@@ -18,6 +19,9 @@ export default function ProtectedError({
       message: error.message || 'Unknown error',
       page: pathname ?? 'unknown',
       digest: error.digest,
+      errorName: error.name,
+      httpStatus: error instanceof ApiError ? error.status : undefined,
+      apiUrl: error instanceof ApiError ? error.url : undefined,
     })
   }, [error, pathname])
 

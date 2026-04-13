@@ -4,6 +4,7 @@ export class ApiError extends Error {
   constructor(
     public status: number,
     message: string,
+    public url?: string,
   ) {
     super(message)
     this.name = 'ApiError'
@@ -27,7 +28,7 @@ export async function apiFetch<T>(
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}))
-    throw new ApiError(res.status, body.message ?? res.statusText)
+    throw new ApiError(res.status, body.message ?? res.statusText, path)
   }
 
   return res.json() as Promise<T>
