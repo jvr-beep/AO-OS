@@ -39,7 +39,6 @@ jobs:
           envs: GH_TOKEN,GH_ACTOR,GH_REPOSITORY
           script: |
             set -euo pipefail
-            cd ~/AO-OS
 
             if [ -z "${GH_TOKEN:-}" ]; then
               echo "Missing required secret: GH_TOKEN"
@@ -65,16 +64,30 @@ jobs:
             chmod 600 "$NETRC_FILE"
             export NETRC="$NETRC_FILE"
 
-            git remote set-url origin "https://github.com/${GH_REPOSITORY}.git"
+            REPO_URL="https://github.com/${GH_REPOSITORY}.git"
+            REPO_DIR="$HOME/AO-OS"
+            BACKUP_DIR="$HOME/AO-OS-prev"
 
             echo "=== Pull latest ==="
-            find .git -name "*.lock" -delete 2>/dev/null || true
-            sudo find .git/objects -type d -exec chmod 755 {} + 2>/dev/null || true
-            sudo find .git/objects -type f -exec chmod 644 {} + 2>/dev/null || true
-            sudo chown -R "$(whoami)" .git 2>/dev/null || true
-            git fetch origin
-            git pull --ff-only
+            if [ -d "$REPO_DIR/.git" ]; then
+              # Try fast path: fix permissions and pull
+              sudo chown -R "$(whoami)" "$REPO_DIR/.git" 2>/dev/null || true
+              sudo chmod -R u+rwX "$REPO_DIR/.git" 2>/dev/null || true
+              git -C "$REPO_DIR" remote set-url origin "$REPO_URL"
+              if git -C "$REPO_DIR" fetch origin && git -C "$REPO_DIR" pull --ff-only; then
+                echo "Pull succeeded"
+              else
+                echo "Pull failed — re-cloning"
+                rm -rf "$BACKUP_DIR"
+                mv "$REPO_DIR" "$BACKUP_DIR" 2>/dev/null || sudo rm -rf "$REPO_DIR"
+                git clone "$REPO_URL" "$REPO_DIR"
+              fi
+            else
+              echo "No repo found — cloning"
+              git clone "$REPO_URL" "$REPO_DIR"
+            fi
 
+            cd "$REPO_DIR"
             echo "=== Deploy ==="
             bash scripts/vm-post-deploy-smoke.sh --build
 
