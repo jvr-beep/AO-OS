@@ -292,7 +292,7 @@ export class AuthService {
 
   // ── MEMBER AUTH ────────────────────────────────────────────────────
 
-  async memberSignup(input: MemberSignupDto): Promise<{ email: string }> {
+  async memberSignup(input: MemberSignupDto): Promise<{ email: string; wristband: { id: string; uid: string; status: string } }> {
     const existing = await this.prisma.member.findUnique({ where: { email: input.email } });
     if (existing) throw new ConflictException("EMAIL_ALREADY_IN_USE");
 
@@ -321,7 +321,7 @@ export class AuthService {
 
     // Create wristband and assign to member
     const wristbandUid = `WB-${member.id.substring(0, 8)}-SELF`;
-    await this.wristbandsService.issueCredential({
+    const wristband = await this.wristbandsService.issueCredential({
       uid: wristbandUid,
       memberId: member.id,
       globalAccessFlag: false
@@ -330,7 +330,7 @@ export class AuthService {
     const { rawToken } = await this._createAuthToken(member.id, "email_verify", 24 * 60);
     await this.emailService.sendVerification(input.email, rawToken);
 
-    return { email: input.email };
+    return { email: input.email, wristband: { id: wristband.id, uid: wristband.uid, status: wristband.status } };
   }
 
   async verifyEmail(rawToken: string): Promise<{ email: string }> {
