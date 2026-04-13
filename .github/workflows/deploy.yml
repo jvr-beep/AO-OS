@@ -68,6 +68,7 @@ jobs:
             git remote set-url origin "https://github.com/${GH_REPOSITORY}.git"
 
             echo "=== Pull latest ==="
+            find .git -name "*.lock" -delete 2>/dev/null || true
             git fetch origin
             git pull --ff-only
 
