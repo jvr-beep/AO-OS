@@ -2,6 +2,7 @@
 
 import { redirect } from 'next/navigation'
 import { getSession } from '@/lib/session'
+import { reportErrorAction } from '@/app/actions/report-error'
 import type { Role } from '@/types/api'
 
 const API_BASE = process.env.API_BASE_URL ?? 'http://localhost:4000/v1'
@@ -105,14 +106,33 @@ export async function requestPasswordReset(formData: FormData) {
     redirect('/login?reset=error')
   }
 
-  const res = await fetch(`${API_BASE}/auth/password-reset/request`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email }),
-    cache: 'no-store',
-  })
+  let res: Response
+
+  try {
+    res = await fetch(`${API_BASE}/auth/password-reset/request`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+      cache: 'no-store',
+    })
+  } catch (err) {
+    await reportErrorAction({
+      message: err instanceof Error ? err.message : 'Password reset fetch failed',
+      page: '/login',
+      errorName: err instanceof Error ? err.name : 'NetworkError',
+      apiUrl: `${API_BASE}/auth/password-reset/request`,
+    })
+    redirect('/login?reset=error')
+  }
 
   if (!res.ok) {
+    await reportErrorAction({
+      message: `Password reset request failed: HTTP ${res.status}`,
+      page: '/login',
+      errorName: 'PasswordResetError',
+      httpStatus: res.status,
+      apiUrl: `${API_BASE}/auth/password-reset/request`,
+    })
     redirect('/login?reset=error')
   }
 
