@@ -67,6 +67,18 @@ jobs:
             fi
 
             cd "$REPO_DIR"
+
+            # Restore .env if missing (preserved from previous deploy)
+            if [ ! -f "apps/api/.env" ]; then
+              for backup in "$HOME/AO-OS-prev" "$HOME/AO-OS-release-isolated" "$HOME/AO-OS-prod-auth-inspect" "$HOME/AO-OS-release-facility-map"; do
+                if [ -f "$backup/apps/api/.env" ]; then
+                  cp "$backup/apps/api/.env" apps/api/.env
+                  echo "Restored .env from $backup"
+                  break
+                fi
+              done
+            fi
+
             echo "=== Deploy ==="
             WEB_BASE="" bash scripts/vm-post-deploy-smoke.sh --build
 
