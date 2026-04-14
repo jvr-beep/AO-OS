@@ -42,26 +42,7 @@ jobs:
               exit 1
             fi
 
-            NETRC_FILE="$(mktemp)"
-            cleanup() {
-              rm -f "$NETRC_FILE"
-            }
-            trap cleanup EXIT
-
-            umask 177
-            cat > "$NETRC_FILE" <<EOF
-            machine github.com
-              login ${GH_ACTOR}
-              password ${GH_TOKEN}
-            machine api.github.com
-              login ${GH_ACTOR}
-              password ${GH_TOKEN}
-            EOF
-
-            chmod 600 "$NETRC_FILE"
-            export NETRC="$NETRC_FILE"
-
-            REPO_URL="https://github.com/${GH_REPOSITORY}.git"
+            REPO_URL="https://${GH_ACTOR}:${GH_TOKEN}@github.com/${GH_REPOSITORY}.git"
             REPO_DIR="$HOME/AO-OS"
             BACKUP_DIR="$HOME/AO-OS-prev"
 
