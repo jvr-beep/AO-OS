@@ -13,7 +13,13 @@ export interface SessionData {
 }
 
 const SESSION_OPTIONS = {
-  password: process.env.SESSION_SECRET ?? 'fallback-secret-must-be-32-chars!!',
+  password: (() => {
+    const secret = process.env.SESSION_SECRET
+    if (!secret && process.env.NODE_ENV === 'production') {
+      throw new Error('SESSION_SECRET must be set in production')
+    }
+    return secret ?? 'fallback-secret-must-be-32-chars!!'
+  })(),
   cookieName: 'ao-os-session',
   cookieOptions: {
     secure: process.env.NODE_ENV === 'production',
