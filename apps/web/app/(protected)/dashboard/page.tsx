@@ -1,13 +1,29 @@
 import Link from 'next/link'
 import { getSession } from '@/lib/session'
 import { MemberLookup } from '@/components/member-lookup'
+import { reportErrorAction } from '@/app/actions/report-error'
 
 async function getApiHealth(): Promise<'ok' | 'degraded' | 'unreachable'> {
   try {
     const apiBase = process.env.API_BASE_URL ?? 'http://localhost:4000/v1'
     const res = await fetch(`${apiBase}/health`, { cache: 'no-store' })
-    return res.ok ? 'ok' : 'degraded'
-  } catch {
+    if (!res.ok) {
+      await reportErrorAction({
+        message: `API health check degraded: HTTP ${res.status}`,
+        page: '/dashboard',
+        errorName: 'ApiHealthDegraded',
+        httpStatus: res.status,
+        apiUrl: `${apiBase}/health`,
+      })
+      return 'degraded'
+    }
+    return 'ok'
+  } catch (err) {
+    await reportErrorAction({
+      message: err instanceof Error ? err.message : 'API health check unreachable',
+      page: '/dashboard',
+      errorName: 'ApiHealthUnreachable',
+    })
     return 'unreachable'
   }
 }

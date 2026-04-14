@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, useTransition } from 'react'
 import { loginAction, requestPasswordReset } from '@/app/actions/auth'
+import { reportErrorAction } from '@/app/actions/report-error'
 import { AoLogo } from '@/components/AoLogo'
 
 const USERS_KEY = 'ao-os-login-users'
@@ -96,7 +97,12 @@ export default function LoginClient({ resetState }: Props) {
             setLoginError(null)
             startTransition(async () => {
               const result = await loginAction(null, formData)
-              if (result?.error) setLoginError(result.error)
+              if (result?.error) {
+                setLoginError(result.error)
+                if (result.error !== 'Invalid email or password.' && result.error !== 'Email and password are required.') {
+                  await reportErrorAction({ message: result.error, page: '/login', errorName: 'LoginError' })
+                }
+              }
             })
           }}
         >

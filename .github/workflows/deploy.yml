@@ -70,12 +70,21 @@ jobs:
 
             cd "$REPO_DIR"
 
-            # Restore .env if missing (preserved from previous deploy)
+            # Restore .env files if missing (preserved from previous deploy)
             if [ ! -f "apps/api/.env" ]; then
               for backup in "$HOME/AO-OS-prev" "$HOME/AO-OS-release-isolated" "$HOME/AO-OS-prod-auth-inspect"; do
                 if [ -f "$backup/apps/api/.env" ]; then
                   cp "$backup/apps/api/.env" apps/api/.env
-                  echo "Restored .env from $backup"
+                  echo "Restored api .env from $backup"
+                  break
+                fi
+              done
+            fi
+            if [ ! -f "apps/web/.env" ]; then
+              for backup in "$HOME/AO-OS-prev" "$HOME/AO-OS-release-isolated" "$HOME/AO-OS-prod-auth-inspect"; do
+                if [ -f "$backup/apps/web/.env" ]; then
+                  cp "$backup/apps/web/.env" apps/web/.env
+                  echo "Restored web .env from $backup"
                   break
                 fi
               done
