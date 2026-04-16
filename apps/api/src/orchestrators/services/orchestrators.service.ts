@@ -238,8 +238,9 @@ export class OrchestratorsService {
       throw new NotFoundException("Visit not found");
     }
 
-    if (["checked_out", "cancelled"].includes(visit.status)) {
-      throw new ConflictException(`Visit already in terminal status '${visit.status}'`);
+    const CHECKOUT_ELIGIBLE_STATUSES = ["checked_in", "active", "extended"];
+    if (!CHECKOUT_ELIGIBLE_STATUSES.includes(visit.status)) {
+      throw new ConflictException(`Visit in status '${visit.status}' is not eligible for checkout`);
     }
 
     const folio = await this.prisma.folio.findUnique({ where: { visitId: visit.id } });
