@@ -63,7 +63,7 @@ export default async function LockersPage({
       )}
 
       <div className="card mb-4">
-        <h2 className="text-sm font-semibold text-ao-primary mb-2 uppercase tracking-wide">Hard-Blocked Locker Statuses</h2>
+        <h2 className="text-sm font-semibold text-accent-primary mb-2 uppercase tracking-wide">Hard-Blocked Locker Statuses</h2>
         <p className="text-xs text-gray-400 mb-2">
           Staff override can bypass business-policy restrictions but cannot bypass operational safety blocks.
         </p>
@@ -76,7 +76,7 @@ export default async function LockersPage({
 
       <div className="grid grid-cols-1 gap-4 mb-6 lg:grid-cols-3">
         <div className="card">
-          <h2 className="text-sm font-semibold text-ao-primary mb-3 uppercase tracking-wide">Evaluate Policy</h2>
+          <h2 className="text-sm font-semibold text-accent-primary mb-3 uppercase tracking-wide">Evaluate Policy</h2>
           <p className="text-xs text-gray-400 mb-2">Allowed roles: operations, admin.</p>
           {!canEvaluatePolicy && <p className="text-xs text-amber-500 mb-2">operations/admin only</p>}
           <form action={evaluateLockerPolicyAction} className="space-y-2">
@@ -107,7 +107,7 @@ export default async function LockersPage({
         </div>
 
         <div className="card">
-          <h2 className="text-sm font-semibold text-ao-primary mb-3 uppercase tracking-wide">Assign Locker</h2>
+          <h2 className="text-sm font-semibold text-accent-primary mb-3 uppercase tracking-wide">Assign Locker</h2>
           <p className="text-xs text-gray-400 mb-2">Allowed roles: front_desk, operations, admin.</p>
           <form action={assignLockerAction} className="space-y-2">
             <input name="lockerId" placeholder="Locker ID" className="form-input" required />
@@ -128,7 +128,7 @@ export default async function LockersPage({
         </div>
 
         <div className="card">
-          <h2 className="text-sm font-semibold text-ao-primary mb-3 uppercase tracking-wide">Release Locker</h2>
+          <h2 className="text-sm font-semibold text-accent-primary mb-3 uppercase tracking-wide">Release Locker</h2>
           <p className="text-xs text-gray-400 mb-2">Allowed roles: front_desk, operations, admin.</p>
           <form action={unassignLockerAction} className="space-y-2">
             <input name="lockerId" placeholder="Locker ID" className="form-input" required />
@@ -168,8 +168,8 @@ export default async function LockersPage({
         ) : (
           sortedZoneKeys.map((zone) => (
             <div key={zone}>
-              <div className="px-4 py-2 bg-ao-dark border-b border-gray-700">
-                <p className="text-xs font-semibold text-ao-teal uppercase tracking-wide">
+              <div className="px-4 py-2 bg-surface-0 border-b border-gray-700">
+                <p className="text-xs font-semibold text-accent-primary uppercase tracking-wide">
                   Zone: {zone}
                   <span className="ml-2 text-gray-400 font-normal">({zoneGroups[zone].length})</span>
                 </p>
@@ -177,10 +177,10 @@ export default async function LockersPage({
               <table className="w-full text-sm">
                 <thead className="bg-gray-800 border-b border-gray-700">
                   <tr>
-                    <th className="text-left px-4 py-2 text-xs font-semibold text-ao-teal uppercase tracking-wide">Code</th>
-                    <th className="text-left px-4 py-2 text-xs font-semibold text-ao-teal uppercase tracking-wide">Status</th>
-                    <th className="text-left px-4 py-2 text-xs font-semibold text-ao-teal uppercase tracking-wide">Occupant</th>
-                    <th className="text-left px-4 py-2 text-xs font-semibold text-ao-teal uppercase tracking-wide">Since</th>
+                    <th className="text-left px-4 py-2 text-xs font-semibold text-accent-primary uppercase tracking-wide">Code</th>
+                    <th className="text-left px-4 py-2 text-xs font-semibold text-accent-primary uppercase tracking-wide">Status</th>
+                    <th className="text-left px-4 py-2 text-xs font-semibold text-accent-primary uppercase tracking-wide">Occupant</th>
+                    <th className="text-left px-4 py-2 text-xs font-semibold text-accent-primary uppercase tracking-wide">Since</th>
                     <th className="px-4 py-2" />
                   </tr>
                 </thead>
@@ -200,7 +200,7 @@ export default async function LockersPage({
                       <td className="px-4 py-3">
                         <Link
                           href={`/lockers/${locker.id}`}
-                          className="text-xs text-ao-teal hover:text-ao-primary transition-colors"
+                          className="text-xs text-accent-primary hover:text-accent-primary transition-colors"
                         >
                           View →
                         </Link>
@@ -216,7 +216,7 @@ export default async function LockersPage({
 
       {canResolveAbandoned && (
         <div className="card mt-4">
-          <h2 className="text-sm font-semibold text-ao-primary mb-2 uppercase tracking-wide">Resolve Abandoned Lockers</h2>
+          <h2 className="text-sm font-semibold text-accent-primary mb-2 uppercase tracking-wide">Resolve Abandoned Lockers</h2>
           <p className="text-xs text-gray-400 mb-3">
             Releases any lockers still assigned to sessions that have already checked out or expired.
             Optionally scope to a specific site.

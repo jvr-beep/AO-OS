@@ -15,10 +15,13 @@ export interface SessionData {
 const SESSION_OPTIONS = {
   password: (() => {
     const secret = process.env.SESSION_SECRET
-    if (!secret && process.env.NODE_ENV === 'production') {
-      throw new Error('SESSION_SECRET must be set in production')
+    if (!secret) {
+      if (process.env.NODE_ENV !== 'development') {
+        throw new Error('SESSION_SECRET must be set in non-development environments')
+      }
+      console.warn('[session] SESSION_SECRET not set — using insecure dev fallback; set it in .env.local')
     }
-    return secret ?? 'fallback-secret-must-be-32-chars!!'
+    return secret ?? 'dev-only-fallback-secret-32chars!!'
   })(),
   cookieName: 'ao-os-session',
   cookieOptions: {

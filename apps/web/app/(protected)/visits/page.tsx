@@ -76,8 +76,8 @@ export default async function VisitsPage({
             href={`/visits?status=${f.value}`}
             className={`text-xs px-3 py-1.5 rounded border font-medium transition-colors ${
               statusFilter === f.value
-                ? 'bg-ao-teal text-black border-ao-teal'
-                : 'bg-transparent text-gray-300 border-gray-600 hover:border-ao-teal'
+                ? 'bg-accent-primary text-black border-accent-primary'
+                : 'bg-transparent text-gray-300 border-gray-600 hover:border-accent-primary'
             }`}
           >
             {f.label}
@@ -87,14 +87,14 @@ export default async function VisitsPage({
 
       <div className="card overflow-hidden">
         <table className="w-full text-sm">
-          <thead className="bg-ao-dark border-b border-gray-700">
+          <thead className="bg-surface-0 border-b border-gray-700">
             <tr>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-ao-teal uppercase tracking-wide">Date</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-ao-teal uppercase tracking-wide">Guest</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-ao-teal uppercase tracking-wide">Type</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-ao-teal uppercase tracking-wide">Status</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-ao-teal uppercase tracking-wide">Duration</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-ao-teal uppercase tracking-wide">Actions</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-accent-primary uppercase tracking-wide">Date</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-accent-primary uppercase tracking-wide">Guest</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-accent-primary uppercase tracking-wide">Type</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-accent-primary uppercase tracking-wide">Status</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-accent-primary uppercase tracking-wide">Duration</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-accent-primary uppercase tracking-wide">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-700">
@@ -115,7 +115,7 @@ export default async function VisitsPage({
                     <td className="px-4 py-3 text-xs">
                       <Link
                         href={`/guests/${visit.guest_id}`}
-                        className="text-ao-teal hover:text-ao-primary transition-colors font-mono"
+                        className="text-accent-primary hover:text-accent-primary transition-colors font-mono"
                       >
                         {visit.guest_id.slice(0, 8)}…
                       </Link>
@@ -131,7 +131,7 @@ export default async function VisitsPage({
                       <div className="flex items-center gap-2">
                         <Link
                           href={`/visits/${visit.id}`}
-                          className="text-xs text-ao-teal hover:text-ao-primary transition-colors"
+                          className="text-xs text-accent-primary hover:text-accent-primary transition-colors"
                         >
                           View →
                         </Link>

@@ -71,7 +71,7 @@ export default async function GuestDetailPage({
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <div className="card p-4">
-          <h2 className="text-xs font-semibold text-ao-teal uppercase tracking-wide mb-3">Profile</h2>
+          <h2 className="text-xs font-semibold text-accent-primary uppercase tracking-wide mb-3">Profile</h2>
           <dl className="space-y-2 text-sm">
             <div className="flex justify-between">
               <dt className="text-gray-400">Email</dt>
@@ -94,7 +94,7 @@ export default async function GuestDetailPage({
           </dl>
         </div>
         <div className="card p-4">
-          <h2 className="text-xs font-semibold text-ao-teal uppercase tracking-wide mb-3">Status</h2>
+          <h2 className="text-xs font-semibold text-accent-primary uppercase tracking-wide mb-3">Status</h2>
           <dl className="space-y-2 text-sm">
             <div className="flex justify-between items-center">
               <dt className="text-gray-400">Membership</dt>
@@ -121,12 +121,12 @@ export default async function GuestDetailPage({
           <h2 className="text-sm font-semibold text-gray-200">Visits ({sortedVisits.length})</h2>
         </div>
         <table className="w-full text-sm">
-          <thead className="bg-ao-dark border-b border-gray-700">
+          <thead className="bg-surface-0 border-b border-gray-700">
             <tr>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-ao-teal uppercase tracking-wide">Date</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-ao-teal uppercase tracking-wide">Type</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-ao-teal uppercase tracking-wide">Status</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-ao-teal uppercase tracking-wide">Duration</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-accent-primary uppercase tracking-wide">Date</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-accent-primary uppercase tracking-wide">Type</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-accent-primary uppercase tracking-wide">Status</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-accent-primary uppercase tracking-wide">Duration</th>
               <th className="px-4 py-3" />
             </tr>
           </thead>
@@ -153,7 +153,7 @@ export default async function GuestDetailPage({
                   <td className="px-4 py-3 text-right">
                     <Link
                       href={`/visits/${visit.id}`}
-                      className="text-xs text-ao-teal hover:text-ao-primary transition-colors"
+                      className="text-xs text-accent-primary hover:text-accent-primary transition-colors"
                     >
                       View →
                     </Link>
@@ -170,13 +170,13 @@ export default async function GuestDetailPage({
           <h2 className="text-sm font-semibold text-gray-200">Bookings ({sortedBookings.length})</h2>
         </div>
         <table className="w-full text-sm">
-          <thead className="bg-ao-dark border-b border-gray-700">
+          <thead className="bg-surface-0 border-b border-gray-700">
             <tr>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-ao-teal uppercase tracking-wide">Code</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-ao-teal uppercase tracking-wide">Status</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-ao-teal uppercase tracking-wide">Channel</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-ao-teal uppercase tracking-wide">Balance</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-ao-teal uppercase tracking-wide">Created</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-accent-primary uppercase tracking-wide">Code</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-accent-primary uppercase tracking-wide">Status</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-accent-primary uppercase tracking-wide">Channel</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-accent-primary uppercase tracking-wide">Balance</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-accent-primary uppercase tracking-wide">Created</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-700">

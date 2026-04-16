@@ -68,7 +68,7 @@ export default async function VisitDetailPage({
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <div className="card p-4">
-          <h2 className="text-xs font-semibold text-ao-teal uppercase tracking-wide mb-3">Visit Details</h2>
+          <h2 className="text-xs font-semibold text-accent-primary uppercase tracking-wide mb-3">Visit Details</h2>
           <dl className="space-y-2 text-sm">
             <div className="flex justify-between items-center">
               <dt className="text-gray-400">Status</dt>
@@ -99,14 +99,14 @@ export default async function VisitDetailPage({
           </dl>
         </div>
         <div className="card p-4">
-          <h2 className="text-xs font-semibold text-ao-teal uppercase tracking-wide mb-3">Guest & Links</h2>
+          <h2 className="text-xs font-semibold text-accent-primary uppercase tracking-wide mb-3">Guest & Links</h2>
           <dl className="space-y-2 text-sm">
             <div className="flex justify-between">
               <dt className="text-gray-400">Guest</dt>
               <dd>
                 <Link
                   href={`/guests/${visit.guest_id}`}
-                  className="text-ao-teal hover:text-ao-primary font-mono text-xs"
+                  className="text-accent-primary hover:text-accent-primary font-mono text-xs"
                 >
                   {visit.guest_id.slice(0, 8)}… →
                 </Link>
@@ -155,13 +155,13 @@ export default async function VisitDetailPage({
           </div>
 
           <table className="w-full text-sm">
-            <thead className="bg-ao-dark border-b border-gray-700">
+            <thead className="bg-surface-0 border-b border-gray-700">
               <tr>
-                <th className="text-left px-4 py-2 text-xs font-semibold text-ao-teal uppercase tracking-wide">Type</th>
-                <th className="text-left px-4 py-2 text-xs font-semibold text-ao-teal uppercase tracking-wide">Description</th>
-                <th className="text-right px-4 py-2 text-xs font-semibold text-ao-teal uppercase tracking-wide">Qty</th>
-                <th className="text-right px-4 py-2 text-xs font-semibold text-ao-teal uppercase tracking-wide">Unit</th>
-                <th className="text-right px-4 py-2 text-xs font-semibold text-ao-teal uppercase tracking-wide">Total</th>
+                <th className="text-left px-4 py-2 text-xs font-semibold text-accent-primary uppercase tracking-wide">Type</th>
+                <th className="text-left px-4 py-2 text-xs font-semibold text-accent-primary uppercase tracking-wide">Description</th>
+                <th className="text-right px-4 py-2 text-xs font-semibold text-accent-primary uppercase tracking-wide">Qty</th>
+                <th className="text-right px-4 py-2 text-xs font-semibold text-accent-primary uppercase tracking-wide">Unit</th>
+                <th className="text-right px-4 py-2 text-xs font-semibold text-accent-primary uppercase tracking-wide">Total</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-700">
@@ -191,7 +191,7 @@ export default async function VisitDetailPage({
 
           {folio.payment_transactions.length > 0 && (
             <div className="border-t border-gray-700 px-4 py-3">
-              <p className="text-xs font-semibold text-ao-teal uppercase tracking-wide mb-2">Payments</p>
+              <p className="text-xs font-semibold text-accent-primary uppercase tracking-wide mb-2">Payments</p>
               {folio.payment_transactions.map((p) => (
                 <div key={p.id} className="flex justify-between text-xs text-gray-300 mb-1">
                   <span>{p.payment_provider} · {p.transaction_type}</span>

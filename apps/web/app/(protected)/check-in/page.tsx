@@ -125,18 +125,18 @@ export default async function CheckInPage({
       <div className="card overflow-hidden">
         <div className="px-4 py-3 border-b border-gray-700 flex items-center justify-between">
           <h2 className="text-sm font-semibold text-gray-200">Active Visits ({activeSorted.length})</h2>
-          <Link href="/visits" className="text-xs text-ao-teal hover:text-ao-primary transition-colors">
+          <Link href="/visits" className="text-xs text-accent-primary hover:text-accent-primary transition-colors">
             All visits →
           </Link>
         </div>
         <table className="w-full text-sm">
-          <thead className="bg-ao-dark border-b border-gray-700">
+          <thead className="bg-surface-0 border-b border-gray-700">
             <tr>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-ao-teal uppercase tracking-wide">Started</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-ao-teal uppercase tracking-wide">Guest</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-ao-teal uppercase tracking-wide">Status</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-ao-teal uppercase tracking-wide">Duration</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-ao-teal uppercase tracking-wide">Actions</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-accent-primary uppercase tracking-wide">Started</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-accent-primary uppercase tracking-wide">Guest</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-accent-primary uppercase tracking-wide">Status</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-accent-primary uppercase tracking-wide">Duration</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-accent-primary uppercase tracking-wide">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-700">
@@ -157,7 +157,7 @@ export default async function CheckInPage({
                     <td className="px-4 py-3 text-xs">
                       <Link
                         href={`/guests/${visit.guest_id}`}
-                        className="text-ao-teal hover:text-ao-primary transition-colors font-mono"
+                        className="text-accent-primary hover:text-accent-primary transition-colors font-mono"
                       >
                         {visit.guest_id.slice(0, 8)}…
                       </Link>
@@ -172,7 +172,7 @@ export default async function CheckInPage({
                       <div className="flex items-center gap-2">
                         <Link
                           href={`/visits/${visit.id}`}
-                          className="text-xs text-ao-teal hover:text-ao-primary transition-colors"
+                          className="text-xs text-accent-primary hover:text-accent-primary transition-colors"
                         >
                           View →
                         </Link>

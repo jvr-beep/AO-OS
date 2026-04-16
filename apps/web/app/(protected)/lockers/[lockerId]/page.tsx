@@ -36,7 +36,7 @@ export default async function LockerDetailPage({
   return (
     <div className="max-w-3xl">
       <div className="flex items-center gap-3 mb-6">
-        <Link href="/lockers" className="text-sm text-ao-teal hover:text-ao-primary transition-colors">
+        <Link href="/lockers" className="text-sm text-accent-primary hover:text-accent-primary transition-colors">
           ← Lockers
         </Link>
         <h1 className="text-3xl font-bold">Locker {locker.code}</h1>
@@ -57,13 +57,13 @@ export default async function LockerDetailPage({
 
       {locker.assignedMemberId && (
         <div className="card mb-4">
-          <h2 className="text-sm font-semibold text-ao-primary mb-3 uppercase tracking-wide">Current Occupant</h2>
+          <h2 className="text-sm font-semibold text-accent-primary mb-3 uppercase tracking-wide">Current Occupant</h2>
           <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
             <dt className="text-gray-400">Member</dt>
             <dd>
               <Link
                 href={`/members/${locker.assignedMemberId}`}
-                className="text-ao-teal hover:text-ao-primary transition-colors"
+                className="text-accent-primary hover:text-accent-primary transition-colors"
               >
                 {locker.assignedMemberId}
               </Link>
@@ -77,7 +77,7 @@ export default async function LockerDetailPage({
       {isOccupied && (
         <div className="grid grid-cols-1 gap-4 mb-4 sm:grid-cols-2">
           <div className="card">
-            <h2 className="text-sm font-semibold text-ao-primary mb-3 uppercase tracking-wide">Move to Another Locker</h2>
+            <h2 className="text-sm font-semibold text-accent-primary mb-3 uppercase tracking-wide">Move to Another Locker</h2>
             <p className="text-xs text-gray-400 mb-2">
               Atomically releases this locker and assigns the member to the new one.
             </p>
@@ -90,7 +90,7 @@ export default async function LockerDetailPage({
           </div>
 
           <div className="card">
-            <h2 className="text-sm font-semibold text-ao-primary mb-3 uppercase tracking-wide">Release Locker</h2>
+            <h2 className="text-sm font-semibold text-accent-primary mb-3 uppercase tracking-wide">Release Locker</h2>
             <p className="text-xs text-gray-400 mb-2">Manually release this locker assignment.</p>
             <form action={unassignLockerAction} className="space-y-2">
               <input type="hidden" name="lockerId" value={locker.id} />
@@ -106,7 +106,7 @@ export default async function LockerDetailPage({
       )}
 
       <div className="card mb-4">
-        <h2 className="text-sm font-semibold text-ao-primary mb-2 uppercase tracking-wide">Operational Safety Rules</h2>
+        <h2 className="text-sm font-semibold text-accent-primary mb-2 uppercase tracking-wide">Operational Safety Rules</h2>
         <p className="text-xs text-gray-400 mb-2">
           The statuses below are hard-blocked for assignment and access, even under staff override.
         </p>
@@ -118,27 +118,27 @@ export default async function LockerDetailPage({
       </div>
 
       <div className="card overflow-hidden">
-        <div className="px-4 py-3 border-b border-gray-700 bg-ao-dark">
-          <h2 className="text-sm font-semibold text-ao-primary uppercase tracking-wide">
+        <div className="px-4 py-3 border-b border-gray-700 bg-surface-0">
+          <h2 className="text-sm font-semibold text-accent-primary uppercase tracking-wide">
             Access Events ({events.length})
           </h2>
         </div>
         <table className="w-full text-sm">
-          <thead className="bg-ao-dark border-b border-gray-700">
+          <thead className="bg-surface-0 border-b border-gray-700">
             <tr>
-              <th className="text-left px-4 py-2 text-xs font-semibold text-ao-teal uppercase tracking-wide">
+              <th className="text-left px-4 py-2 text-xs font-semibold text-accent-primary uppercase tracking-wide">
                 Time
               </th>
-              <th className="text-left px-4 py-2 text-xs font-semibold text-ao-teal uppercase tracking-wide">
+              <th className="text-left px-4 py-2 text-xs font-semibold text-accent-primary uppercase tracking-wide">
                 Type
               </th>
-              <th className="text-left px-4 py-2 text-xs font-semibold text-ao-teal uppercase tracking-wide">
+              <th className="text-left px-4 py-2 text-xs font-semibold text-accent-primary uppercase tracking-wide">
                 Member
               </th>
-              <th className="text-left px-4 py-2 text-xs font-semibold text-ao-teal uppercase tracking-wide">
+              <th className="text-left px-4 py-2 text-xs font-semibold text-accent-primary uppercase tracking-wide">
                 Reference
               </th>
-              <th className="text-left px-4 py-2 text-xs font-semibold text-ao-teal uppercase tracking-wide">
+              <th className="text-left px-4 py-2 text-xs font-semibold text-accent-primary uppercase tracking-wide">
                 Denial
               </th>
             </tr>
@@ -163,7 +163,7 @@ export default async function LockerDetailPage({
                     {ev.memberId ? (
                       <Link
                         href={`/members/${ev.memberId}`}
-                        className="text-ao-teal hover:text-ao-primary transition-colors font-mono"
+                        className="text-accent-primary hover:text-accent-primary transition-colors font-mono"
                       >
                         {ev.memberId.slice(0, 8)}…
                       </Link>

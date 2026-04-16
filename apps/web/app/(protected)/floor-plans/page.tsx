@@ -34,7 +34,7 @@ export default async function FloorPlansPage() {
               </dl>
               <Link
                 href={`/floor-plans/${plan.id}`}
-                className="text-sm text-ao-teal hover:text-ao-primary transition-colors"
+                className="text-sm text-accent-primary hover:text-accent-primary transition-colors"
               >
                 View map →
               </Link>

@@ -48,7 +48,7 @@ export default async function RoomDetailPage({
   return (
     <div className="max-w-5xl">
       <div className="flex items-center gap-3 mb-6">
-        <Link href="/rooms" className="text-sm text-ao-teal hover:text-ao-primary transition-colors">
+        <Link href="/rooms" className="text-sm text-accent-primary hover:text-accent-primary transition-colors">
           ← Rooms
         </Link>
         <h1 className="text-2xl font-semibold text-gray-100">{room.name}</h1>
@@ -131,18 +131,18 @@ export default async function RoomDetailPage({
           <h2 className="text-sm font-semibold text-gray-200">Bookings ({bookings.length})</h2>
         </div>
         <table className="w-full text-sm">
-          <thead className="bg-ao-dark border-b border-gray-700">
+          <thead className="bg-surface-0 border-b border-gray-700">
             <tr>
-              <th className="text-left px-4 py-2 text-xs font-semibold text-ao-teal uppercase tracking-wide">
+              <th className="text-left px-4 py-2 text-xs font-semibold text-accent-primary uppercase tracking-wide">
                 Member
               </th>
-              <th className="text-left px-4 py-2 text-xs font-semibold text-ao-teal uppercase tracking-wide">
+              <th className="text-left px-4 py-2 text-xs font-semibold text-accent-primary uppercase tracking-wide">
                 Window
               </th>
-              <th className="text-left px-4 py-2 text-xs font-semibold text-ao-teal uppercase tracking-wide">
+              <th className="text-left px-4 py-2 text-xs font-semibold text-accent-primary uppercase tracking-wide">
                 Status
               </th>
-              <th className="text-left px-4 py-2 text-xs font-semibold text-ao-teal uppercase tracking-wide">
+              <th className="text-left px-4 py-2 text-xs font-semibold text-accent-primary uppercase tracking-wide">
                 Type
               </th>
             </tr>
@@ -158,7 +158,7 @@ export default async function RoomDetailPage({
               bookings.map((booking) => (
                 <tr key={booking.id} className="hover:bg-gray-700/40">
                   <td className="px-4 py-2 text-xs">
-                    <Link href={`/members/${booking.memberId}`} className="text-ao-teal hover:text-ao-primary transition-colors font-mono">
+                    <Link href={`/members/${booking.memberId}`} className="text-accent-primary hover:text-accent-primary transition-colors font-mono">
                       {booking.memberId.slice(0, 8)}…
                     </Link>
                   </td>
@@ -182,21 +182,21 @@ export default async function RoomDetailPage({
           <h2 className="text-sm font-semibold text-gray-200">Access Events ({events.length})</h2>
         </div>
         <table className="w-full text-sm">
-          <thead className="bg-ao-dark border-b border-gray-700">
+          <thead className="bg-surface-0 border-b border-gray-700">
             <tr>
-              <th className="text-left px-4 py-2 text-xs font-semibold text-ao-teal uppercase tracking-wide">
+              <th className="text-left px-4 py-2 text-xs font-semibold text-accent-primary uppercase tracking-wide">
                 Time
               </th>
-              <th className="text-left px-4 py-2 text-xs font-semibold text-ao-teal uppercase tracking-wide">
+              <th className="text-left px-4 py-2 text-xs font-semibold text-accent-primary uppercase tracking-wide">
                 Decision
               </th>
-              <th className="text-left px-4 py-2 text-xs font-semibold text-ao-teal uppercase tracking-wide">
+              <th className="text-left px-4 py-2 text-xs font-semibold text-accent-primary uppercase tracking-wide">
                 Reason
               </th>
-              <th className="text-left px-4 py-2 text-xs font-semibold text-ao-teal uppercase tracking-wide">
+              <th className="text-left px-4 py-2 text-xs font-semibold text-accent-primary uppercase tracking-wide">
                 Event
               </th>
-              <th className="text-left px-4 py-2 text-xs font-semibold text-ao-teal uppercase tracking-wide">
+              <th className="text-left px-4 py-2 text-xs font-semibold text-accent-primary uppercase tracking-wide">
                 Source
               </th>
             </tr>

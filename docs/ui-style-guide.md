@@ -1,72 +1,96 @@
 # AO-OS UI Style Guide
 
+All tokens are defined in `apps/web/tailwind.config.ts`. Use canonical tokens in all new code. Legacy `ao-*` aliases exist for backwards-compatibility only — do not use in new work.
+
+---
+
 ## 1. Semantic Token Map
 
 ### Surface
-- `surface-0`: #0F1F1B (base, stone/charcoal)
-- `surface-1`: #161F1A (layered panel)
-- `surface-2`: #232B26 (elevated panel)
-- `surface-elevated`: #2C3630 (modal/overlay)
+
+- `surface-0`: #0B0E11 — Obsidian, primary background
+- `surface-1`: #0F1620 — Deep Navy Stone, alternate background / cards
+- `surface-2`: #1C222B — Bronzed Charcoal, elevated cards, separation layers
+- `surface-elevated`: #1C222B — same as surface-2, use for modals/overlays
 
 ### Text
-- `text-primary`: #F3F4F6
-- `text-secondary`: #B6BFC7
-- `text-muted`: #7A868C
-- `text-inverse`: #0F1F1B
+
+- `text-primary`: #EDE9E3 — Warm Ivory, primary body text
+- `text-secondary`: #9CA3AF — Stone Grey, secondary labels
+- `text-muted`: #6B7280 — subdued / placeholder text
+- `text-inverse`: #0B0E11 — text on accent backgrounds
 
 ### Accent
-- `accent-primary`: #14B8A6 (teal, selective)
-- `accent-active`: #06B6D4 (cyan, beacon)
-- `accent-beacon`: #F59E42 (warm alert)
+
+- `accent-primary`: #2F8F83 — AO Metallic / Electrum Teal — use sparingly, beacon color only
 
 ### Border
-- `border-subtle`: #232B26
-- `border-strong`: #14B8A6
 
-### Status (Resource/Visit/Wristband)
-- `status-available`: #14B8A6
+- `border-subtle`: #1C222B — low-contrast dividers
+- `border-strong`: #2F8F83 — teal accent borders
+
+### Status (Resource / Visit / Wristband)
+
+- `status-available`: #2F8F83
 - `status-held`: #F59E42
 - `status-occupied`: #F43F5E
 - `status-cleaning`: #FBBF24
-- `status-out-of-service`: #7A868C
+- `status-out-of-service`: #6B7280
 
 ### Feedback
-- `info`: #06B6D4
+
+- `info`: #2F8F83
 - `warning`: #F59E42
 - `critical`: #F43F5E
 - `success`: #22C55E
 
 ### Exception
+
 - `exception-open`: #F43F5E
 - `exception-acknowledged`: #F59E42
-- `exception-resolved`: #14B8A6
-
-## 2. Typography
-- **Sans-serif**: System UI, clean, calm for all transactional UI
-- **Serif**: Only for rare branded headers/section moments
-- **Hierarchy**: Large, calm headings; strong but not busy
-
-## 3. Component Doctrine
-- Layered, framed, intentional panels
-- Sparse copy, strong hierarchy
-- Fewer bright accents, teal only as beacon
-- Large, calm hit targets
-- State = icon + label, not color alone
-
-## 4. Exception Patterns
-- Inline banners for recoverable issues
-- Blocking modals for critical failures
-- Exception drawer/panel for staff
-- Severity/status chips for open, acknowledged, resolved
-
-## 5. Implementation Checklist
-- [ ] Tailwind config: add semantic tokens
-- [ ] globals.css: update base styles, typography
-- [ ] Refactor: AppShell, SidebarNav, Button, Card, StatusBadge, Modal, Input
-- [ ] State color/icon mapping for resource, visit, wristband, exception
-- [ ] Dashboard redesign (flagship)
-- [ ] Add exception patterns (banners, modals, panels)
+- `exception-resolved`: #2F8F83
 
 ---
 
-_This guide is the foundation for all AO-OS UI work. Every PR should reference these tokens and rules._
+## 2. Typography
+
+- **Sans-serif**: System UI — all transactional and operational UI
+- **Serif** (`font-heading`): Reserved for rare branded section moments only
+- **Hierarchy**: Large calm headings, strong but not busy. No decorative type in operational views.
+
+---
+
+## 3. Component Doctrine
+
+- Layered, framed, intentional panels
+- Sparse copy, strong hierarchy
+- Teal (`accent-primary`) used only as a beacon — never as a fill color on large areas
+- Large, calm hit targets
+- State communicated via icon + label, not color alone
+- Tables: `bg-surface-0` thead, `divide-y divide-gray-700` rows, `hover:bg-gray-700/40` row hover
+
+---
+
+## 4. Exception Patterns
+
+- Inline banners (`border-red-700 bg-red-900 text-red-200` / `border-green-700 bg-green-900 text-green-200`) for recoverable issues
+- Blocking modals for critical / irreversible failures
+- Severity chips: `exception-open`, `exception-acknowledged`, `exception-resolved`
+
+---
+
+## 5. Legacy Aliases (do not use in new code)
+
+These are kept in `tailwind.config.ts` for backwards-compatibility only. They all map to canonical tokens:
+
+| Legacy class | Canonical equivalent |
+| ------------ | -------------------- |
+| `ao-primary` | `accent-primary` (#2F8F83) |
+| `ao-teal` | `accent-primary` (#2F8F83) |
+| `ao-dark` | `surface-0` (#0B0E11) |
+| `ao-darker` | `surface-0` (#0B0E11) |
+| `accent-active` | `accent-primary` (#2F8F83) |
+
+---
+
+_Last updated to match `tailwind.config.ts` as of AO-OS v1.2. All PRs must use canonical tokens._
