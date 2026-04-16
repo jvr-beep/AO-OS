@@ -35,6 +35,38 @@ jobs:
       - name: Typecheck API
         run: pnpm --filter api run typecheck
 
+      - name: Notify self-heal on failure
+        if: failure()
+        env:
+          AO_OS_SELF_HEAL: ${{ secrets.AO_OS_SELF_HEAL }}
+        run: |
+          if [[ -z "${AO_OS_SELF_HEAL:-}" ]]; then
+            echo "AO_OS_SELF_HEAL not set — skipping"
+            exit 0
+          fi
+          changed_file=$(git diff --name-only HEAD~1 2>/dev/null | grep '\.ts$' | head -1 || echo "apps/api/src/index.ts")
+          curl -s -X POST "$AO_OS_SELF_HEAL" \
+            -H "Content-Type: application/json" \
+            -d "$(jq -n \
+              --arg owner "${{ github.repository_owner }}" \
+              --arg repo "${{ github.event.repository.name }}" \
+              --arg branch "${{ github.ref_name }}" \
+              --arg commit_sha "${{ github.sha }}" \
+              --arg run_id "${{ github.run_id }}" \
+              --arg file_path "$changed_file" \
+              '{
+                owner: $owner,
+                repo: $repo,
+                branch: $branch,
+                commit_sha: $commit_sha,
+                run_id: $run_id,
+                service: "api",
+                error_type: "typecheck_failure",
+                error_message: "TypeScript typecheck failed — see CI run for details",
+                file_path: $file_path
+              }'
+            )" || echo "Self-heal notification failed (non-blocking)"
+
   integration-tests:
     name: Integration Tests
     runs-on: ubuntu-latest
@@ -86,3 +118,35 @@ jobs:
 
       - name: Run integration tests
         run: pnpm --filter api run test:int
+
+      - name: Notify self-heal on failure
+        if: failure()
+        env:
+          AO_OS_SELF_HEAL: ${{ secrets.AO_OS_SELF_HEAL }}
+        run: |
+          if [[ -z "${AO_OS_SELF_HEAL:-}" ]]; then
+            echo "AO_OS_SELF_HEAL not set — skipping"
+            exit 0
+          fi
+          changed_file=$(git diff --name-only HEAD~1 2>/dev/null | grep '\.ts$' | head -1 || echo "apps/api/src/index.ts")
+          curl -s -X POST "$AO_OS_SELF_HEAL" \
+            -H "Content-Type: application/json" \
+            -d "$(jq -n \
+              --arg owner "${{ github.repository_owner }}" \
+              --arg repo "${{ github.event.repository.name }}" \
+              --arg branch "${{ github.ref_name }}" \
+              --arg commit_sha "${{ github.sha }}" \
+              --arg run_id "${{ github.run_id }}" \
+              --arg file_path "$changed_file" \
+              '{
+                owner: $owner,
+                repo: $repo,
+                branch: $branch,
+                commit_sha: $commit_sha,
+                run_id: $run_id,
+                service: "api",
+                error_type: "integration_test_failure",
+                error_message: "Integration tests failed — see CI run for details",
+                file_path: $file_path
+              }'
+            )" || echo "Self-heal notification failed (non-blocking)"
