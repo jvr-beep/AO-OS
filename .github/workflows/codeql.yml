@@ -54,6 +54,9 @@ jobs:
         run: pnpm --filter api run build
 
       - name: Build Web
+        env:
+          SESSION_SECRET: codeql-ci-placeholder-not-used-in-prod-xxxxxxxxxxxxxx
+          NODE_ENV: test
         run: pnpm --filter web run build
 
       - name: Perform CodeQL analysis
