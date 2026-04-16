@@ -22,6 +22,12 @@ import { Roles } from '../../auth/decorators/roles.decorator';
 export class VisitsController {
   constructor(private readonly visitsService: VisitsService) {}
 
+  @Get('visits')
+  @Roles('front_desk', 'operations', 'admin')
+  listVisits(@Query() query: ListVisitsQueryDto) {
+    return this.visitsService.listVisits(query);
+  }
+
   @Post('visits')
   @Roles('front_desk', 'operations', 'admin')
   initiateVisit(@Body() dto: CreateVisitDto) {

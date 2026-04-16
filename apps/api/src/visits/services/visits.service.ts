@@ -107,12 +107,33 @@ export class VisitsService {
     }));
   }
 
+  async listVisits(query: ListVisitsQueryDto) {
+    const statuses = query.status
+      ? Array.isArray(query.status)
+        ? query.status
+        : [query.status]
+      : undefined;
+
+    const visits = await this.prisma.visit.findMany({
+      where: statuses ? { status: { in: statuses } } : {},
+      orderBy: { createdAt: 'desc' },
+      take: 200,
+    });
+    return visits.map((v: any) => this.toResponse(v));
+  }
+
   async listGuestVisits(guestId: string, query: ListVisitsQueryDto) {
     const guest = await this.prisma.guest.findUnique({ where: { id: guestId } });
     if (!guest) throw new NotFoundException('Guest not found');
 
+    const statuses = query.status
+      ? Array.isArray(query.status)
+        ? query.status
+        : [query.status]
+      : undefined;
+
     const visits = await this.prisma.visit.findMany({
-      where: { guestId, ...(query.status ? { status: query.status } : {}) },
+      where: { guestId, ...(statuses ? { status: { in: statuses } } : {}) },
       orderBy: { createdAt: 'desc' },
     });
     return visits.map((v: any) => this.toResponse(v));

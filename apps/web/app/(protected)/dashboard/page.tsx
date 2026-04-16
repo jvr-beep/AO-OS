@@ -29,6 +29,9 @@ async function getApiHealth(): Promise<'ok' | 'degraded' | 'unreachable'> {
 }
 
 const QUICK_LINKS = [
+  { href: '/check-in', label: 'Check-In Console' },
+  { href: '/visits', label: 'Visits' },
+  { href: '/guests', label: 'Guests' },
   { href: '/members', label: 'Members' },
   { href: '/rooms', label: 'Rooms' },
   { href: '/bookings', label: 'Bookings' },
