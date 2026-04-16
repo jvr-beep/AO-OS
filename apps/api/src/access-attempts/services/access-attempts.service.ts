@@ -28,6 +28,11 @@ export class AccessAttemptsService {
         decision = AccessDecision.denied;
         denialReasonCode = zoneEvaluation.denialReasonCode ?? "ACCESS_DENIED";
       }
+    } else {
+      // No member associated with this credential scan — deny by default.
+      // An unrecognized credential must never be granted access.
+      decision = AccessDecision.denied;
+      denialReasonCode = "UNKNOWN_CREDENTIAL";
     }
 
     const created = await this.prisma.accessAttempt.create({
