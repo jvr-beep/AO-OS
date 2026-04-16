@@ -28,7 +28,7 @@ export class EventsPollingService {
       }
     } else {
       // If no since provided, use last polled timestamp from cursor
-      const cursor = await (this.prisma as any).eventPollingCursor.findFirst({
+      const cursor = await this.prisma.eventPollingCursor.findFirst({
         where: { eventType: "LockerAccessEvent" }
       });
       sinceDate = cursor?.lastPolledAt ? new Date(cursor.lastPolledAt) : new Date(Date.now() - 30 * 60 * 1000); // Last 30 mins default
@@ -97,7 +97,7 @@ export class EventsPollingService {
     // Update polling cursors
     const now = new Date();
     for (const eventType of Object.keys(eventCounts)) {
-      await (this.prisma as any).eventPollingCursor.update({
+      await this.prisma.eventPollingCursor.update({
         where: { eventType },
         data: { lastPolledAt: now, updatedAt: now }
       });
@@ -114,7 +114,7 @@ export class EventsPollingService {
   }
 
   private async _pollLockerAccessEvents(since: Date): Promise<PollEvent[]> {
-    const events = await (this.prisma as any).lockerAccessEvent.findMany({
+    const events = await this.prisma.lockerAccessEvent.findMany({
       where: { createdAt: { gte: since } },
       orderBy: { createdAt: "desc" },
       take: 100
@@ -137,7 +137,7 @@ export class EventsPollingService {
   }
 
   private async _pollLockerPolicyEvents(since: Date): Promise<PollEvent[]> {
-    const events = await (this.prisma as any).lockerPolicyDecisionEvent.findMany({
+    const events = await this.prisma.lockerPolicyDecisionEvent.findMany({
       where: { createdAt: { gte: since } },
       orderBy: { createdAt: "desc" },
       take: 100
@@ -160,7 +160,7 @@ export class EventsPollingService {
   }
 
   private async _pollAccessAttempts(since: Date): Promise<PollEvent[]> {
-    const events = await (this.prisma as any).accessAttempt.findMany({
+    const events = await this.prisma.accessAttempt.findMany({
       where: { occurredAt: { gte: since } },
       orderBy: { occurredAt: "desc" },
       take: 100
@@ -182,7 +182,7 @@ export class EventsPollingService {
   }
 
   private async _pollPresenceEvents(since: Date): Promise<PollEvent[]> {
-    const events = await (this.prisma as any).presenceEvent.findMany({
+    const events = await this.prisma.presenceEvent.findMany({
       where: { occurredAt: { gte: since } },
       orderBy: { occurredAt: "desc" },
       take: 100
@@ -204,7 +204,7 @@ export class EventsPollingService {
   }
 
   private async _pollRoomAccessEvents(since: Date): Promise<PollEvent[]> {
-    const events = await (this.prisma as any).roomAccessEvent.findMany({
+    const events = await this.prisma.roomAccessEvent.findMany({
       where: { createdAt: { gte: since } },
       orderBy: { createdAt: "desc" },
       take: 100
@@ -229,7 +229,7 @@ export class EventsPollingService {
   }
 
   private async _pollStaffAuditEvents(since: Date): Promise<PollEvent[]> {
-    const events = await (this.prisma as any).staffAuditEvent.findMany({
+    const events = await this.prisma.staffAuditEvent.findMany({
       where: { occurredAt: { gte: since } },
       orderBy: { occurredAt: "desc" },
       take: 100
@@ -297,7 +297,7 @@ export class EventsPollingService {
   }
 
   private async _pollGuestAccessEvents(since: Date): Promise<PollEvent[]> {
-    const events = await (this.prisma as any).guestAccessEvent.findMany({
+    const events = await this.prisma.guestAccessEvent.findMany({
       where: { eventTime: { gte: since } },
       orderBy: { eventTime: "desc" },
       take: 100
@@ -319,7 +319,7 @@ export class EventsPollingService {
   }
 
   private async _pollSystemExceptions(since: Date): Promise<PollEvent[]> {
-    const events = await (this.prisma as any).systemException.findMany({
+    const events = await this.prisma.systemException.findMany({
       where: { createdAt: { gte: since } },
       orderBy: { createdAt: "desc" },
       take: 100
@@ -344,7 +344,7 @@ export class EventsPollingService {
   }
 
   private async _pollAuthEvents(since: Date): Promise<PollEvent[]> {
-    const events = await (this.prisma as any).authEvent.findMany({
+    const events = await this.prisma.authEvent.findMany({
       where: { occurredAt: { gte: since } },
       orderBy: { occurredAt: "desc" },
       take: 100
