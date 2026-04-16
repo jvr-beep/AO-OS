@@ -17,10 +17,10 @@ jobs:
       - name: Fetch open exceptions from monitor endpoint
         id: exceptions
         env:
-          MONITOR_KEY: ${{ secrets.AO_OS_MONITOR_KEY }}
+          MONITOR_KEY: ${{ secrets.MONITOR_API_KEY }}
         run: |
           if [[ -z "${MONITOR_KEY:-}" ]]; then
-            echo "AO_OS_MONITOR_KEY secret not set — skipping"
+            echo "MONITOR_API_KEY secret not set — skipping"
             echo "count=0" >> "$GITHUB_OUTPUT"
             exit 0
           fi
@@ -104,6 +104,24 @@ jobs:
             --title "🔧 Self-Heal: $EXCEPTION_COUNT open exception(s) — $ts" \
             --body-file /tmp/self-heal-body.md \
             --label "self-heal,copilot"
+
+      - name: Notify Slack on new self-heal issue
+        if: steps.exceptions.outputs.count != '0' && steps.incident.outputs.number == ''
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          EXCEPTION_COUNT: ${{ steps.exceptions.outputs.count }}
+          SUMMARY: ${{ steps.exceptions.outputs.summary }}
+        run: |
+          if [[ -z "${SLACK_WEBHOOK_URL:-}" ]]; then
+            echo "SLACK_WEBHOOK_URL not set – skipping Slack notification"
+            exit 0
+          fi
+          curl -s -X POST "$SLACK_WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -d "$(jq -n \
+              --arg text "🔧 *AO-OS Self-Heal Triggered*\n$EXCEPTION_COUNT open exception(s): $SUMMARY\nRun: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+              '{text: $text}'
+            )" || echo "Slack notification failed (non-blocking)"
 
       - name: Add comment to existing open issue with new exceptions
         if: steps.exceptions.outputs.count != '0' && steps.incident.outputs.number != ''

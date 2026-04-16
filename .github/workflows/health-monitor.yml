@@ -138,6 +138,22 @@ jobs:
               '{event: $event, api_status: $api_status, web_status: $web_status, run_url: $run_url, timestamp: $ts}'
             )" || echo "n8n notification failed (non-blocking)"
 
+      - name: Notify Slack on new incident
+        if: steps.health.outputs.degraded == 'true' && steps.incident.outputs.number == ''
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          if [[ -z "${SLACK_WEBHOOK_URL:-}" ]]; then
+            echo "SLACK_WEBHOOK_URL not set – skipping Slack notification"
+            exit 0
+          fi
+          curl -s -X POST "$SLACK_WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -d "$(jq -n \
+              --arg text "🚨 *AO-OS Production Incident*\nAPI: ${{ steps.api.outputs.code }} | Web: ${{ steps.web.outputs.code }}\nRun: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+              '{text: $text}'
+            )" || echo "Slack notification failed (non-blocking)"
+
       - name: Auto-close resolved incident
         if: steps.health.outputs.degraded == 'false' && steps.incident.outputs.number != ''
         env:
