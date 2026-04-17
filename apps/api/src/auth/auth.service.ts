@@ -352,20 +352,52 @@ export class AuthService {
   }
 
   async passwordResetRequest(input: PasswordResetRequestDto): Promise<void> {
+    // Check member first
     const member = await this.prisma.member.findUnique({ where: { email: input.email } });
-    if (!member) {
-      // Security: don't reveal whether email exists
+    if (member) {
+      await (this.prisma as any).authToken.updateMany({
+        where: { memberId: member.id, type: "password_reset", consumedAt: null },
+        data: { consumedAt: new Date() }
+      });
+      const { rawToken } = await this._createAuthToken(member.id, "password_reset", 30);
+      await this.emailService.sendPasswordReset(input.email, rawToken);
       return;
     }
 
-    // Invalidate existing reset tokens
-    await (this.prisma as any).authToken.updateMany({
-      where: { memberId: member.id, type: "password_reset", consumedAt: null },
-      data: { consumedAt: new Date() }
+    // Check staff user
+    const staffUser = await (this.prisma as any).staffUser.findUnique({ where: { email: input.email } }) as StaffUserRecord | null;
+    if (staffUser && staffUser.active) {
+      const payload = { sub: staffUser.id, email: staffUser.email, purpose: "staff_password_reset" };
+      const rawToken = await this.jwtService.signAsync(payload, { expiresIn: "30m" });
+      await this.emailService.sendStaffPasswordReset(input.email, rawToken);
+    }
+    // Security: don't reveal whether email exists regardless of outcome
+  }
+
+  async staffPasswordResetConfirm(input: PasswordResetConfirmDto): Promise<{ email: string }> {
+    let payload: { sub: string; email: string; purpose: string };
+    try {
+      payload = await this.jwtService.verifyAsync(input.token);
+    } catch {
+      throw new BadRequestException("INVALID_OR_EXPIRED_TOKEN");
+    }
+
+    if (payload.purpose !== "staff_password_reset") {
+      throw new BadRequestException("INVALID_OR_EXPIRED_TOKEN");
+    }
+
+    const staffUser = await (this.prisma as any).staffUser.findUnique({ where: { id: payload.sub } }) as StaffUserRecord | null;
+    if (!staffUser || !staffUser.active) {
+      throw new BadRequestException("INVALID_OR_EXPIRED_TOKEN");
+    }
+
+    const passwordHash = await bcrypt.hash(input.newPassword, 10);
+    await (this.prisma as any).staffUser.update({
+      where: { id: staffUser.id },
+      data: { passwordHash }
     });
 
-    const { rawToken } = await this._createAuthToken(member.id, "password_reset", 30);
-    await this.emailService.sendPasswordReset(input.email, rawToken);
+    return { email: staffUser.email };
   }
 
   async passwordResetConfirm(input: PasswordResetConfirmDto): Promise<{ email: string }> {

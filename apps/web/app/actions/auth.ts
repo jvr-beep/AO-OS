@@ -138,3 +138,37 @@ export async function requestPasswordReset(formData: FormData) {
 
   redirect('/login?reset=sent')
 }
+
+export async function confirmStaffPasswordReset(formData: FormData) {
+  const token = String(formData.get('token') ?? '').trim()
+  const newPassword = String(formData.get('newPassword') ?? '')
+
+  if (!token || !newPassword) {
+    redirect('/login?reset=error')
+  }
+
+  let res: Response
+
+  try {
+    res = await fetch(`${API_BASE}/auth/staff-password-reset/confirm`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, newPassword }),
+      cache: 'no-store',
+    })
+  } catch (err) {
+    await reportErrorAction({
+      message: err instanceof Error ? err.message : 'Staff password reset confirm failed',
+      page: '/login',
+      errorName: err instanceof Error ? err.name : 'NetworkError',
+      apiUrl: `${API_BASE}/auth/staff-password-reset/confirm`,
+    })
+    redirect('/login?reset=error')
+  }
+
+  if (!res.ok) {
+    redirect('/login?reset=error')
+  }
+
+  redirect('/login?reset=confirmed')
+}

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState, useTransition } from 'react'
-import { loginAction, requestPasswordReset } from '@/app/actions/auth'
+import { loginAction, requestPasswordReset, confirmStaffPasswordReset } from '@/app/actions/auth'
 import { reportErrorAction } from '@/app/actions/report-error'
 import { AoLogo } from '@/components/AoLogo'
 
@@ -10,7 +10,8 @@ const LAST_USER_KEY = 'ao-os-last-login-user'
 const MAX_USERS = 8
 
 type Props = {
-  resetState: 'sent' | 'error' | null
+  resetState: 'sent' | 'error' | 'confirmed' | null
+  resetToken: string | null
 }
 
 function SubmitButton({ pending }: { pending: boolean }) {
@@ -22,7 +23,7 @@ function SubmitButton({ pending }: { pending: boolean }) {
   )
 }
 
-export default function LoginClient({ resetState }: Props) {
+export default function LoginClient({ resetState, resetToken }: Props) {
   const [email, setEmail] = useState('')
   const [savedUsers, setSavedUsers] = useState<string[]>([])
   const [showReset, setShowReset] = useState(false)
@@ -82,13 +83,19 @@ export default function LoginClient({ resetState }: Props) {
           </div>
         )}
 
+        {resetState === 'confirmed' && (
+          <div className="mb-4 rounded border border-accent-primary/40 bg-accent-primary/10 px-4 py-3 text-sm text-text-primary font-sans">
+            Password updated. You can now sign in.
+          </div>
+        )}
+
         {resetState === 'error' && (
           <div className="mb-4 rounded border border-warning/40 bg-warning/10 px-4 py-3 text-sm text-text-primary font-sans">
             Could not submit password reset request. Please try again.
           </div>
         )}
 
-        <form
+        {!resetToken && <form
           className="space-y-4"
           onSubmit={(e) => {
             e.preventDefault()
@@ -161,32 +168,58 @@ export default function LoginClient({ resetState }: Props) {
           </div>
 
           <SubmitButton pending={isPending} />
-        </form>
+        </form>}
 
-        <div className="mt-4 text-center">
-          <button
-            type="button"
-            onClick={() => setShowReset((s) => !s)}
-            className="text-xs text-text-muted hover:text-text-primary font-sans underline underline-offset-4 transition-colors"
-          >
-            Forgot password?
-          </button>
-        </div>
+        {!resetToken && (
+          <>
+            <div className="mt-4 text-center">
+              <button
+                type="button"
+                onClick={() => setShowReset((s) => !s)}
+                className="text-xs text-text-muted hover:text-text-primary font-sans underline underline-offset-4 transition-colors"
+              >
+                Forgot password?
+              </button>
+            </div>
 
-        {showReset && (
-          <form action={requestPasswordReset} className="mt-4 space-y-3 border-t border-border-subtle pt-4">
-            <p className="text-xs text-text-muted font-sans">Request a password reset link by email.</p>
-            <input
-              name="email"
-              type="email"
-              required
-              defaultValue={resetDefaultEmail}
-              autoComplete="email"
-              className="form-input"
-              placeholder="name@domain.com"
-            />
-            <button type="submit" className="w-full btn-secondary">
-              Send reset link
+            {showReset && (
+              <form action={requestPasswordReset} className="mt-4 space-y-3 border-t border-border-subtle pt-4">
+                <p className="text-xs text-text-muted font-sans">Request a password reset link by email.</p>
+                <input
+                  name="email"
+                  type="email"
+                  required
+                  defaultValue={resetDefaultEmail}
+                  autoComplete="email"
+                  className="form-input"
+                  placeholder="name@domain.com"
+                />
+                <button type="submit" className="w-full btn-secondary">
+                  Send reset link
+                </button>
+              </form>
+            )}
+          </>
+        )}
+
+        {resetToken && (
+          <form action={confirmStaffPasswordReset} className="space-y-4">
+            <input type="hidden" name="token" value={resetToken} />
+            <p className="text-xs text-text-muted font-sans">Enter your new password below.</p>
+            <div>
+              <label className="form-label" htmlFor="newPassword">New password</label>
+              <input
+                id="newPassword"
+                name="newPassword"
+                type="password"
+                required
+                minLength={8}
+                autoComplete="new-password"
+                className="form-input"
+              />
+            </div>
+            <button type="submit" className="w-full btn-primary">
+              Set new password
             </button>
           </form>
         )}

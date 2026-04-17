@@ -10,6 +10,8 @@ COPY . .
 
 # Install dependencies and build Next.js app.
 RUN pnpm install --frozen-lockfile
+ARG SESSION_SECRET
+ENV SESSION_SECRET=$SESSION_SECRET
 RUN pnpm --filter @ao-os/web build
 
 ENV NODE_ENV=production

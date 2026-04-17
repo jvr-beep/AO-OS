@@ -52,4 +52,10 @@ export class AuthController {
   passwordResetConfirm(@Body() body: PasswordResetConfirmDto): Promise<{ email: string }> {
     return this.authService.passwordResetConfirm(body);
   }
+
+  @Throttle({ auth: { ttl: 60_000, limit: 10 } })
+  @Post("staff-password-reset/confirm")
+  staffPasswordResetConfirm(@Body() body: PasswordResetConfirmDto): Promise<{ email: string }> {
+    return this.authService.staffPasswordResetConfirm(body);
+  }
 }
