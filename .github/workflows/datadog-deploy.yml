@@ -25,49 +25,52 @@ jobs:
             "sed -i 's/^DD_API_KEY=.*/DD_API_KEY=${{ secrets.AO_DATA_DOG_KEY }}/' ~/AO-OS/apps/api/.env"
 
       - name: Start Datadog Agent (idempotent)
+        env:
+          DD_KEY: ${{ secrets.AO_DATA_DOG_KEY }}
+          VM_HOST: ${{ secrets.VM_HOST }}
         run: |
-          ssh jvr@${{ secrets.VM_HOST }} << 'SSHEOF'
-            if docker ps -a --format '{{.Names}}' | grep -q '^datadog-agent$'; then
-              docker stop datadog-agent || true
-              docker rm datadog-agent || true
-            fi
-            docker run -d \
-              --name datadog-agent \
-              --restart unless-stopped \
-              -e DD_API_KEY=${{ secrets.AO_DATA_DOG_KEY }} \
-              -e DD_SITE=datadoghq.com \
-              -e DD_HOSTNAME=ao-os-production \
-              -e DD_LOGS_ENABLED=true \
-              -e DD_LOGS_CONFIG_CONTAINER_COLLECT_ALL=true \
-              -e DD_APM_ENABLED=true \
-              -e DD_APM_NON_LOCAL_TRAFFIC=true \
-              -e DD_PROCESS_AGENT_ENABLED=true \
-              -p 8126:8126/tcp \
-              -p 8125:8125/udp \
-              -v /var/run/docker.sock:/var/run/docker.sock:ro \
-              -v /proc/:/host/proc/:ro \
-              -v /sys/fs/cgroup/:/host/sys/fs/cgroup:ro \
-              -v /var/lib/docker/containers:/var/lib/docker/containers:ro \
-              gcr.io/datadoghq/agent:7
-          SSHEOF
+          ssh jvr@$VM_HOST \
+            "docker rm -f datadog-agent 2>/dev/null; \
+             docker run -d \
+               --name datadog-agent \
+               --restart unless-stopped \
+               -e DD_API_KEY=$DD_KEY \
+               -e DD_SITE=datadoghq.com \
+               -e DD_HOSTNAME=ao-os-production \
+               -e DD_LOGS_ENABLED=true \
+               -e DD_LOGS_CONFIG_CONTAINER_COLLECT_ALL=true \
+               -e DD_APM_ENABLED=true \
+               -e DD_APM_NON_LOCAL_TRAFFIC=true \
+               -e DD_PROCESS_AGENT_ENABLED=true \
+               -p 8126:8126/tcp \
+               -p 8125:8125/udp \
+               -v /var/run/docker.sock:/var/run/docker.sock:ro \
+               -v /proc/:/host/proc/:ro \
+               -v /sys/fs/cgroup/:/host/sys/fs/cgroup:ro \
+               -v /var/lib/docker/containers:/var/lib/docker/containers:ro \
+               gcr.io/datadoghq/agent:7 && echo 'Agent started'"
 
       - name: Rebuild and restart API container
+        env:
+          VM_HOST: ${{ secrets.VM_HOST }}
+          DD_KEY: ${{ secrets.AO_DATA_DOG_KEY }}
         run: |
-          ssh jvr@${{ secrets.VM_HOST }} << 'SSHEOF'
-            cd ~/AO-OS
-            docker build -f apps/api/Dockerfile -t docker-api . 2>&1 | tail -5
-            docker stop ao-os-api && docker rm ao-os-api
-            docker run -d \
-              --name ao-os-api \
-              --restart unless-stopped \
-              --add-host host.docker.internal:host-gateway \
-              --env-file ~/AO-OS/apps/api/.env \
-              -p 4000:4000 \
-              docker-api
-          SSHEOF
+          ssh jvr@$VM_HOST \
+            "cd ~/AO-OS && \
+             docker build -f apps/api/Dockerfile -t docker-api . 2>&1 | tail -5 && \
+             docker stop ao-os-api && docker rm ao-os-api && \
+             docker run -d \
+               --name ao-os-api \
+               --restart unless-stopped \
+               --add-host host.docker.internal:host-gateway \
+               --env-file ~/AO-OS/apps/api/.env \
+               -p 4000:4000 \
+               docker-api && echo 'API restarted'"
 
       - name: Verify agent health
+        env:
+          VM_HOST: ${{ secrets.VM_HOST }}
         run: |
           sleep 30
-          ssh jvr@${{ secrets.VM_HOST }} \
-            "docker exec datadog-agent agent status 2>&1 | grep -E 'API Key|APM|Logs|Forwarder' | head -10"
+          ssh jvr@$VM_HOST \
+            "docker exec datadog-agent agent status 2>&1 | grep -E 'API Key|APM|Logs|Forwarder|Running' | head -10"
