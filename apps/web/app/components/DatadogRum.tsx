@@ -17,7 +17,7 @@ export default function DatadogRum() {
       datadogRum.init({
         applicationId: APP_ID,
         clientToken: CLIENT_TOKEN,
-        site: "datadoghq.com",
+        site: "us5.datadoghq.com",
         service: "ao-os-web",
         env: process.env.NODE_ENV ?? "production",
         version: "1.0.0",
