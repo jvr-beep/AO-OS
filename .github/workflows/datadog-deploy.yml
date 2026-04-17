@@ -35,7 +35,7 @@ jobs:
                --name datadog-agent \
                --restart unless-stopped \
                -e DD_API_KEY=$DD_KEY \
-               -e DD_SITE=datadoghq.com \
+               -e DD_SITE=us5.datadoghq.com \
                -e DD_HOSTNAME=ao-os-production \
                -e DD_LOGS_ENABLED=true \
                -e DD_LOGS_CONFIG_CONTAINER_COLLECT_ALL=true \
