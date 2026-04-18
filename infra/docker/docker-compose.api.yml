@@ -22,6 +22,11 @@ services:
     build:
       context: ../..
       dockerfile: apps/web/Dockerfile
+      args:
+        # SESSION_SECRET and NEXT_PUBLIC_* are baked in at build time by Next.js.
+        # The deploy script reads these from apps/web/.env before building.
+        SESSION_SECRET: ${SESSION_SECRET:-}
+        NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY:-}
     container_name: ao-os-web
     restart: unless-stopped
     env_file:
