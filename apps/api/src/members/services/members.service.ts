@@ -1,7 +1,20 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../../prisma/prisma.service";
 import { CreateMemberDto } from "../dto/create-member.dto";
-import { MemberResponseDto } from "../dto/member.response.dto";
+import { MemberLegalIdentityDto, MemberResponseDto } from "../dto/member.response.dto";
+import { resolveDisplayName } from "../utils/member-display";
+
+const MEMBER_SELECT = {
+  id: true,
+  publicMemberNumber: true,
+  email: true,
+  alias: true,
+  displayName: true,
+  phone: true,
+  status: true,
+  createdAt: true,
+  profile: { select: { preferredName: true } },
+} as const;
 
 @Injectable()
 export class MembersService {
@@ -15,30 +28,20 @@ export class MembersService {
             { id: { contains: normalizedQuery, mode: "insensitive" as const } },
             { publicMemberNumber: { contains: normalizedQuery, mode: "insensitive" as const } },
             { email: { contains: normalizedQuery, mode: "insensitive" as const } },
-            { firstName: { contains: normalizedQuery, mode: "insensitive" as const } },
-            { lastName: { contains: normalizedQuery, mode: "insensitive" as const } },
-            { displayName: { contains: normalizedQuery, mode: "insensitive" as const } }
-          ]
+            { alias: { contains: normalizedQuery, mode: "insensitive" as const } },
+            { displayName: { contains: normalizedQuery, mode: "insensitive" as const } },
+          ],
         }
       : {};
 
     const members = await this.prisma.member.findMany({
       where,
       orderBy: { createdAt: "desc" },
-      take: 100
+      take: 100,
+      select: MEMBER_SELECT,
     });
 
-    return members.map((member) => ({
-      id: member.id,
-      publicMemberNumber: member.publicMemberNumber,
-      email: member.email,
-      firstName: member.firstName,
-      lastName: member.lastName,
-      displayName: member.displayName,
-      phone: member.phone,
-      status: member.status,
-      createdAt: member.createdAt.toISOString()
-    }));
+    return members.map(toMemberDto);
   }
 
   async createMember(input: CreateMemberDto): Promise<MemberResponseDto> {
@@ -50,42 +53,66 @@ export class MembersService {
         lastName: input.lastName,
         displayName: input.displayName,
         phone: input.phone,
-        status: "active"
-      }
+        status: "active",
+      },
+      select: MEMBER_SELECT,
     });
 
-    return {
-      id: created.id,
-      publicMemberNumber: created.publicMemberNumber,
-      email: created.email,
-      firstName: created.firstName,
-      lastName: created.lastName,
-      displayName: created.displayName,
-      phone: created.phone,
-      status: created.status,
-      createdAt: created.createdAt.toISOString()
-    };
+    return toMemberDto(created);
   }
 
   async getMemberById(id: string): Promise<MemberResponseDto> {
     const member = await this.prisma.member.findUnique({
-      where: { id }
+      where: { id },
+      select: MEMBER_SELECT,
     });
+    if (!member) throw new NotFoundException("Member not found");
+    return toMemberDto(member);
+  }
 
-    if (!member) {
-      throw new NotFoundException("Member not found");
-    }
-
+  async getMemberLegalIdentity(id: string): Promise<MemberLegalIdentityDto> {
+    const member = await this.prisma.member.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        publicMemberNumber: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        phone: true,
+      },
+    });
+    if (!member) throw new NotFoundException("Member not found");
     return {
       id: member.id,
       publicMemberNumber: member.publicMemberNumber,
-      email: member.email,
       firstName: member.firstName,
       lastName: member.lastName,
-      displayName: member.displayName,
+      email: member.email,
       phone: member.phone,
-      status: member.status,
-      createdAt: member.createdAt.toISOString()
     };
   }
+}
+
+function toMemberDto(member: {
+  id: string;
+  publicMemberNumber: string;
+  email?: string | null;
+  alias?: string | null;
+  displayName?: string | null;
+  phone?: string | null;
+  status: string;
+  createdAt: Date;
+  profile?: { preferredName?: string | null } | null;
+}): MemberResponseDto {
+  return {
+    id: member.id,
+    publicMemberNumber: member.publicMemberNumber,
+    email: member.email,
+    staffSafeDisplayName: resolveDisplayName(member),
+    alias: member.alias,
+    phone: member.phone,
+    status: member.status,
+    createdAt: member.createdAt.toISOString(),
+  };
 }

@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException, ConflictException } from "@nestjs/common";
+import { resolveDisplayName } from "../../members/utils/member-display";
 import { PrismaService } from "../../prisma/prisma.service";
 import { LocationContextService } from "../../location/location-context.service";
 import { CreateMapFloorDto } from "../dto/create-map-floor.dto";
@@ -287,7 +288,16 @@ export class MapStudioService {
     const [activeBooking, cleaningTask, reservedBooking] = await Promise.all([
       this.prisma.roomBooking.findFirst({
         where: { roomId, status: "checked_in" },
-        include: { member: { select: { firstName: true, lastName: true } } },
+        include: {
+          member: {
+            select: {
+              publicMemberNumber: true,
+              alias: true,
+              displayName: true,
+              profile: { select: { preferredName: true } },
+            },
+          },
+        },
         orderBy: { checkedInAt: "desc" },
       }),
       this.prisma.cleaningTask.findFirst({
@@ -315,7 +325,7 @@ export class MapStudioService {
       return {
         ...base,
         state: "occupied",
-        occupantName: `${activeBooking.member.firstName} ${activeBooking.member.lastName}`.trim(),
+        occupantName: resolveDisplayName(activeBooking.member),
         endsAt: endsAt.toISOString(),
         timeRemainingSeconds: secsRemaining,
         cleaningStatus: null,
