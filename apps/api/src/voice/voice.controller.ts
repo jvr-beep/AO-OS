@@ -2,12 +2,12 @@ import {
   Controller,
   Post,
   Body,
-  Res,
   HttpCode,
   UseGuards,
   Logger,
+  Header,
+  StreamableFile,
 } from "@nestjs/common";
-import { Response } from "express";
 import { VoiceService } from "./voice.service";
 import { VoiceAlertDto } from "./dto/voice-alert.dto";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
@@ -24,40 +24,34 @@ export class VoiceController {
    * POST /voice/alert
    *
    * Generates a TTS audio clip for a back-of-house ops alert.
-   * Returns audio/mpeg directly for browser playback.
+   * Returns audio/mpeg as a stream for direct browser playback.
    * Staff-only — requires valid JWT.
    */
   @Post("alert")
   @HttpCode(200)
+  @Header("Cache-Control", "no-store")
   @Throttle({ global: { ttl: 60_000, limit: 30 } })
-  async alert(
-    @Body() body: VoiceAlertDto,
-    @Res() res: Response
-  ): Promise<void> {
+  async alert(@Body() body: VoiceAlertDto): Promise<StreamableFile> {
     const result = await this.voiceService.generateAlert(
       body.text,
       body.severity ?? "p2"
     );
 
-    if (!result) {
-      res.status(503).json({ message: "Voice service unavailable" });
-      return;
-    }
+    const audioBuffer = result
+      ? Buffer.from(result.audioBase64, "base64")
+      : Buffer.alloc(0);
 
-    const audioBuffer = Buffer.from(result.audioBase64, "base64");
-    res.set({
-      "Content-Type": result.contentType,
-      "Content-Length": audioBuffer.length.toString(),
-      "Cache-Control": "no-store",
+    return new StreamableFile(audioBuffer, {
+      type: result?.contentType ?? "audio/mpeg",
+      length: audioBuffer.length,
     });
-    res.send(audioBuffer);
   }
 
   /**
    * POST /voice/alert/json
    *
-   * Same as /alert but returns base64-encoded audio as JSON.
-   * Useful for web clients that need to store or replay audio.
+   * Returns base64-encoded audio as JSON.
+   * Used by the useOpsVoiceAlert hook in the staff portal.
    */
   @Post("alert/json")
   @HttpCode(200)
