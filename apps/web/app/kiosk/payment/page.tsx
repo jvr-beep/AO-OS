@@ -5,8 +5,13 @@ import { KioskPaymentClient } from './KioskPaymentClient'
 export default async function KioskPaymentPage() {
   const session = await getKioskSession()
 
-  if (!session.guestId || !session.visitId || !session.clientSecret) {
+  if (!session.guestId || !session.visitId) {
     redirect('/kiosk')
+  }
+
+  // Offline mode: no Stripe key configured → skip payment form, go to assign
+  if (!session.clientSecret) {
+    redirect('/kiosk/assign')
   }
 
   return (

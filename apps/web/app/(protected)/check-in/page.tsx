@@ -1,7 +1,12 @@
 import Link from 'next/link'
 import { getSession } from '@/lib/session'
 import { apiFetch } from '@/lib/api'
-import { guestBookingCheckInAction, guestWalkInCheckInAction, guestCheckoutAction } from '@/app/actions/operators'
+import {
+  guestBookingCheckInAction,
+  guestWalkInCheckInAction,
+  guestCheckoutAction,
+  assignKioskVisitAction,
+} from '@/app/actions/operators'
 import { StatusBadge } from '@/components/status-badge'
 import type { GuestVisit, Tier } from '@/types/api'
 
@@ -17,45 +22,95 @@ export default async function CheckInPage({
   const prefilledGuestId = searchParams?.guestId ?? ''
   const prefilledBookingCode = searchParams?.bookingCode ?? ''
 
-  const activeStatuses = ['checked_in', 'active', 'extended', 'paid_pending_assignment']
-  const params = new URLSearchParams()
-  activeStatuses.forEach((s) => params.append('status', s))
+  const pendingStatuses = ['paid_pending_assignment', 'ready_for_assignment']
+  const activeStatuses = ['checked_in', 'active', 'extended']
+  const allWatchedStatuses = [...pendingStatuses, ...activeStatuses]
 
-  const [tiers, activeVisits] = await Promise.all([
+  const pendingParams = new URLSearchParams()
+  pendingStatuses.forEach((s) => pendingParams.append('status', s))
+
+  const activeParams = new URLSearchParams()
+  allWatchedStatuses.forEach((s) => activeParams.append('status', s))
+
+  const [tiers, allVisits] = await Promise.all([
     apiFetch<Tier[]>('/catalog/tiers', token).catch(() => [] as Tier[]),
-    apiFetch<GuestVisit[]>(`/visits?${params.toString()}`, token).catch(() => [] as GuestVisit[]),
+    apiFetch<GuestVisit[]>(`/visits?${activeParams.toString()}`, token).catch(() => [] as GuestVisit[]),
   ])
 
-  const activeSorted = [...activeVisits].sort(
-    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-  )
+  const pendingVisits = allVisits
+    .filter((v) => pendingStatuses.includes(v.status))
+    .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+
+  const activeVisits = allVisits
+    .filter((v) => activeStatuses.includes(v.status))
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
 
   return (
-    <div className="max-w-5xl">
-      <div className="flex items-center justify-between gap-3 mb-4">
+    <div className="max-w-5xl space-y-6">
+      <div className="flex items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold mb-1">Check-In Console</h1>
-          <p className="text-gray-400 text-sm">Booking check-in, walk-in registration, and checkout.</p>
+          <h1 className="text-2xl font-semibold text-text-primary">Check-In Console</h1>
+          <p className="text-sm text-text-muted mt-1">Kiosk queue, walk-ins, and checkout.</p>
         </div>
-        <Link href="/dashboard" className="btn-secondary text-xs">Back to Dashboard</Link>
+        <Link href="/dashboard" className="btn-secondary text-xs">Dashboard</Link>
       </div>
 
       {(okMessage || errorMessage) && (
-        <div
-          className={`mb-4 rounded-md border px-3 py-2 text-sm ${
-            errorMessage
-              ? 'border-red-700 bg-red-900 text-red-200'
-              : 'border-green-700 bg-green-900 text-green-200'
-          }`}
-        >
+        <div className={`rounded-lg border px-4 py-3 text-sm ${
+          errorMessage
+            ? 'border-critical/40 bg-critical/10 text-critical'
+            : 'border-accent-primary/40 bg-accent-primary/10 text-accent-primary'
+        }`}>
           {errorMessage ?? okMessage}
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+      {/* ── Pending Wristband Assignment ──────────────────────────────────── */}
+      {pendingVisits.length > 0 && (
+        <div className="rounded-lg border border-accent-primary/30 bg-accent-primary/5 overflow-hidden">
+          <div className="px-4 py-3 border-b border-accent-primary/20 flex items-center gap-3">
+            <span className="w-2 h-2 rounded-full bg-accent-primary animate-pulse" />
+            <h2 className="text-sm font-semibold text-accent-primary uppercase tracking-wider">
+              Awaiting Wristband ({pendingVisits.length})
+            </h2>
+          </div>
+          <div className="divide-y divide-border-subtle">
+            {pendingVisits.map((visit) => (
+              <div key={visit.id} className="px-4 py-3 flex items-center justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-text-primary truncate">
+                    {(visit as any).guest_name ?? 'Guest'}
+                  </p>
+                  <p className="text-xs text-text-muted mt-0.5">
+                    {(visit as any).tier_name ?? visit.tier_id.slice(0, 8)}
+                    {(visit as any).visit_mode && (
+                      <span className="ml-2 text-accent-primary capitalize">{(visit as any).visit_mode}</span>
+                    )}
+                    {' · '}{visit.duration_minutes} min
+                  </p>
+                  <p className="text-xs font-mono text-text-muted/60 mt-0.5">{visit.id.slice(0, 8)}…</p>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <StatusBadge status={visit.status} />
+                  <form action={assignKioskVisitAction}>
+                    <input type="hidden" name="visitId" value={visit.id} />
+                    <input type="hidden" name="redirectTo" value="/check-in" />
+                    <button className="btn-primary text-xs px-3 py-1.5">
+                      Assign &amp; Activate
+                    </button>
+                  </form>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Walk-In + Booking check-in ────────────────────────────────────── */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="card p-4">
-          <h2 className="text-sm font-semibold text-gray-200 mb-1">Booking Check-In</h2>
-          <p className="text-xs text-gray-400 mb-3">Scan or enter a booking code or UUID.</p>
+          <h2 className="text-sm font-semibold text-text-secondary mb-1">Booking Check-In</h2>
+          <p className="text-xs text-text-muted mb-3">Scan or enter a booking code or UUID.</p>
           <form action={guestBookingCheckInAction} className="flex flex-col gap-2">
             <input type="hidden" name="redirectTo" value="/check-in" />
             <input
@@ -64,15 +119,15 @@ export default async function CheckInPage({
               defaultValue={prefilledBookingCode}
               className="form-input"
             />
-            <p className="text-xs text-gray-500">— or —</p>
+            <p className="text-xs text-text-muted">— or —</p>
             <input name="bookingId" placeholder="Booking UUID" className="form-input" />
             <button className="btn-primary">Check In from Booking</button>
           </form>
         </div>
 
         <div className="card p-4">
-          <h2 className="text-sm font-semibold text-gray-200 mb-1">Walk-In Check-In</h2>
-          <p className="text-xs text-gray-400 mb-3">Create a visit for a guest without a booking.</p>
+          <h2 className="text-sm font-semibold text-text-secondary mb-1">Walk-In Check-In</h2>
+          <p className="text-xs text-text-muted mb-3">Create a visit without a booking.</p>
           <form action={guestWalkInCheckInAction} className="flex flex-col gap-2">
             <input type="hidden" name="redirectTo" value="/check-in" />
             <input
@@ -83,38 +138,34 @@ export default async function CheckInPage({
               required
             />
             <select name="tierId" className="form-input" required>
-              <option value="">Select tier…</option>
+              <option value="">Select pass…</option>
               {tiers.map((tier) => (
                 <option key={tier.id} value={tier.id}>
-                  {tier.name} ({tier.code})
+                  {tier.name}
                 </option>
               ))}
             </select>
-            <select name="productType" className="form-input" required>
-              <option value="day_pass">day_pass</option>
-              <option value="session">session</option>
-              <option value="package">package</option>
-            </select>
             <div className="flex gap-2">
-              <input name="durationMinutes" type="number" placeholder="Duration (min)" className="form-input flex-1" required />
+              <input name="durationMinutes" type="number" placeholder="Duration (min)" className="form-input flex-1" defaultValue="120" required />
               <input name="quotedPriceCents" type="number" placeholder="Price (cents)" className="form-input flex-1" required />
             </div>
             <div className="flex gap-2">
-              <input name="amountPaidCents" type="number" placeholder="Paid now (cents)" defaultValue="0" className="form-input flex-1" />
+              <input name="amountPaidCents" type="number" placeholder="Paid now" defaultValue="0" className="form-input flex-1" />
               <select name="paymentProvider" className="form-input flex-1">
-                <option value="cash">cash</option>
-                <option value="card">card</option>
-                <option value="stripe">stripe</option>
+                <option value="cash">Cash</option>
+                <option value="card">Card</option>
+                <option value="stripe">Stripe</option>
               </select>
             </div>
+            <input type="hidden" name="productType" value="locker" />
             <button className="btn-primary">Walk-In Check In</button>
           </form>
         </div>
       </div>
 
-      <div className="card p-4 mb-6">
-        <h2 className="text-sm font-semibold text-gray-200 mb-1">Quick Checkout</h2>
-        <p className="text-xs text-gray-400 mb-3">Enter a visit UUID to check out directly.</p>
+      {/* ── Quick Checkout ────────────────────────────────────────────────── */}
+      <div className="card p-4">
+        <h2 className="text-sm font-semibold text-text-secondary mb-1">Quick Checkout</h2>
         <form action={guestCheckoutAction} className="flex gap-2">
           <input type="hidden" name="redirectTo" value="/check-in" />
           <input name="visitId" placeholder="Visit UUID" className="form-input flex-1" required />
@@ -122,72 +173,66 @@ export default async function CheckInPage({
         </form>
       </div>
 
+      {/* ── Active Visits ─────────────────────────────────────────────────── */}
       <div className="card overflow-hidden">
-        <div className="px-4 py-3 border-b border-gray-700 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-gray-200">Active Visits ({activeSorted.length})</h2>
-          <Link href="/visits" className="text-xs text-accent-primary hover:text-accent-primary transition-colors">
+        <div className="px-4 py-3 border-b border-border-subtle flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-text-secondary">
+            Active Now ({activeVisits.length})
+          </h2>
+          <Link href="/visits" className="text-xs text-accent-primary hover:underline">
             All visits →
           </Link>
         </div>
         <table className="w-full text-sm">
-          <thead className="bg-surface-0 border-b border-gray-700">
+          <thead className="bg-surface-0 border-b border-border-subtle">
             <tr>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-accent-primary uppercase tracking-wide">Started</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-accent-primary uppercase tracking-wide">Guest</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-accent-primary uppercase tracking-wide">Status</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-accent-primary uppercase tracking-wide">Duration</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-accent-primary uppercase tracking-wide">Actions</th>
+              <th className="text-left px-4 py-2 text-xs font-semibold text-text-muted uppercase tracking-wide">Guest</th>
+              <th className="text-left px-4 py-2 text-xs font-semibold text-text-muted uppercase tracking-wide">Pass</th>
+              <th className="text-left px-4 py-2 text-xs font-semibold text-text-muted uppercase tracking-wide">Status</th>
+              <th className="text-left px-4 py-2 text-xs font-semibold text-text-muted uppercase tracking-wide">Time</th>
+              <th className="px-4 py-2" />
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-700">
-            {activeSorted.length === 0 ? (
+          <tbody className="divide-y divide-border-subtle">
+            {activeVisits.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-sm text-gray-500">
+                <td colSpan={5} className="px-4 py-8 text-center text-sm text-text-muted">
                   No active visits.
                 </td>
               </tr>
             ) : (
-              activeSorted.map((visit) => {
-                const checkoutEligible = ['checked_in', 'active', 'extended'].includes(visit.status)
-                return (
-                  <tr key={visit.id} className="hover:bg-gray-700/40">
-                    <td className="px-4 py-3 text-xs text-gray-300">
-                      {new Date(visit.created_at).toLocaleTimeString()}
-                    </td>
-                    <td className="px-4 py-3 text-xs">
-                      <Link
-                        href={`/guests/${visit.guest_id}`}
-                        className="text-accent-primary hover:text-accent-primary transition-colors font-mono"
-                      >
-                        {visit.guest_id.slice(0, 8)}…
+              activeVisits.map((visit) => (
+                <tr key={visit.id} className="hover:bg-surface-2">
+                  <td className="px-4 py-3 text-xs text-text-primary">
+                    {(visit as any).guest_name ?? (
+                      <span className="font-mono text-text-muted">{visit.guest_id.slice(0, 8)}…</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-xs text-text-secondary">
+                    {(visit as any).tier_name ?? '—'}
+                  </td>
+                  <td className="px-4 py-3">
+                    <StatusBadge status={visit.status} />
+                  </td>
+                  <td className="px-4 py-3 text-xs text-text-muted">
+                    {visit.duration_minutes ? `${visit.duration_minutes} min` : '—'}
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <Link href={`/visits/${visit.id}`} className="text-xs text-accent-primary hover:underline">
+                        View
                       </Link>
-                    </td>
-                    <td className="px-4 py-3">
-                      <StatusBadge status={visit.status} />
-                    </td>
-                    <td className="px-4 py-3 text-xs text-gray-300">
-                      {visit.duration_minutes ? `${visit.duration_minutes} min` : '—'}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <Link
-                          href={`/visits/${visit.id}`}
-                          className="text-xs text-accent-primary hover:text-accent-primary transition-colors"
-                        >
-                          View →
-                        </Link>
-                        {checkoutEligible && (
-                          <form action={guestCheckoutAction}>
-                            <input type="hidden" name="redirectTo" value="/check-in" />
-                            <input type="hidden" name="visitId" value={visit.id} />
-                            <button className="btn-secondary text-xs px-2 py-1">Check Out</button>
-                          </form>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                )
-              })
+                      <form action={guestCheckoutAction}>
+                        <input type="hidden" name="redirectTo" value="/check-in" />
+                        <input type="hidden" name="visitId" value={visit.id} />
+                        <button className="text-xs text-text-muted hover:text-text-primary transition-colors">
+                          Check Out
+                        </button>
+                      </form>
+                    </div>
+                  </td>
+                </tr>
+              ))
             )}
           </tbody>
         </table>

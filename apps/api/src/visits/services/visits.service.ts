@@ -88,7 +88,10 @@ export class VisitsService {
   }
 
   async getVisit(visitId: string) {
-    const visit = await this.prisma.visit.findUnique({ where: { id: visitId } });
+    const visit = await this.prisma.visit.findUnique({
+      where: { id: visitId },
+      include: { guest: true, tier: true },
+    });
     if (!visit) throw new NotFoundException('Visit not found');
     return this.toResponse(visit);
   }
@@ -128,6 +131,7 @@ export class VisitsService {
         ...(locationId ? { locationId } : {}),
         ...(statuses ? { status: { in: statuses } } : {}),
       },
+      include: { guest: true, tier: true },
       orderBy: { createdAt: 'desc' },
       take: 200,
     });
@@ -172,6 +176,11 @@ export class VisitsService {
     if (dto.payment_status !== undefined) {
       updateData.paymentStatus = dto.payment_status;
     }
+    if (dto.status === 'active' && !visit.startTime) {
+      const now = new Date();
+      updateData.startTime = now;
+      updateData.scheduledEndTime = new Date(now.getTime() + visit.durationMinutes * 60 * 1000);
+    }
     if (dto.status === 'checked_out' && !visit.actualEndTime) {
       updateData.actualEndTime = new Date();
     }
@@ -200,13 +209,22 @@ export class VisitsService {
   }
 
   private toResponse(visit: any) {
+    const guestName = visit.guest
+      ? `${visit.guest.firstName ?? ''} ${visit.guest.lastName ?? ''}`.trim() || null
+      : null;
+
     return {
       id: visit.id,
       guest_id: visit.guestId,
+      guest_name: guestName,
+      guest_email: visit.guest?.email ?? null,
+      tier_name: visit.tier?.name ?? null,
+      tier_code: visit.tier?.code ?? null,
       booking_id: visit.bookingId ?? null,
       source_type: visit.sourceType,
       product_type: visit.productType,
       tier_id: visit.tierId,
+      visit_mode: visit.visitMode ?? null,
       duration_minutes: visit.durationMinutes,
       status: visit.status,
       start_time: visit.startTime?.toISOString() ?? null,

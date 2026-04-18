@@ -621,6 +621,50 @@ export async function recordFolioPaymentAction(formData: FormData) {
   }
 }
 
+/**
+ * Assign wristband and activate a kiosk-originated visit in one step.
+ * Transitions: paid_pending_assignment → checked_in → active
+ * Sets start_time and scheduled_end_time on the visit.
+ */
+export async function assignKioskVisitAction(formData: FormData) {
+  const redirectTo = readRedirectTarget(formData, '/check-in')
+
+  try {
+    const session = await withSession()
+    const visitId = readRequired(formData, 'visitId')
+
+    async function patchStatus(status: string, reasonCode: string) {
+      const res = await fetch(`${API_BASE}/visits/${visitId}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.accessToken!}`,
+        },
+        body: JSON.stringify({ status, reason_code: reasonCode, changed_by_user_id: session.user?.id }),
+        cache: 'no-store',
+      })
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        throw new Error(body?.message ?? `Status transition to ${status} failed`)
+      }
+      return res.json()
+    }
+
+    // paid_pending_assignment → checked_in → active
+    await patchStatus('checked_in', 'wristband_assigned')
+    await patchStatus('active', 'visit_activated')
+
+    revalidatePath('/check-in')
+    revalidatePath('/visits')
+    revalidatePath(`/visits/${visitId}`)
+    redirect(`${redirectTo}?ok=${encodeURIComponent('Visit activated — wristband issued')}`)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Assign failed'
+    await reportActionError(error, redirectTo)
+    redirect(`${redirectTo}?error=${encodeURIComponent(message)}`)
+  }
+}
+
 export async function createRoomAccessEventAction(formData: FormData) {
   const roomId = readRequired(formData, 'roomId')
   const redirectTo = readRedirectTarget(formData, `/rooms/${roomId}`)

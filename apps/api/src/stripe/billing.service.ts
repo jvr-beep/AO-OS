@@ -102,7 +102,7 @@ export class BillingService {
     tierCode: string;
     amountCents: number;
     currency?: string;
-  }): Promise<{ paymentIntentId: string; clientSecret: string }> {
+  }): Promise<{ paymentIntentId: string; clientSecret: string | null; offline: boolean }> {
     const visit = await this.prisma.visit.findUnique({
       where: { id: params.visitId },
       include: { folio: true },
@@ -110,6 +110,43 @@ export class BillingService {
     if (!visit) throw new NotFoundException("Visit not found");
     if (!visit.folio) throw new ConflictException("Visit has no folio — cannot create payment");
 
+    // ── Offline / no-Stripe mode ─────────────────────────────────────────────
+    if (!process.env.STRIPE_SECRET_KEY) {
+      this.logger.warn(`Stripe not configured — recording offline payment for visit ${params.visitId}`);
+
+      const offlineId = `offline_${params.visitId}`;
+
+      await this.prisma.paymentTransaction.create({
+        data: {
+          folioId: visit.folio.id,
+          visitId: params.visitId,
+          paymentProvider: "offline",
+          providerPaymentIntentId: offlineId,
+          transactionType: "authorize",
+          amountCents: params.amountCents,
+          status: "pending",
+          idempotencyKey: offlineId,
+        },
+      });
+
+      // Advance visit to paid_pending_assignment so staff can see it
+      await this.prisma.visit.update({
+        where: { id: params.visitId },
+        data: { status: "paid_pending_assignment", version: { increment: 1 } },
+      });
+      await this.prisma.visitStatusHistory.create({
+        data: {
+          visitId: params.visitId,
+          previousStatus: visit.status,
+          newStatus: "paid_pending_assignment",
+          reasonCode: "offline_payment_pending",
+        },
+      });
+
+      return { paymentIntentId: offlineId, clientSecret: null, offline: true };
+    }
+
+    // ── Stripe mode ──────────────────────────────────────────────────────────
     const idempotencyKey = `visit_pi_${params.visitId}`;
     const currency = params.currency ?? "cad";
 
@@ -122,7 +159,6 @@ export class BillingService {
       idempotencyKey,
     });
 
-    // Record the intent in PaymentTransaction
     await this.prisma.paymentTransaction.create({
       data: {
         folioId: visit.folio.id,
@@ -141,6 +177,7 @@ export class BillingService {
     return {
       paymentIntentId: intent.id,
       clientSecret: intent.client_secret!,
+      offline: false,
     };
   }
 

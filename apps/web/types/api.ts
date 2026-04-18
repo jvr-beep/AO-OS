@@ -290,10 +290,15 @@ export interface GuestBooking {
 export interface GuestVisit {
   id: string
   guest_id: string
+  guest_name?: string | null
+  guest_email?: string | null
+  tier_name?: string | null
+  tier_code?: string | null
   booking_id?: string | null
   source_type: string
   product_type: string
   tier_id?: string | null
+  visit_mode?: string | null
   duration_minutes?: number | null
   status: string
   payment_status: string
@@ -301,6 +306,7 @@ export interface GuestVisit {
   check_out_channel?: string | null
   assigned_resource_id?: string | null
   start_time?: string | null
+  scheduled_end_time?: string | null
   actual_end_time?: string | null
   version: number
   created_at: string
