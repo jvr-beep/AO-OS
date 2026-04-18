@@ -497,6 +497,9 @@ model Location {
   guests           Guest[]
   visits           Visit[]
   resources        Resource[]     @relation("LocationResources")
+  accessZones      AccessZone[]
+  tiers            Tier[]
+  guestBookings    GuestBooking[]
 }
 
 model Wristband {
@@ -690,11 +693,13 @@ model LockerPolicyDecisionEvent {
 
 model AccessZone {
   id                 String               @id @default(uuid())
+  locationId         String?              @map("location_id")
   code               String               @unique
   name               String
   requiresBooking    Boolean              @default(false)
   createdAt          DateTime             @default(now())
 
+  location           Location?            @relation(fields: [locationId], references: [id])
   accessPoints       AccessPoint[]
   accessAttempts     AccessAttempt[]
   accessGrants       MemberAccessGrant[]
@@ -1166,6 +1171,7 @@ model GuestWaiver {
 
 model Tier {
   id                String             @id @default(uuid()) @db.Uuid
+  locationId        String?            @map("location_id")
   productType       ProductType        @map("product_type")
   code              String             @unique
   name              String
@@ -1176,6 +1182,7 @@ model Tier {
   createdAt         DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt         DateTime           @updatedAt @map("updated_at") @db.Timestamptz(6)
 
+  location          Location?          @relation(fields: [locationId], references: [id])
   durationOptions   TierDurationOption[]
   resources         Resource[]
   guestBookings     GuestBooking[]
@@ -1260,6 +1267,7 @@ model ResourceHold {
 
 model GuestBooking {
   id                  String              @id @default(uuid()) @db.Uuid
+  locationId          String?             @map("location_id")
   guestId             String              @map("guest_id") @db.Uuid
   tierId              String              @map("tier_id") @db.Uuid
   bookingChannel      GuestBookingChannel @default(web) @map("booking_channel")
@@ -1279,6 +1287,7 @@ model GuestBooking {
   createdAt           DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt           DateTime            @updatedAt @map("updated_at") @db.Timestamptz(6)
 
+  location            Location?           @relation(fields: [locationId], references: [id])
   guest               Guest               @relation(fields: [guestId], references: [id])
   tier                Tier                @relation(fields: [tierId], references: [id])
   addOns              GuestBookingAddOn[]
