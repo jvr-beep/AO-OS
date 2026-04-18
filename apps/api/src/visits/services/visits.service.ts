@@ -5,6 +5,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { LocationContextService } from '../../location/location-context.service';
 import { CreateVisitDto } from '../dto/create-visit.dto';
 import { TransitionVisitStatusDto } from '../dto/transition-visit-status.dto';
 import { ListVisitsQueryDto } from '../dto/list-visits.query.dto';
@@ -24,7 +25,10 @@ const VALID_STATUS_TRANSITIONS: Partial<Record<GuestVisitStatus, GuestVisitStatu
 
 @Injectable()
 export class VisitsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly locationContext: LocationContextService,
+  ) {}
 
   async initiateVisit(dto: CreateVisitDto) {
     const tier = await this.prisma.tier.findUnique({ where: { id: dto.tier_id } });
@@ -45,6 +49,8 @@ export class VisitsService {
       }
     }
 
+    const locationId = this.locationContext.locationOrNull?.id ?? null;
+
     const visit = await this.prisma.$transaction(async (tx: any) => {
       const created = await tx.visit.create({
         data: {
@@ -53,6 +59,7 @@ export class VisitsService {
           sourceType: dto.source_type,
           productType: dto.product_type,
           tierId: dto.tier_id,
+          locationId,
           durationMinutes: dto.duration_minutes,
           status: 'initiated',
           waiverRequired: dto.waiver_required ?? true,
@@ -114,8 +121,13 @@ export class VisitsService {
         : [query.status]
       : undefined;
 
+    const locationId = this.locationContext.locationOrNull?.id ?? null;
+
     const visits = await this.prisma.visit.findMany({
-      where: statuses ? { status: { in: statuses } } : {},
+      where: {
+        ...(locationId ? { locationId } : {}),
+        ...(statuses ? { status: { in: statuses } } : {}),
+      },
       orderBy: { createdAt: 'desc' },
       take: 200,
     });

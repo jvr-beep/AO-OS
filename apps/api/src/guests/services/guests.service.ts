@@ -1,6 +1,7 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import { PrismaService } from "../../prisma/prisma.service";
+import { LocationContextService } from "../../location/location-context.service";
 import { CreateGuestDto } from "../dto/create-guest.dto";
 import { GuestLookupResponseDto } from "../dto/guest-lookup.response.dto";
 import { GuestResponseDto } from "../dto/guest.response.dto";
@@ -9,12 +10,17 @@ import { UpdateGuestDto } from "../dto/update-guest.dto";
 
 @Injectable()
 export class GuestsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly locationContext: LocationContextService,
+  ) {}
 
   async create(dto: CreateGuestDto): Promise<GuestResponseDto> {
     if (!dto.firstName?.trim()) {
       throw new BadRequestException("firstName is required");
     }
+
+    const locationId = this.locationContext.locationOrNull?.id ?? null;
 
     try {
       const created = await this.prisma.guest.create({
@@ -25,7 +31,8 @@ export class GuestsService {
           email: dto.email?.trim().toLowerCase() || null,
           dateOfBirth: dto.dateOfBirth ? new Date(dto.dateOfBirth) : null,
           preferredLanguage: dto.preferredLanguage?.trim() || "en",
-          marketingOptIn: dto.marketingOptIn ?? false
+          marketingOptIn: dto.marketingOptIn ?? false,
+          locationId,
         }
       });
 
@@ -80,8 +87,11 @@ export class GuestsService {
       throw new BadRequestException("Provide phone, email, firstName, or lastName");
     }
 
+    const locationId = this.locationContext.locationOrNull?.id ?? null;
+    const locationFilter = locationId ? { locationId } : {};
+
     if (dto.phone) {
-      const exact = await this.prisma.guest.findFirst({ where: { phone: dto.phone.trim() } });
+      const exact = await this.prisma.guest.findFirst({ where: { phone: dto.phone.trim(), ...locationFilter } });
       if (exact) {
         return {
           matchType: "exact",
@@ -92,7 +102,7 @@ export class GuestsService {
     }
 
     if (dto.email) {
-      const exact = await this.prisma.guest.findFirst({ where: { email: dto.email.trim().toLowerCase() } });
+      const exact = await this.prisma.guest.findFirst({ where: { email: dto.email.trim().toLowerCase(), ...locationFilter } });
       if (exact) {
         return {
           matchType: "exact",
@@ -104,6 +114,7 @@ export class GuestsService {
 
     const candidates = await this.prisma.guest.findMany({
       where: {
+        ...locationFilter,
         OR: [
           ...(dto.firstName ? [{ firstName: { contains: dto.firstName.trim(), mode: "insensitive" as const } }] : []),
           ...(dto.lastName ? [{ lastName: { contains: dto.lastName.trim(), mode: "insensitive" as const } }] : [])

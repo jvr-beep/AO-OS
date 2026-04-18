@@ -6,6 +6,7 @@ import { CreateFloorPlanAreaDto } from "../dto/create-floor-plan-area.dto";
 import { CreateFloorPlanDto } from "../dto/create-floor-plan.dto";
 import { FloorPlanAreaResponseDto } from "../dto/floor-plan-area.response.dto";
 import { FloorPlanResponseDto } from "../dto/floor-plan.response.dto";
+import { FloorPlanLiveResponseDto } from "../dto/floor-plan-live.response.dto";
 import { ListFloorPlansQueryDto } from "../dto/list-floor-plans.query.dto";
 import { FloorPlansService } from "../services/floor-plans.service";
 
@@ -39,5 +40,11 @@ export class FloorPlansController {
   @Roles("front_desk", "operations", "admin")
   getFloorPlan(@Param("id") id: string): Promise<FloorPlanResponseDto> {
     return this.floorPlansService.getFloorPlan(id);
+  }
+
+  @Get("floor-plans/:id/live")
+  @Roles("front_desk", "operations", "admin")
+  getLiveFloorPlan(@Param("id") id: string): Promise<FloorPlanLiveResponseDto> {
+    return this.floorPlansService.getLiveFloorPlan(id);
   }
 }

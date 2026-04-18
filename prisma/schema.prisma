@@ -250,6 +250,11 @@ enum CleaningTaskStatus {
   cancelled
 }
 
+enum ZoneEntitlementProductType {
+  tier
+  membership_plan
+}
+
 model Member {
   id                   String                   @id @default(uuid())
   publicMemberNumber   String                   @unique
@@ -401,9 +406,11 @@ model StaffUser {
   fullName      String
   role          StaffRole @default(front_desk)
   active        Boolean   @default(true)
+  locationId    String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
+  location              Location?      @relation(fields: [locationId], references: [id])
   assignedCleaningTasks CleaningTask[]
 }
 
@@ -486,6 +493,10 @@ model Location {
   lockers          Locker[]
   floorPlans       FloorPlan[]
   rooms            Room[]
+  staffUsers       StaffUser[]
+  guests           Guest[]
+  visits           Visit[]
+  resources        Resource[]     @relation("LocationResources")
 }
 
 model Wristband {
@@ -690,6 +701,27 @@ model AccessZone {
   accessOverrides    MemberAccessOverride[]
   bookings           Booking[]
   presenceEvents     PresenceEvent[]
+  zoneEntitlements   ZoneEntitlement[]
+}
+
+/**
+ * Maps a product (membership plan or tier) to the zones it grants access to.
+ * productCode = MembershipPlan.code or Tier.code
+ * productType = membership_plan | tier
+ */
+model ZoneEntitlement {
+  id              String                     @id @default(uuid())
+  productCode     String                     @map("product_code")
+  productType     ZoneEntitlementProductType @map("product_type")
+  zoneCode        String                     @map("zone_code")
+  active          Boolean                    @default(true)
+  createdAt       DateTime                   @default(now()) @map("created_at")
+
+  accessZone      AccessZone                 @relation(fields: [zoneCode], references: [code])
+
+  @@unique([productCode, productType, zoneCode], map: "uq_zone_entitlement_product_zone")
+  @@index([productCode, productType, active], map: "idx_zone_entitlements_product")
+  @@map("zone_entitlements")
 }
 
 model AccessPoint {
@@ -1103,10 +1135,12 @@ model Guest {
   membershipStatus  GuestMembershipStatus @default(none) @map("membership_status")
   riskFlagStatus    GuestRiskFlagStatus   @default(clear) @map("risk_flag_status")
   marketingOptIn    Boolean               @default(false) @map("marketing_opt_in")
+  locationId        String?               @map("location_id")
   version           Int                   @default(1)
   createdAt         DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt         DateTime              @updatedAt @map("updated_at") @db.Timestamptz(6)
 
+  location          Location?             @relation(fields: [locationId], references: [id])
   waivers           GuestWaiver[]
   guestBookings     GuestBooking[]
   visits            Visit[]
@@ -1176,6 +1210,9 @@ model Resource {
   createdAt             DateTime                   @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt             DateTime                   @updatedAt @map("updated_at") @db.Timestamptz(6)
 
+  locationId            String?                    @map("location_id")
+
+  location              Location?                  @relation("LocationResources", fields: [locationId], references: [id])
   tier                  Tier                       @relation(fields: [tierId], references: [id])
   stateHistory          ResourceStateHistory[]
   holds                 ResourceHold[]
@@ -1273,6 +1310,8 @@ model Visit {
   sourceType         VisitSourceType    @map("source_type")
   productType        ProductType        @map("product_type")
   tierId             String             @map("tier_id") @db.Uuid
+  locationId         String?            @map("location_id")
+  visitMode          RoomBookingType?   @map("visit_mode")
   durationMinutes    Int                @map("duration_minutes")
   status             GuestVisitStatus   @default(initiated)
   startTime          DateTime?          @map("start_time") @db.Timestamptz(6)
@@ -1289,6 +1328,7 @@ model Visit {
   createdAt          DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt          DateTime           @updatedAt @map("updated_at") @db.Timestamptz(6)
 
+  location           Location?          @relation(fields: [locationId], references: [id])
   guest              Guest              @relation(fields: [guestId], references: [id])
   booking            GuestBooking?      @relation(fields: [bookingId], references: [id])
   tier               Tier               @relation(fields: [tierId], references: [id])

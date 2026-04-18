@@ -22,7 +22,13 @@ export class CatalogService {
         active: true,
         ...(query.product_type ? { productType: query.product_type } : {})
       },
-      orderBy: [{ productType: "asc" }, { upgradeRank: "asc" }, { name: "asc" }]
+      orderBy: [{ productType: "asc" }, { upgradeRank: "asc" }, { name: "asc" }],
+      include: {
+        durationOptions: {
+          where: { active: true },
+          orderBy: { durationMinutes: "asc" },
+        },
+      },
     });
 
     return tiers.map((tier) => ({
@@ -30,10 +36,16 @@ export class CatalogService {
       productType: tier.productType,
       code: tier.code,
       name: tier.name,
+      description: tier.publicDescription,
       publicDescription: tier.publicDescription,
       upgradeRank: tier.upgradeRank,
       basePriceCents: tier.basePriceCents,
-      active: tier.active
+      active: tier.active,
+      durationOptions: (tier.durationOptions ?? []).map((d) => ({
+        id: d.id,
+        durationMinutes: d.durationMinutes,
+        priceCents: d.priceCents,
+      })),
     }));
   }
 
