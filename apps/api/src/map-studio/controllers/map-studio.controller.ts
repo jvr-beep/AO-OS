@@ -88,6 +88,17 @@ export class MapStudioController {
     return this.mapStudioService.publishVersion(floorId, versionId, staffId);
   }
 
+  @Post("floors/:floorId/versions/:versionId/rollback")
+  @Roles("operations", "admin")
+  rollbackVersion(
+    @Param("floorId") floorId: string,
+    @Param("versionId") versionId: string,
+    @Req() req: Request,
+  ): Promise<MapFloorVersionResponseDto> {
+    const staffId = (req as any).user?.sub ?? "system";
+    return this.mapStudioService.rollbackVersion(floorId, versionId, staffId);
+  }
+
   // ── Objects ───────────────────────────────────────────────────────────────
 
   @Get("floors/:floorId/objects")

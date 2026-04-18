@@ -4,6 +4,7 @@ import { getSession } from '@/lib/session'
 import { apiFetch, ApiError } from '@/lib/api'
 import { StatusBadge } from '@/components/status-badge'
 import { MapStudioViewer } from './MapStudioViewer'
+import { MapStudioAuthoringPanel } from './MapStudioAuthoringPanel'
 
 const API_BASE = process.env.API_BASE_URL ?? 'http://localhost:4000/v1'
 const LOCATION_CODE = process.env.DEFAULT_LOCATION_CODE ?? 'AO_TORONTO'
@@ -21,10 +22,7 @@ interface MapFloor {
 async function getLiveData(floorId: string, token: string) {
   try {
     const res = await fetch(`${API_BASE}/map-studio/floors/${floorId}/live`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'X-AO-Location': LOCATION_CODE,
-      },
+      headers: { Authorization: `Bearer ${token}`, 'X-AO-Location': LOCATION_CODE },
       cache: 'no-store',
     })
     if (!res.ok) return null
@@ -48,6 +46,7 @@ export default async function MapStudioFloorPage({
   const session = await getSession()
   const token = session.accessToken!
   const { floorId } = params
+  const role = session.user?.role ?? ''
 
   let floor: MapFloor
   try {
@@ -59,6 +58,7 @@ export default async function MapStudioFloorPage({
   }
 
   const liveData = await getLiveData(floorId, token)
+  const canAuthor = role === 'operations' || role === 'admin'
 
   return (
     <div className="max-w-7xl space-y-6">
@@ -89,6 +89,13 @@ export default async function MapStudioFloorPage({
       </div>
 
       <MapStudioViewer floorId={floorId} initialData={liveData} />
+
+      {canAuthor && (
+        <div>
+          <h2 className="text-base font-semibold text-text-primary mb-3">Authoring</h2>
+          <MapStudioAuthoringPanel floorId={floorId} />
+        </div>
+      )}
     </div>
   )
 }

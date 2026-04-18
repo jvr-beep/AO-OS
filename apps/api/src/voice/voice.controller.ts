@@ -10,6 +10,7 @@ import {
 } from "@nestjs/common";
 import { VoiceService } from "./voice.service";
 import { VoiceAlertDto } from "./dto/voice-alert.dto";
+import { VoiceRitualDto } from "./dto/voice-ritual.dto";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { Throttle } from "@nestjs/throttler";
 
@@ -20,13 +21,6 @@ export class VoiceController {
 
   constructor(private readonly voiceService: VoiceService) {}
 
-  /**
-   * POST /voice/alert
-   *
-   * Generates a TTS audio clip for a back-of-house ops alert.
-   * Returns audio/mpeg as a stream for direct browser playback.
-   * Staff-only — requires valid JWT.
-   */
   @Post("alert")
   @HttpCode(200)
   @Header("Cache-Control", "no-store")
@@ -47,12 +41,6 @@ export class VoiceController {
     });
   }
 
-  /**
-   * POST /voice/alert/json
-   *
-   * Returns base64-encoded audio as JSON.
-   * Used by the useOpsVoiceAlert hook in the staff portal.
-   */
   @Post("alert/json")
   @HttpCode(200)
   @Throttle({ global: { ttl: 60_000, limit: 30 } })
@@ -71,6 +59,32 @@ export class VoiceController {
       audioBase64: result.audioBase64,
       contentType: result.contentType,
       text: result.text,
+    };
+  }
+
+  /**
+   * POST /voice/ritual/sequence
+   * Lane 2 — Ritual Coach (George voice, thermal sequence guidance).
+   * mode: restore | release | retreat
+   * phase: opening | mid | deep | closing
+   */
+  @Post("ritual/sequence")
+  @HttpCode(200)
+  @Throttle({ global: { ttl: 60_000, limit: 20 } })
+  async ritualSequence(@Body() body: VoiceRitualDto) {
+    const result = await this.voiceService.generateRitualGuidance(body.mode, body.phase);
+
+    if (!result) {
+      return { available: false };
+    }
+
+    return {
+      available: true,
+      audioBase64: result.audioBase64,
+      contentType: result.contentType,
+      text: result.text,
+      mode: body.mode,
+      phase: body.phase,
     };
   }
 }

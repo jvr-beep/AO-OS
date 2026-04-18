@@ -133,6 +133,33 @@ export class MapStudioService {
     return this.toVersionDto(version);
   }
 
+  async rollbackVersion(floorId: string, versionId: string, staffId: string): Promise<MapFloorVersionResponseDto> {
+    await this.assertFloorOwnership(floorId);
+    const source = await this.prisma.mapFloorVersion.findFirst({
+      where: { id: versionId, floorId },
+    });
+    if (!source) throw new NotFoundException("Source version not found");
+
+    const last = await this.prisma.mapFloorVersion.findFirst({
+      where: { floorId },
+      orderBy: { versionNum: "desc" },
+      select: { versionNum: true },
+    });
+
+    const newVersion = await this.prisma.mapFloorVersion.create({
+      data: {
+        floorId,
+        versionNum: (last?.versionNum ?? 0) + 1,
+        svgContent: source.svgContent,
+        label: `Rollback to v${source.versionNum}`,
+        notes: `Restored from version ${source.versionNum}${source.label ? ` (${source.label})` : ""}`,
+        isDraft: true,
+        createdBy: staffId,
+      },
+    });
+    return this.toVersionDto(newVersion);
+  }
+
   async listObjects(floorId: string): Promise<MapObjectResponseDto[]> {
     await this.assertFloorOwnership(floorId);
     const objects = await this.prisma.mapObject.findMany({
