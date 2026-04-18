@@ -225,19 +225,7 @@ export class MapStudioService {
     });
 
     const liveObjects: LiveObjectStateDto[] = await Promise.all(
-      objects.map(async (obj) => {
-        const state = await this.resolveObjectState(obj);
-        return {
-          mapObjectId: obj.id,
-          svgElementId: obj.svgElementId,
-          objectType: obj.objectType,
-          code: obj.code,
-          label: obj.label,
-          state,
-          occupantName: null,
-          metadata: (obj.metadataJson as Record<string, unknown>) ?? {},
-        };
-      })
+      objects.map((obj) => this.resolveObjectLiveState(obj))
     );
 
     return {
@@ -249,26 +237,121 @@ export class MapStudioService {
     };
   }
 
-  private async resolveObjectState(obj: {
+  private async resolveObjectLiveState(obj: {
+    id: string;
+    svgElementId: string | null;
     objectType: string;
+    code: string;
+    label: string;
     roomId: string | null;
     lockerId: string | null;
-  }): Promise<LiveObjectStateDto["state"]> {
+    metadataJson: unknown;
+  }): Promise<LiveObjectStateDto> {
+    const base: LiveObjectStateDto = {
+      mapObjectId: obj.id,
+      svgElementId: obj.svgElementId,
+      objectType: obj.objectType,
+      code: obj.code,
+      label: obj.label,
+      state: "unknown",
+      occupantName: null,
+      endsAt: null,
+      timeRemainingSeconds: null,
+      cleaningStatus: null,
+      incidentNote: null,
+      metadata: (obj.metadataJson as Record<string, unknown>) ?? {},
+    };
+
     if (obj.objectType === "room" && obj.roomId) {
-      const booking = await this.prisma.roomBooking.findFirst({
-        where: { roomId: obj.roomId, status: "checked_in" },
-      });
-      return booking ? "occupied" : "available";
+      return this.resolveRoomState(base, obj.roomId);
     }
+
     if (obj.objectType === "locker_bank" && obj.lockerId) {
-      const locker = await this.prisma.locker.findUnique({
-        where: { id: obj.lockerId },
-        select: { status: true },
-      });
-      if (!locker) return "unknown";
-      return locker.status === "available" ? "available" : "occupied";
+      return this.resolveLockerState(base, obj.lockerId);
     }
-    return "unknown";
+
+    if (obj.objectType === "incident") {
+      const note = typeof base.metadata.note === "string" ? base.metadata.note : null;
+      return { ...base, state: "incident", incidentNote: note };
+    }
+
+    return { ...base, state: "unknown" };
+  }
+
+  private async resolveRoomState(
+    base: LiveObjectStateDto,
+    roomId: string,
+  ): Promise<LiveObjectStateDto> {
+    const now = new Date();
+
+    const [activeBooking, cleaningTask, reservedBooking] = await Promise.all([
+      this.prisma.roomBooking.findFirst({
+        where: { roomId, status: "checked_in" },
+        include: { member: { select: { firstName: true, lastName: true } } },
+        orderBy: { checkedInAt: "desc" },
+      }),
+      this.prisma.cleaningTask.findFirst({
+        where: { roomId, status: { in: ["open", "in_progress"] } },
+        orderBy: { createdAt: "desc" },
+        select: { status: true },
+      }),
+      this.prisma.roomBooking.findFirst({
+        where: { roomId, status: "reserved", startsAt: { lte: new Date(now.getTime() + 30 * 60_000) } },
+        orderBy: { startsAt: "asc" },
+      }),
+    ]);
+
+    if (cleaningTask) {
+      return {
+        ...base,
+        state: "cleaning",
+        cleaningStatus: cleaningTask.status,
+      };
+    }
+
+    if (activeBooking) {
+      const endsAt = activeBooking.endsAt;
+      const secsRemaining = Math.max(0, Math.floor((endsAt.getTime() - now.getTime()) / 1000));
+      return {
+        ...base,
+        state: "occupied",
+        occupantName: `${activeBooking.member.firstName} ${activeBooking.member.lastName}`.trim(),
+        endsAt: endsAt.toISOString(),
+        timeRemainingSeconds: secsRemaining,
+        cleaningStatus: null,
+      };
+    }
+
+    if (reservedBooking) {
+      return { ...base, state: "reserved" };
+    }
+
+    return { ...base, state: "available" };
+  }
+
+  private async resolveLockerState(
+    base: LiveObjectStateDto,
+    lockerId: string,
+  ): Promise<LiveObjectStateDto> {
+    const locker = await this.prisma.locker.findUnique({
+      where: { id: lockerId },
+      select: { status: true },
+    });
+    if (!locker) return { ...base, state: "unknown" };
+
+    const stateMap: Record<string, LiveObjectStateDto["state"]> = {
+      available: "available",
+      reserved: "reserved",
+      occupied: "occupied",
+      assigned: "occupied",
+      cleaning: "cleaning",
+      maintenance: "offline",
+      offline: "offline",
+      forced_open: "incident",
+      out_of_service: "offline",
+    };
+
+    return { ...base, state: stateMap[locker.status] ?? "unknown" };
   }
 
   private async assertFloorOwnership(floorId: string): Promise<void> {
