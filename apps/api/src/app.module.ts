@@ -40,6 +40,7 @@ import { GuestAccessModule } from "./guest-access/guest-access.module";
 import { OpsModule } from "./ops/ops.module";
 import { VoiceModule } from "./voice/voice.module";
 import { KioskModule } from "./kiosk/kiosk.module";
+import { MapStudioModule } from "./map-studio/map-studio.module";
 
 @Module({
   imports: [
@@ -85,6 +86,7 @@ import { KioskModule } from "./kiosk/kiosk.module";
     StripeModule,
     MeModule,
     KioskModule,
+    MapStudioModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard }

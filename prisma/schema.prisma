@@ -500,6 +500,7 @@ model Location {
   accessZones      AccessZone[]
   tiers            Tier[]
   guestBookings    GuestBooking[]
+  mapFloors        MapFloor[]
 }
 
 model Wristband {
@@ -1529,5 +1530,92 @@ model SystemException {
 
   @@index([status, severity, createdAt(sort: Desc)], map: "idx_system_exceptions_status")
   @@map("system_exceptions")
+}
+
+// ============================================================
+// Map Studio — floor intelligence and operational map layer
+// ============================================================
+
+enum MapFloorStatus {
+  active
+  inactive
+  archived
+}
+
+enum MapObjectType {
+  room
+  door
+  access_reader
+  locker_bank
+  zone_boundary
+  amenity
+  sensor
+  staff_area
+  circulation
+  incident
+}
+
+model MapFloor {
+  id          String         @id @default(uuid())
+  locationId  String         @map("location_id")
+  name        String
+  level       Int            @default(0)
+  description String?
+  status      MapFloorStatus @default(active)
+  sortOrder   Int            @default(0) @map("sort_order")
+  createdAt   DateTime       @default(now()) @map("created_at")
+  updatedAt   DateTime       @updatedAt @map("updated_at")
+
+  location    Location       @relation(fields: [locationId], references: [id])
+  versions    MapFloorVersion[]
+  objects     MapObject[]
+
+  @@index([locationId, status])
+  @@map("map_floors")
+}
+
+model MapFloorVersion {
+  id          String    @id @default(uuid())
+  floorId     String    @map("floor_id")
+  versionNum  Int       @map("version_num")
+  label       String?
+  svgContent  String    @map("svg_content") @db.Text
+  isDraft     Boolean   @default(true) @map("is_draft")
+  publishedAt DateTime? @map("published_at") @db.Timestamptz(6)
+  publishedBy String?   @map("published_by")
+  createdBy   String?   @map("created_by")
+  notes       String?
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  floor       MapFloor  @relation(fields: [floorId], references: [id], onDelete: Cascade)
+
+  @@unique([floorId, versionNum])
+  @@index([floorId, isDraft])
+  @@map("map_floor_versions")
+}
+
+model MapObject {
+  id            String        @id @default(uuid())
+  floorId       String        @map("floor_id")
+  svgElementId  String?       @map("svg_element_id")
+  objectType    MapObjectType @map("object_type")
+  code          String
+  label         String
+  roomId        String?       @map("room_id")
+  accessPointId String?       @map("access_point_id")
+  lockerId      String?       @map("locker_id")
+  accessZoneId  String?       @map("access_zone_id")
+  posX          Decimal?      @map("pos_x") @db.Decimal(10, 2)
+  posY          Decimal?      @map("pos_y") @db.Decimal(10, 2)
+  metadataJson  Json          @default("{}") @map("metadata_json")
+  active        Boolean       @default(true)
+  createdAt     DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  floor         MapFloor      @relation(fields: [floorId], references: [id], onDelete: Cascade)
+
+  @@unique([floorId, code])
+  @@index([floorId, objectType, active])
+  @@map("map_objects")
 }
 

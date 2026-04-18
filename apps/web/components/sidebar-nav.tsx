@@ -7,6 +7,7 @@ import { logout } from '@/app/actions/auth'
 const NAV_ITEMS = [
   { href: '/dashboard', label: 'Dashboard' },
   { href: '/floor-plans', label: 'Floor Plans' },
+  { href: '/map-studio', label: 'Map Studio' },
   { href: '/members', label: 'Members' },
   { href: '/guests', label: 'Guests' },
   { href: '/visits', label: 'Visits' },
