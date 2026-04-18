@@ -1,0 +1,160 @@
+name: Postman Regression
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: postman-regression-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  newman:
+    name: Newman API Regression
+    runs-on: ubuntu-latest
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ao_os
+      DIRECT_URL: postgresql://postgres:postgres@localhost:5432/ao_os
+      PORT: 4000
+      AUTH_JWT_SECRET: ci-only-jwt-secret-not-used-in-prod
+      AUTH_SEED_ADMIN_EMAIL: admin@ao-os.dev
+      AUTH_SEED_ADMIN_PASSWORD: CiTestPass123!
+      AUTH_SEED_ADMIN_NAME: CI Admin
+      NODE_ENV: test
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: ao_os
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.32.1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm prisma generate --schema prisma/schema.prisma
+
+      - name: Apply migrations
+        run: pnpm prisma migrate deploy --schema prisma/schema.prisma
+
+      - name: Seed base data
+        run: pnpm prisma db execute --file prisma/seed.sql --schema prisma/schema.prisma
+
+      - name: Build API
+        run: pnpm --filter api build
+
+      - name: Start API
+        run: |
+          node apps/api/dist/main.js > /tmp/api.log 2>&1 &
+          echo $! > /tmp/api.pid
+          sleep 1
+          if ! kill -0 "$(cat /tmp/api.pid)" 2>/dev/null; then
+            echo "API crashed immediately"
+            cat /tmp/api.log
+            exit 1
+          fi
+
+      - name: Wait for API health
+        run: |
+          for i in {1..30}; do
+            if curl -fsS http://localhost:4000/v1/health >/dev/null; then
+              echo "API healthy"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "API did not become healthy"
+          cat /tmp/api.log
+          exit 1
+
+      - name: Install Newman
+        run: npm install -g newman
+
+      - name: Run staff-users-verification collection
+        run: |
+          newman run postman/collections/staff-users-verification.postman_collection.json \
+            --env-var "baseUrl=http://localhost:4000/v1" \
+            --env-var "authEmail=admin@ao-os.dev" \
+            --env-var "authPassword=CiTestPass123!" \
+            --reporters cli,json \
+            --reporter-json-export /tmp/newman-staff.json \
+            --bail
+
+      - name: Run locker-credential-regression collection
+        run: |
+          newman run postman/collections/locker-credential-regression.postman_collection.json \
+            --env-var "baseUrl=http://localhost:4000/v1" \
+            --env-var "authEmail=admin@ao-os.dev" \
+            --env-var "authPassword=CiTestPass123!" \
+            --reporters cli,json \
+            --reporter-json-export /tmp/newman-locker.json \
+            --bail
+
+      - name: Upload Newman reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: newman-reports
+          path: /tmp/newman-*.json
+          retention-days: 14
+
+      - name: Show API log on failure
+        if: failure()
+        run: cat /tmp/api.log || true
+
+      - name: Stop API
+        if: always()
+        run: kill "$(cat /tmp/api.pid)" 2>/dev/null || true
+
+      - name: Notify self-heal on failure
+        if: failure()
+        env:
+          AO_OS_SELF_HEAL: ${{ secrets.AO_OS_SELF_HEAL }}
+        run: |
+          if [[ -z "${AO_OS_SELF_HEAL:-}" ]]; then
+            echo "AO_OS_SELF_HEAL not set — skipping"
+            exit 0
+          fi
+          curl -s -X POST "$AO_OS_SELF_HEAL" \
+            -H "Content-Type: application/json" \
+            -d "$(jq -n \
+              --arg owner "${{ github.repository_owner }}" \
+              --arg repo "${{ github.event.repository.name }}" \
+              --arg branch "${{ github.ref_name }}" \
+              --arg commit_sha "${{ github.sha }}" \
+              --arg run_id "${{ github.run_id }}" \
+              '{
+                owner: $owner,
+                repo: $repo,
+                branch: $branch,
+                commit_sha: $commit_sha,
+                run_id: $run_id,
+                service: "api",
+                error_type: "postman_regression_failure",
+                error_message: "Newman Postman regression failed — API contract broken, see CI artifacts for details",
+                file_path: "postman/collections"
+              }'
+            )" || echo "Self-heal notification failed (non-blocking)"
