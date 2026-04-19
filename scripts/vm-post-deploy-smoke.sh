@@ -142,7 +142,7 @@ echo "=== Running database migrations ==="
 # API image. The image contains the full repo at /app including prisma/migrations/.
 docker compose -f "$COMPOSE_FILE" run --rm --no-deps \
   -e DATABASE_URL="$(read_env "$ENV_FILE" "DATABASE_URL")" \
-  api node node_modules/.bin/prisma migrate deploy \
+  api sh -c "node_modules/.bin/prisma migrate deploy" \
   && echo "Migrations complete" \
   || echo "WARNING: Migration run failed — check DATABASE_URL and logs"
 
@@ -154,7 +154,7 @@ docker compose -f "$COMPOSE_FILE" up -d --force-recreate --remove-orphans api
 # ── Wait for API health ───────────────────────────────────────────────────────
 
 echo "=== Waiting for API health ==="
-for i in $(seq 1 30); do
+for i in $(seq 1 60); do
   code=$(http_code GET "$API_BASE/v1/health")
   if [[ "$code" == "200" ]]; then
     echo "API healthy after $((i * 2))s"

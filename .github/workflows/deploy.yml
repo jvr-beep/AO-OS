@@ -34,8 +34,8 @@ jobs:
           host: ${{ secrets.VM_HOST }}
           username: ${{ secrets.VM_USER }}
           key: ${{ secrets.VM_SSH_KEY }}
-          timeout: 10m
-          command_timeout: 10m
+          timeout: 30m
+          command_timeout: 30m
           envs: GH_TOKEN,GH_ACTOR,GH_REPOSITORY
           script: |
             set -euo pipefail
