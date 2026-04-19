@@ -97,8 +97,8 @@ jobs:
         run: |
           newman run postman/collections/staff-users-verification.postman_collection.json \
             --env-var "baseUrl=http://localhost:4000/v1" \
-            --env-var "authEmail=admin@ao-os.dev" \
-            --env-var "authPassword=CiTestPass123!" \
+            --env-var "adminEmail=admin@ao-os.dev" \
+            --env-var "adminPassword=CiTestPass123!" \
             --reporters cli,json \
             --reporter-json-export /tmp/newman-staff.json \
             --bail
@@ -107,8 +107,8 @@ jobs:
         run: |
           newman run postman/collections/locker-credential-regression.postman_collection.json \
             --env-var "baseUrl=http://localhost:4000/v1" \
-            --env-var "authEmail=admin@ao-os.dev" \
-            --env-var "authPassword=CiTestPass123!" \
+            --env-var "adminEmail=admin@ao-os.dev" \
+            --env-var "adminPassword=CiTestPass123!" \
             --reporters cli,json \
             --reporter-json-export /tmp/newman-locker.json \
             --bail
