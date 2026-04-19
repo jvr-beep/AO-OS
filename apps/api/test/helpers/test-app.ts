@@ -1,4 +1,4 @@
-import { INestApplication } from "@nestjs/common";
+import { INestApplication, ValidationPipe } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import { PrismaClient } from "@prisma/client";
 import request from "supertest";
@@ -16,6 +16,7 @@ export async function createIntegrationApp(): Promise<IntegrationApp> {
   process.env.AUTH_JWT_SECRET = process.env.AUTH_JWT_SECRET ?? "integration-test-secret";
 
   const app = await NestFactory.create(AppModule, { logger: false });
+  app.useGlobalPipes(new ValidationPipe({ transform: true }));
   app.setGlobalPrefix("v1");
   await app.init();
 
