@@ -92,7 +92,7 @@ export function FloorPlanLiveView({
     } finally {
       setRefreshing(false)
     }
-  }, [floorPlanId, token, selectedArea])
+  }, [floorPlanId, selectedArea])
 
   useEffect(() => {
     const interval = setInterval(refresh, 30_000)

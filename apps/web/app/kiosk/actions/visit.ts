@@ -13,13 +13,13 @@ const LOCATION_HEADERS = {
 
 // ── Step 1: Create or identify guest ────────────────────────────────────────
 
-export async function identifyGuestAction(formData: FormData): Promise<{ error?: string }> {
+export async function identifyGuestAction(formData: FormData): Promise<void> {
   const firstName = formData.get('firstName')?.toString().trim()
   const lastName = formData.get('lastName')?.toString().trim()
   const email = formData.get('email')?.toString().trim().toLowerCase() || undefined
   const phone = formData.get('phone')?.toString().trim() || undefined
 
-  if (!firstName) return { error: 'First name is required' }
+  if (!firstName) redirect('/kiosk?error=First+name+is+required')
 
   try {
     // Try lookup first to avoid duplicates
@@ -49,7 +49,7 @@ export async function identifyGuestAction(formData: FormData): Promise<{ error?:
 
     if (!createRes.ok) {
       const body = await createRes.json().catch(() => ({}))
-      return { error: body?.message ?? 'Failed to register guest' }
+      redirect(`/kiosk?error=${encodeURIComponent(body?.message ?? 'Failed to register guest')}`)
     }
 
     const guest = await createRes.json()
@@ -57,7 +57,7 @@ export async function identifyGuestAction(formData: FormData): Promise<{ error?:
     session.guestId = guest.id
     await session.save()
   } catch (err: any) {
-    return { error: err.message ?? 'An error occurred' }
+    redirect(`/kiosk?error=${encodeURIComponent(err.message ?? 'An error occurred')}`)
   }
 
   redirect('/kiosk/waiver')
@@ -65,12 +65,12 @@ export async function identifyGuestAction(formData: FormData): Promise<{ error?:
 
 // ── Step 2: Accept waiver ─────────────────────────────────────────────────
 
-export async function acceptWaiverAction(formData: FormData): Promise<{ error?: string }> {
+export async function acceptWaiverAction(formData: FormData): Promise<void> {
   const session = await getKioskSession()
   if (!session.guestId) redirect('/kiosk')
 
   const signature = formData.get('signature')?.toString().trim()
-  if (!signature) return { error: 'Signature required to accept waiver' }
+  if (!signature) redirect('/kiosk/waiver?error=Signature+required+to+accept+waiver')
 
   try {
     const res = await fetch(`${API_BASE}/waivers`, {
@@ -86,13 +86,13 @@ export async function acceptWaiverAction(formData: FormData): Promise<{ error?: 
 
     if (!res.ok) {
       const body = await res.json().catch(() => ({}))
-      return { error: body?.message ?? 'Failed to record waiver' }
+      redirect(`/kiosk/waiver?error=${encodeURIComponent(body?.message ?? 'Failed to record waiver')}`)
     }
 
     session.waiverCompleted = true
     await session.save()
   } catch (err: any) {
-    return { error: err.message ?? 'Waiver submission failed' }
+    redirect(`/kiosk/waiver?error=${encodeURIComponent(err.message ?? 'Waiver submission failed')}`)
   }
 
   redirect('/kiosk/select')
@@ -100,7 +100,7 @@ export async function acceptWaiverAction(formData: FormData): Promise<{ error?: 
 
 // ── Step 3: Select tier + initiate visit ─────────────────────────────────
 
-export async function selectTierAction(formData: FormData): Promise<{ error?: string }> {
+export async function selectTierAction(formData: FormData): Promise<void> {
   const session = await getKioskSession()
   if (!session.guestId || !session.waiverCompleted) redirect('/kiosk')
 
@@ -111,7 +111,7 @@ export async function selectTierAction(formData: FormData): Promise<{ error?: st
   const amountCents = parseInt(formData.get('amountCents')?.toString() ?? '0', 10)
   const visitMode = formData.get('visitMode')?.toString() || undefined
 
-  if (!tierCode || !tierId) return { error: 'Please select a tier' }
+  if (!tierCode || !tierId) redirect('/kiosk/select?error=Please+select+a+tier')
 
   try {
     // Initiate visit
@@ -131,7 +131,7 @@ export async function selectTierAction(formData: FormData): Promise<{ error?: st
 
     if (!visitRes.ok) {
       const body = await visitRes.json().catch(() => ({}))
-      return { error: body?.message ?? 'Failed to initiate visit' }
+      redirect(`/kiosk/select?error=${encodeURIComponent(body?.message ?? 'Failed to initiate visit')}`)
     }
 
     const visit = await visitRes.json()
@@ -153,7 +153,7 @@ export async function selectTierAction(formData: FormData): Promise<{ error?: st
 
     if (!paymentRes.ok) {
       const body = await paymentRes.json().catch(() => ({}))
-      return { error: body?.message ?? 'Failed to create payment' }
+      redirect(`/kiosk/select?error=${encodeURIComponent(body?.message ?? 'Failed to create payment')}`)
     }
 
     const payment = await paymentRes.json()
@@ -167,7 +167,7 @@ export async function selectTierAction(formData: FormData): Promise<{ error?: st
     session.clientSecret = payment.clientSecret
     await session.save()
   } catch (err: any) {
-    return { error: err.message ?? 'Failed to set up your visit' }
+    redirect(`/kiosk/select?error=${encodeURIComponent(err.message ?? 'Failed to set up your visit')}`)
   }
 
   redirect('/kiosk/payment')

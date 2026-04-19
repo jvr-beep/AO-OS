@@ -629,30 +629,30 @@ export async function recordFolioPaymentAction(formData: FormData) {
 export async function assignKioskVisitAction(formData: FormData) {
   const redirectTo = readRedirectTarget(formData, '/check-in')
 
+  const patchStatus = async (session: Awaited<ReturnType<typeof withSession>>, visitId: string, status: string, reasonCode: string) => {
+    const res = await fetch(`${API_BASE}/visits/${visitId}/status`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session.accessToken!}`,
+      },
+      body: JSON.stringify({ status, reason_code: reasonCode, changed_by_user_id: session.user?.id }),
+      cache: 'no-store',
+    })
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}))
+      throw new Error(body?.message ?? `Status transition to ${status} failed`)
+    }
+    return res.json()
+  }
+
   try {
     const session = await withSession()
     const visitId = readRequired(formData, 'visitId')
 
-    async function patchStatus(status: string, reasonCode: string) {
-      const res = await fetch(`${API_BASE}/visits/${visitId}/status`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session.accessToken!}`,
-        },
-        body: JSON.stringify({ status, reason_code: reasonCode, changed_by_user_id: session.user?.id }),
-        cache: 'no-store',
-      })
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}))
-        throw new Error(body?.message ?? `Status transition to ${status} failed`)
-      }
-      return res.json()
-    }
-
     // paid_pending_assignment → checked_in → active
-    await patchStatus('checked_in', 'wristband_assigned')
-    await patchStatus('active', 'visit_activated')
+    await patchStatus(session, visitId, 'checked_in', 'wristband_assigned')
+    await patchStatus(session, visitId, 'active', 'visit_activated')
 
     revalidatePath('/check-in')
     revalidatePath('/visits')

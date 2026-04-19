@@ -4,11 +4,11 @@ import { redirect } from 'next/navigation'
 import { getMemberSession } from '@/lib/member-session'
 import { memberLogin } from '@/lib/member-api'
 
-export async function memberLoginAction(formData: FormData): Promise<{ error?: string }> {
+export async function memberLoginAction(formData: FormData): Promise<void> {
   const email = formData.get('email')?.toString().trim()
   const password = formData.get('password')?.toString()
 
-  if (!email || !password) return { error: 'Email and password required' }
+  if (!email || !password) redirect('/member/login?error=Email+and+password+required')
 
   try {
     const result = await memberLogin(email, password)
@@ -18,7 +18,7 @@ export async function memberLoginAction(formData: FormData): Promise<{ error?: s
     session.expiresAt = result.session.expiresAt
     await session.save()
   } catch (err: any) {
-    return { error: err.message ?? 'Login failed' }
+    redirect(`/member/login?error=${encodeURIComponent(err.message ?? 'Login failed')}`)
   }
 
   redirect('/member')
