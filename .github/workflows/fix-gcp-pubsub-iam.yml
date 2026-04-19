@@ -20,27 +20,26 @@ jobs:
           script: |
             set -euo pipefail
 
+            echo "=== Getting access token from metadata server ==="
+            TOKEN=$(curl -sf -H "Metadata-Flavor: Google" "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token" | python3 -c "import sys,json; print(json.load(sys.stdin)['access_token'])")
+
             echo "=== Fetching AO_OS_SINK writer identity ==="
-            WRITER_IDENTITY=$(gcloud logging sinks describe AO_OS_SINK \
-              --project=ao-os-vm \
-              --format="value(writerIdentity)" 2>/dev/null || true)
+            SINK_RESP=$(curl -sf -H "Authorization: Bearer $TOKEN" "https://logging.googleapis.com/v2/projects/ao-os-vm/sinks/AO_OS_SINK")
+            WRITER_IDENTITY=$(echo "$SINK_RESP" | python3 -c "import sys,json; print(json.load(sys.stdin)['writerIdentity'])")
 
             if [[ -z "$WRITER_IDENTITY" ]]; then
-              echo "ERROR: Could not retrieve writerIdentity for AO_OS_SINK"
+              echo "ERROR: writerIdentity is empty — sink response: $SINK_RESP"
               exit 1
             fi
-
             echo "Writer identity: $WRITER_IDENTITY"
 
-            echo "=== Granting roles/pubsub.publisher on topic 'logging' ==="
-            gcloud pubsub topics add-iam-policy-binding logging \
-              --project=ao-os-vm \
-              --member="$WRITER_IDENTITY" \
-              --role="roles/pubsub.publisher"
+            echo "=== Setting IAM policy on topic 'logging' ==="
+            POLICY_BODY="{\"policy\":{\"bindings\":[{\"role\":\"roles/pubsub.publisher\",\"members\":[\"$WRITER_IDENTITY\"]}]}}"
+            RESULT=$(curl -sf -X POST \
+              -H "Authorization: Bearer $TOKEN" \
+              -H "Content-Type: application/json" \
+              -d "$POLICY_BODY" \
+              "https://pubsub.googleapis.com/v1/projects/ao-os-vm/topics/logging:setIamPolicy")
 
-            echo "=== Verifying ==="
-            gcloud pubsub topics get-iam-policy logging \
-              --project=ao-os-vm \
-              --format="table(bindings.role, bindings.members)"
-
-            echo "=== Done — log sink should now route successfully ==="
+            echo "Policy applied: $RESULT"
+            echo "=== Done — AO_OS_SINK should now route logs to Pub/Sub ==="
