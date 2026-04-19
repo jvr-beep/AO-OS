@@ -1,3 +1,4 @@
+import { Logger } from "@nestjs/common";
 import {
   BadRequestException,
   ConflictException,
@@ -78,6 +79,8 @@ const MEMBER_LOGIN_LOCK_MINUTES = 15;
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
@@ -360,7 +363,11 @@ export class AuthService {
         data: { consumedAt: new Date() }
       });
       const { rawToken } = await this._createAuthToken(member.id, "password_reset", 30);
-      await this.emailService.sendPasswordReset(input.email, rawToken);
+      try {
+        await this.emailService.sendPasswordReset(input.email, rawToken);
+      } catch (err) {
+        this.logger.error(`Failed to send member password reset email to ${input.email}: ${err}`);
+      }
       return;
     }
 
@@ -369,7 +376,11 @@ export class AuthService {
     if (staffUser && staffUser.active) {
       const payload = { sub: staffUser.id, email: staffUser.email, purpose: "staff_password_reset" };
       const rawToken = await this.jwtService.signAsync(payload, { expiresIn: "30m" });
-      await this.emailService.sendStaffPasswordReset(input.email, rawToken);
+      try {
+        await this.emailService.sendStaffPasswordReset(input.email, rawToken);
+      } catch (err) {
+        this.logger.error(`Failed to send staff password reset email to ${input.email}: ${err}`);
+      }
     }
     // Security: don't reveal whether email exists regardless of outcome
   }
