@@ -16,7 +16,7 @@ export class StripeService implements OnModuleInit {
       this.logger.warn("STRIPE_SECRET_KEY not set — Stripe payments will not function");
       return;
     }
-    this.client = new Stripe(key, { apiVersion: "2025-03-31.basil" });
+    this.client = new Stripe(key, { apiVersion: "2025-02-24.acacia" });
     this.logger.log("Stripe client initialised");
   }
 
