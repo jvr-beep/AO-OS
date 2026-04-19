@@ -81,6 +81,7 @@ async function reportActionError(error: unknown, page: string, apiPath?: string)
   const message = error instanceof Error ? error.message : String(error)
   const errorName = error instanceof Error ? error.name : 'OperatorActionError'
   const httpStatus = message.match(/^(\d{3}) /) ? parseInt(message.slice(0, 3), 10) : undefined
+  console.error(`[action-error] ${page}${apiPath ? ` → ${apiPath}` : ''} | ${errorName}: ${message}`)
   await reportErrorAction({
     message,
     page,

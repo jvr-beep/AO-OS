@@ -2,6 +2,7 @@
 
 import { redirect } from 'next/navigation'
 import { getKioskSession } from '@/lib/kiosk-session'
+import { reportErrorAction } from '@/app/actions/report-error'
 
 const API_BASE = process.env.API_BASE_URL ?? 'http://localhost:4000/v1'
 const LOCATION_CODE = process.env.DEFAULT_LOCATION_CODE ?? 'AO_TORONTO'
@@ -57,6 +58,8 @@ export async function identifyGuestAction(formData: FormData): Promise<void> {
     session.guestId = guest.id
     await session.save()
   } catch (err: any) {
+    console.error(`[kiosk-error] identifyGuestAction: ${err?.message ?? err}`)
+    await reportErrorAction({ message: err?.message ?? 'identifyGuestAction failed', page: '/kiosk', errorName: err?.name ?? 'KioskError', apiUrl: `${API_BASE}/guests` })
     redirect(`/kiosk?error=${encodeURIComponent(err.message ?? 'An error occurred')}`)
   }
 
@@ -92,6 +95,8 @@ export async function acceptWaiverAction(formData: FormData): Promise<void> {
     session.waiverCompleted = true
     await session.save()
   } catch (err: any) {
+    console.error(`[kiosk-error] acceptWaiverAction: ${err?.message ?? err}`)
+    await reportErrorAction({ message: err?.message ?? 'acceptWaiverAction failed', page: '/kiosk/waiver', errorName: err?.name ?? 'KioskError', apiUrl: `${API_BASE}/waivers` })
     redirect(`/kiosk/waiver?error=${encodeURIComponent(err.message ?? 'Waiver submission failed')}`)
   }
 
@@ -167,6 +172,8 @@ export async function selectTierAction(formData: FormData): Promise<void> {
     session.clientSecret = payment.clientSecret
     await session.save()
   } catch (err: any) {
+    console.error(`[kiosk-error] selectTierAction: ${err?.message ?? err}`)
+    await reportErrorAction({ message: err?.message ?? 'selectTierAction failed', page: '/kiosk/select', errorName: err?.name ?? 'KioskError', apiUrl: `${API_BASE}/visits` })
     redirect(`/kiosk/select?error=${encodeURIComponent(err.message ?? 'Failed to set up your visit')}`)
   }
 

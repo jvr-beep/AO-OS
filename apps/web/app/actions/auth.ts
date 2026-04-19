@@ -70,6 +70,7 @@ export async function login(formData: FormData) {
   const result = await doLogin(formData)
 
   if (!result.ok) {
+    console.error(`[auth-error] login failed: ${result.error}`)
     redirect('/login?error=1')
   }
 
@@ -85,6 +86,7 @@ export async function loginAction(
   const result = await doLogin(formData)
 
   if (!result.ok) {
+    console.error(`[auth-error] loginAction failed: ${result.error}`)
     return { error: result.error }
   }
 
@@ -174,6 +176,15 @@ export async function confirmStaffPasswordReset(formData: FormData) {
   }
 
   if (!res.ok) {
+    const body = await res.text().catch(() => '')
+    console.error(`[auth-error] confirmStaffPasswordReset failed: HTTP ${res.status} — ${body}`)
+    await reportErrorAction({
+      message: `Staff password reset confirm failed: HTTP ${res.status} — ${body}`,
+      page: '/login',
+      errorName: 'StaffPasswordResetConfirmError',
+      httpStatus: res.status,
+      apiUrl: `${API_BASE}/auth/staff-password-reset/confirm`,
+    })
     redirect('/login?reset=error')
   }
 

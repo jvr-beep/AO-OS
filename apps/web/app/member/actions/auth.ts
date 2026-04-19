@@ -3,6 +3,7 @@
 import { redirect } from 'next/navigation'
 import { getMemberSession } from '@/lib/member-session'
 import { memberLogin } from '@/lib/member-api'
+import { reportErrorAction } from '@/app/actions/report-error'
 
 export async function memberLoginAction(formData: FormData): Promise<void> {
   const email = formData.get('email')?.toString().trim()
@@ -18,6 +19,8 @@ export async function memberLoginAction(formData: FormData): Promise<void> {
     session.expiresAt = result.session.expiresAt
     await session.save()
   } catch (err: any) {
+    console.error(`[member-error] memberLoginAction: ${err?.message ?? err}`)
+    await reportErrorAction({ message: err?.message ?? 'Member login failed', page: '/member/login', errorName: err?.name ?? 'MemberAuthError' })
     redirect(`/member/login?error=${encodeURIComponent(err.message ?? 'Login failed')}`)
   }
 
