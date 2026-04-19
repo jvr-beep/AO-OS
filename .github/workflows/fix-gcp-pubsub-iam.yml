@@ -1,0 +1,46 @@
+name: Fix GCP Pub/Sub IAM
+
+on:
+  workflow_dispatch:
+
+jobs:
+  fix-pubsub-iam:
+    name: Grant log sink publisher permission on Pub/Sub topic
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Fix via SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.VM_SSH_KEY }}
+          timeout: 5m
+          command_timeout: 5m
+          script: |
+            set -euo pipefail
+
+            echo "=== Fetching AO_OS_SINK writer identity ==="
+            WRITER_IDENTITY=$(gcloud logging sinks describe AO_OS_SINK \
+              --project=ao-os-vm \
+              --format="value(writerIdentity)" 2>/dev/null || true)
+
+            if [[ -z "$WRITER_IDENTITY" ]]; then
+              echo "ERROR: Could not retrieve writerIdentity for AO_OS_SINK"
+              exit 1
+            fi
+
+            echo "Writer identity: $WRITER_IDENTITY"
+
+            echo "=== Granting roles/pubsub.publisher on topic 'logging' ==="
+            gcloud pubsub topics add-iam-policy-binding logging \
+              --project=ao-os-vm \
+              --member="$WRITER_IDENTITY" \
+              --role="roles/pubsub.publisher"
+
+            echo "=== Verifying ==="
+            gcloud pubsub topics get-iam-policy logging \
+              --project=ao-os-vm \
+              --format="table(bindings.role, bindings.members)"
+
+            echo "=== Done — log sink should now route successfully ==="
