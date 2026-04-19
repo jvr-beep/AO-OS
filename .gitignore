@@ -141,3 +141,8 @@ vite.config.ts.timestamp-*
 # Local smoke harness scratch artifacts
 smoke_out.txt
 check_location.mjs
+
+# Playwright
+apps/web/e2e/.auth/
+apps/web/playwright-report/
+apps/web/test-results/

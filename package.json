@@ -13,7 +13,9 @@
     "prisma:seed": "tsx prisma/seed.ts",
     "smoke:locker-policy": "node ./apps/api/test/smoke/locker-policy-smoke.mjs",
     "swaggerhub:push": "swaggerhub api:push openapi/ao-os.openapi.yaml --publish --validate --force",
-    "swaggerhub:validate": "swaggerhub api:validate openapi/ao-os.openapi.yaml"
+    "swaggerhub:validate": "swaggerhub api:validate openapi/ao-os.openapi.yaml",
+    "e2e": "pnpm --filter @ao-os/web e2e",
+    "e2e:ui": "pnpm --filter @ao-os/web e2e:ui"
   },
   "devDependencies": {
     "prisma": "^6.6.0",

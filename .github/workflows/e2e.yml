@@ -1,0 +1,191 @@
+name: E2E Tests
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    name: Playwright E2E
+    runs-on: ubuntu-latest
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ao_os
+      DIRECT_URL: postgresql://postgres:postgres@localhost:5432/ao_os
+      PORT: 4000
+      AUTH_JWT_SECRET: ci-only-jwt-secret-not-used-in-prod
+      AUTH_SEED_ADMIN_EMAIL: ${{ secrets.CI_ADMIN_EMAIL || 'admin@ao-os.dev' }}
+      AUTH_SEED_ADMIN_PASSWORD: ${{ secrets.CI_ADMIN_PASSWORD || 'CiTestPass123!' }}
+      AUTH_SEED_ADMIN_NAME: CI Admin
+      NODE_ENV: test
+      # Web env
+      SESSION_SECRET: ci-only-session-secret-32chars!!
+      MEMBER_SESSION_SECRET: ci-only-member-secret-32chars!
+      KIOSK_SESSION_SECRET: ci-only-kiosk-secret-32chars!!
+      KIOSK_API_SECRET: ci-only-kiosk-api-secret-1234567
+      API_BASE_URL: http://localhost:4000/v1
+      # E2E
+      E2E_BASE_URL: http://localhost:3000
+      E2E_API_BASE: http://localhost:4000/v1
+      E2E_ADMIN_EMAIL: ${{ secrets.CI_ADMIN_EMAIL || 'admin@ao-os.dev' }}
+      E2E_ADMIN_PASSWORD: ${{ secrets.CI_ADMIN_PASSWORD || 'CiTestPass123!' }}
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: ao_os
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.32.1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm prisma generate --schema prisma/schema.prisma
+
+      - name: Apply migrations
+        run: pnpm prisma migrate deploy --schema prisma/schema.prisma
+
+      - name: Seed base data
+        run: pnpm prisma db execute --file prisma/seed.sql --schema prisma/schema.prisma
+
+      - name: Build API
+        run: pnpm --filter api build
+
+      - name: Start API
+        run: |
+          node apps/api/dist/main.js > /tmp/api.log 2>&1 &
+          echo $! > /tmp/api.pid
+          sleep 2
+          if ! kill -0 "$(cat /tmp/api.pid)" 2>/dev/null; then
+            echo "API crashed on start"
+            cat /tmp/api.log
+            exit 1
+          fi
+
+      - name: Wait for API health
+        run: |
+          for i in {1..30}; do
+            if curl -fsS http://localhost:4000/v1/health >/dev/null; then
+              echo "API healthy"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "API did not become healthy"
+          cat /tmp/api.log
+          exit 1
+
+      - name: Build web
+        run: pnpm --filter @ao-os/web build
+
+      - name: Start web
+        run: |
+          pnpm --filter @ao-os/web start > /tmp/web.log 2>&1 &
+          echo $! > /tmp/web.pid
+
+      - name: Wait for web health
+        run: |
+          for i in {1..30}; do
+            if curl -fsS http://localhost:3000/login >/dev/null; then
+              echo "Web healthy"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Web did not become healthy"
+          cat /tmp/web.log
+          exit 1
+
+      - name: Install Playwright browsers
+        run: pnpm --filter @ao-os/web exec playwright install chromium --with-deps
+
+      - name: Run E2E tests
+        run: pnpm --filter @ao-os/web e2e
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            apps/web/playwright-report/
+            /tmp/playwright-results.json
+          retention-days: 14
+
+      - name: Upload failure screenshots & traces
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-failures
+          path: apps/web/test-results/
+          retention-days: 7
+
+      - name: Show API log on failure
+        if: failure()
+        run: cat /tmp/api.log || true
+
+      - name: Show web log on failure
+        if: failure()
+        run: cat /tmp/web.log || true
+
+      - name: Stop services
+        if: always()
+        run: |
+          kill "$(cat /tmp/api.pid)" 2>/dev/null || true
+          kill "$(cat /tmp/web.pid)" 2>/dev/null || true
+
+      - name: Notify self-heal on failure
+        if: failure()
+        env:
+          AO_OS_SELF_HEAL: ${{ secrets.AO_OS_SELF_HEAL }}
+        run: |
+          if [[ -z "${AO_OS_SELF_HEAL:-}" ]]; then
+            echo "AO_OS_SELF_HEAL not set — skipping"
+            exit 0
+          fi
+          curl -s -X POST "$AO_OS_SELF_HEAL" \
+            -H "Content-Type: application/json" \
+            -d "$(jq -n \
+              --arg owner "${{ github.repository_owner }}" \
+              --arg repo "${{ github.event.repository.name }}" \
+              --arg branch "${{ github.ref_name }}" \
+              --arg commit_sha "${{ github.sha }}" \
+              --arg run_id "${{ github.run_id }}" \
+              '{
+                owner: $owner,
+                repo: $repo,
+                branch: $branch,
+                commit_sha: $commit_sha,
+                run_id: $run_id,
+                service: "web",
+                error_type: "e2e_failure",
+                error_message: "Playwright E2E tests failed — UI regression detected, see CI artifacts for screenshots and traces",
+                file_path: "apps/web/e2e"
+              }'
+            )" || echo "Self-heal notification failed (non-blocking)"
