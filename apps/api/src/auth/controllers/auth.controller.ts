@@ -54,6 +54,12 @@ export class AuthController {
   }
 
   @Throttle({ auth: { ttl: 60_000, limit: 10 } })
+  @Post("staff-password-reset/request")
+  staffPasswordResetRequest(@Body() body: PasswordResetRequestDto): Promise<void> {
+    return this.authService.passwordResetRequest(body);
+  }
+
+  @Throttle({ auth: { ttl: 60_000, limit: 10 } })
   @Post("staff-password-reset/confirm")
   staffPasswordResetConfirm(@Body() body: PasswordResetConfirmDto): Promise<{ email: string }> {
     return this.authService.staffPasswordResetConfirm(body);
