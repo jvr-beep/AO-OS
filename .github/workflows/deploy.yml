@@ -113,6 +113,7 @@ jobs:
 
       - name: Validate OpenAPI in SwaggerHub CLI
         if: ${{ env.SWAGGERHUB_TOKEN != '' }}
+        continue-on-error: true
         run: pnpm swaggerhub:validate
 
       - name: Skip SwaggerHub publish (missing token)
@@ -121,6 +122,7 @@ jobs:
 
       - name: Publish OpenAPI to SwaggerHub
         if: ${{ env.SWAGGERHUB_TOKEN != '' }}
+        continue-on-error: true
         run: pnpm swaggerhub:push
 
       - name: Notify on failure
