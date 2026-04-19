@@ -32,9 +32,16 @@ describe("Integration - Guest Visit Orchestration", () => {
     );
     adminToken = login.accessToken;
 
+    // Resolve the seeded default location so inventory queries (which filter by
+    // locationId when LocationMiddleware resolves one) can find our test resources.
+    const defaultLocation = await ctx.prisma.location.findUnique({
+      where: { code: "AO_TORONTO" }
+    });
+    const locationId = defaultLocation?.id ?? null;
+
     // Guest
     const guest = await ctx.prisma.guest.create({
-      data: { firstName: "Orch", lastName: "Test" }
+      data: { firstName: "Orch", lastName: "Test", locationId }
     });
     guestId = guest.id;
 
@@ -44,7 +51,8 @@ describe("Integration - Guest Visit Orchestration", () => {
         productType: "locker",
         code: `${ctx.runId.slice(0, 12).toUpperCase()}-LK`,
         name: "Standard Locker",
-        basePriceCents: 2500
+        basePriceCents: 2500,
+        locationId
       }
     });
     tierId = tier.id;
@@ -56,6 +64,7 @@ describe("Integration - Guest Visit Orchestration", () => {
           resourceType: "locker",
           displayLabel: label,
           tierId,
+          locationId,
           zoneCode: "ZONE-A",
           status: "available"
         }
@@ -258,7 +267,7 @@ describe("Integration - Guest Visit Orchestration", () => {
       .send({ visit_id: doneVisit.id, check_out_channel: "staff" })
       .expect(409);
 
-    expect(String(res.body?.message ?? "")).toContain("terminal status");
+    expect(String(res.body?.message ?? "")).toContain("not eligible for checkout");
   });
 
   // ── Booking check-in ─────────────────────────────────────────────────────

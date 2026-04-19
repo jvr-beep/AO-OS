@@ -345,7 +345,7 @@ describe("Integration - Member Identity & Creation Flows", () => {
           fn: () =>
             ctx.http
               .post("/v1/auth/signup")
-              .send({ email: `${ctx.runId}-wb-signup@aosanctuary.test`, password: "Pwd123!" })
+              .send({ email: `${ctx.runId}-wb-signup@aosanctuary.test`, password: "Passw0rd!" })
         }
       ];
 
