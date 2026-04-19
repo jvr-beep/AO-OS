@@ -82,7 +82,7 @@ export default async function CheckInPage({
                     {(visit as any).guest_name ?? 'Guest'}
                   </p>
                   <p className="text-xs text-text-muted mt-0.5">
-                    {(visit as any).tier_name ?? visit.tier_id.slice(0, 8)}
+                    {(visit as any).tier_name ?? visit.tier_id?.slice(0, 8) ?? '—'}
                     {(visit as any).visit_mode && (
                       <span className="ml-2 text-accent-primary capitalize">{(visit as any).visit_mode}</span>
                     )}
