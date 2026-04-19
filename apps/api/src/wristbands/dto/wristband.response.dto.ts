@@ -15,4 +15,5 @@ export class WristbandResponseDto {
   lastSeenAt?: string | null;
   createdAt!: string;
   updatedAt!: string;
+  assignmentId?: string | null;
 }

@@ -32,7 +32,7 @@ export class WristbandsService {
         throw new NotFoundException("MEMBER_NOT_FOUND");
       }
 
-      await this.prisma.wristbandAssignment.create({
+      const assignment = await this.prisma.wristbandAssignment.create({
         data: {
           wristbandId: created.id,
           memberId: input.memberId,
@@ -40,6 +40,8 @@ export class WristbandsService {
           active: true
         }
       });
+
+      return { ...this.toWristbandResponse(created), assignmentId: assignment.id };
     }
 
     return this.toWristbandResponse(created);
