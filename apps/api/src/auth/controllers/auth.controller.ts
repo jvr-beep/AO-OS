@@ -21,6 +21,18 @@ export class AuthController {
   }
 
   @Throttle({ auth: { ttl: 60_000, limit: 10 } })
+  @Post("staff-password-reset/request")
+  staffPasswordResetRequest(@Body() body: PasswordResetRequestDto): Promise<void> {
+    return this.authService.staffPasswordResetRequest(body);
+  }
+
+  @Throttle({ auth: { ttl: 60_000, limit: 10 } })
+  @Post("staff-password-reset/confirm")
+  staffPasswordResetConfirm(@Body() body: PasswordResetConfirmDto): Promise<{ email: string }> {
+    return this.authService.staffPasswordResetConfirm(body);
+  }
+
+  @Throttle({ auth: { ttl: 60_000, limit: 10 } })
   @Post("member/login")
   memberLogin(@Body() body: LoginDto, @Req() req: any): Promise<MemberAuthResponse> {
     return this.authService.memberLogin(body, {
@@ -41,7 +53,7 @@ export class AuthController {
     return this.authService.verifyEmail(body.token);
   }
 
-  // ── PASSWORD RESET (SELF-SERVE) ────────────────────────────────────
+  // ── MEMBER PASSWORD RESET (SELF-SERVE) ─────────────────────────────
 
   @Post("password-reset/request")
   passwordResetRequest(@Body() body: PasswordResetRequestDto): Promise<void> {

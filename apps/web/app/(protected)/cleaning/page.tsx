@@ -1,8 +1,8 @@
 import Link from 'next/link'
 import { getSession } from '@/lib/session'
 import { apiFetch } from '@/lib/api'
+import { BrowserApiForm } from '@/components/browser-api-form'
 import { StatusBadge } from '@/components/status-badge'
-import { completeCleaningTaskAction, startCleaningTaskAction } from '@/app/actions/operators'
 import type { CleaningTask, Room } from '@/types/api'
 
 export default async function CleaningPage({
@@ -137,7 +137,14 @@ export default async function CleaningPage({
                     <td className="px-4 py-3 text-xs text-gray-400 max-w-xs">{task.notes ?? '—'}</td>
                     <td className="px-4 py-3">
                       {canManageTasks && task.status === 'open' && (
-                        <form action={startCleaningTaskAction} className="flex items-center gap-2">
+                        <BrowserApiForm
+                          actionPath="/cleaning/tasks/:taskId/start"
+                          redirectTo="/cleaning"
+                          successMessage="Cleaning task started"
+                          fallbackErrorMessage="Task start failed"
+                          augment="cleaning-start"
+                          className="flex items-center gap-2"
+                        >
                           <input type="hidden" name="redirectTo" value="/cleaning" />
                           <input type="hidden" name="taskId" value={task.id} />
                           <input
@@ -152,10 +159,16 @@ export default async function CleaningPage({
                           >
                             Start
                           </button>
-                        </form>
+                        </BrowserApiForm>
                       )}
                       {canManageTasks && task.status === 'in_progress' && (
-                        <form action={completeCleaningTaskAction} className="flex items-center gap-2">
+                        <BrowserApiForm
+                          actionPath="/cleaning/tasks/:taskId/complete"
+                          redirectTo="/cleaning"
+                          successMessage="Cleaning task completed"
+                          fallbackErrorMessage="Task complete failed"
+                          className="flex items-center gap-2"
+                        >
                           <input type="hidden" name="redirectTo" value="/cleaning" />
                           <input type="hidden" name="taskId" value={task.id} />
                           <input
@@ -170,7 +183,7 @@ export default async function CleaningPage({
                           >
                             Complete
                           </button>
-                        </form>
+                        </BrowserApiForm>
                       )}
                       {!canManageTasks && <span className="text-xs text-gray-500">View only</span>}
                       {canManageTasks && task.status !== 'open' && task.status !== 'in_progress' && (

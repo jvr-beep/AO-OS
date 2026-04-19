@@ -1,11 +1,12 @@
 import Link from 'next/link'
+import { getApiBase } from '@/lib/api-base'
 import { getSession } from '@/lib/session'
 import { MemberLookup } from '@/components/member-lookup'
 import { reportErrorAction } from '@/app/actions/report-error'
 
 async function getApiHealth(): Promise<'ok' | 'degraded' | 'unreachable'> {
   try {
-    const apiBase = process.env.API_BASE_URL ?? 'http://localhost:4000/v1'
+    const apiBase = getApiBase()
     const res = await fetch(`${apiBase}/health`, { cache: 'no-store' })
     if (!res.ok) {
       await reportErrorAction({

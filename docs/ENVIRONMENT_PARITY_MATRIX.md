@@ -57,6 +57,7 @@ The goal is to make them identical in shape, naming, routing, and expected behav
 |---|---|---|---|---|
 | DNS configured | Yes | Yes | Yes | Correct zone/hostnames |
 | Tunnel configured | Yes | Yes | Yes | Public hostname to internal API |
+| Runtime isolated | Yes | Yes | Yes | `api-staging` must not share the same live process/container as `api` |
 | TLS/HTTPS active | Yes | Yes | Yes | Required |
 | API hostname live | Yes | Yes | Yes | Used by web and n8n |
 
@@ -117,5 +118,6 @@ Production cutover should not proceed unless:
 2. Production values are loaded in the correct destination systems.
 3. Google callbacks and email links point to production hostnames.
 4. Smoke tests pass immediately after cutover.
+5. Staging and production are confirmed to be isolated runtimes.
 
 If any of the above fails, stop launch and execute rollback or correction before opening access.

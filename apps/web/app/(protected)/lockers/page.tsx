@@ -1,13 +1,8 @@
 import Link from 'next/link'
 import { getSession } from '@/lib/session'
 import { apiFetch } from '@/lib/api'
+import { BrowserApiForm } from '@/components/browser-api-form'
 import { StatusBadge } from '@/components/status-badge'
-import {
-  assignLockerAction,
-  evaluateLockerPolicyAction,
-  resolveAbandonedLockersAction,
-  unassignLockerAction,
-} from '@/app/actions/operators'
 import type { Locker } from '@/types/api'
 
 const HARD_BLOCKED_STATUSES = ['maintenance', 'offline', 'forced_open', 'out_of_service']
@@ -79,7 +74,15 @@ export default async function LockersPage({
           <h2 className="text-sm font-semibold text-accent-primary mb-3 uppercase tracking-wide">Evaluate Policy</h2>
           <p className="text-xs text-gray-400 mb-2">Allowed roles: operations, admin.</p>
           {!canEvaluatePolicy && <p className="text-xs text-amber-500 mb-2">operations/admin only</p>}
-          <form action={evaluateLockerPolicyAction} className="space-y-2">
+          <BrowserApiForm
+            actionPath="/lockers/policy/evaluate"
+            redirectTo="/lockers"
+            successMessage="Locker policy evaluated"
+            fallbackErrorMessage="Policy evaluate failed"
+            augment="locker-policy"
+            className="space-y-2"
+            disabled={!canEvaluatePolicy}
+          >
             <input name="memberId" placeholder="Member ID" className="form-input" required />
             <input name="credentialId" placeholder="Credential ID" className="form-input" required />
             <input name="siteId" placeholder="Site/Location ID" className="form-input" required />
@@ -103,13 +106,20 @@ export default async function LockersPage({
             >
               Evaluate
             </button>
-          </form>
+          </BrowserApiForm>
         </div>
 
         <div className="card">
           <h2 className="text-sm font-semibold text-accent-primary mb-3 uppercase tracking-wide">Assign Locker</h2>
           <p className="text-xs text-gray-400 mb-2">Allowed roles: front_desk, operations, admin.</p>
-          <form action={assignLockerAction} className="space-y-2">
+          <BrowserApiForm
+            actionPath="/lockers/assign"
+            redirectTo="/lockers"
+            successMessage="Locker assigned"
+            fallbackErrorMessage="Assign failed"
+            augment="locker-assign"
+            className="space-y-2"
+          >
             <input name="lockerId" placeholder="Locker ID" className="form-input" required />
             <input name="memberId" placeholder="Member ID" className="form-input" required />
             <input name="siteId" placeholder="Site/Location ID (optional)" className="form-input" />
@@ -124,13 +134,19 @@ export default async function LockersPage({
             <input name="requestedLockerId" placeholder="Requested locker ID (optional)" className="form-input" />
             <input name="staffOverrideReason" placeholder="Override reason (optional)" className="form-input" />
             <button className="btn-primary w-full">Assign</button>
-          </form>
+          </BrowserApiForm>
         </div>
 
         <div className="card">
           <h2 className="text-sm font-semibold text-accent-primary mb-3 uppercase tracking-wide">Release Locker</h2>
           <p className="text-xs text-gray-400 mb-2">Allowed roles: front_desk, operations, admin.</p>
-          <form action={unassignLockerAction} className="space-y-2">
+          <BrowserApiForm
+            actionPath="/lockers/unassign"
+            redirectTo="/lockers"
+            successMessage="Locker released"
+            fallbackErrorMessage="Release failed"
+            className="space-y-2"
+          >
             <input name="lockerId" placeholder="Locker ID" className="form-input" required />
             <input
               name="unassignedReason"
@@ -138,7 +154,7 @@ export default async function LockersPage({
               className="form-input"
             />
             <button className="btn-secondary w-full">Release</button>
-          </form>
+          </BrowserApiForm>
         </div>
       </div>
 
@@ -221,10 +237,16 @@ export default async function LockersPage({
             Releases any lockers still assigned to sessions that have already checked out or expired.
             Optionally scope to a specific site.
           </p>
-          <form action={resolveAbandonedLockersAction} className="flex flex-col sm:flex-row gap-2">
+          <BrowserApiForm
+            actionPath="/lockers/resolve-abandoned"
+            redirectTo="/lockers"
+            successMessage="Abandoned lockers resolved"
+            fallbackErrorMessage="Resolve failed"
+            className="flex flex-col sm:flex-row gap-2"
+          >
             <input name="siteId" placeholder="Site/Location ID (optional — all sites if blank)" className="form-input flex-1" />
             <button className="btn-secondary whitespace-nowrap">Resolve Abandoned</button>
-          </form>
+          </BrowserApiForm>
         </div>
       )}
     </div>

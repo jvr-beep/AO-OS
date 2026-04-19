@@ -5,7 +5,9 @@ import { JwtPayload } from "../../auth/strategies/jwt.strategy";
 import { PrismaService } from "../../prisma/prisma.service";
 import { StaffAuditService } from "../../staff-audit/services/staff-audit.service";
 import { CreateStaffUserDto } from "../dto/create-staff-user.dto";
+import { ProvisionStaffUserDto } from "../dto/provision-staff-user.dto";
 import { StaffUserResponseDto } from "../dto/staff-user.response.dto";
+import { GoogleWorkspaceProvisioningService } from "./google-workspace-provisioning.service";
 
 const STAFF_ROLES: StaffRole[] = ["admin", "operations", "front_desk"];
 
@@ -18,15 +20,18 @@ type StaffUserListFilters = {
 export class StaffUsersService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly staffAuditService: StaffAuditService
+    private readonly staffAuditService: StaffAuditService,
+    private readonly googleWorkspaceProvisioningService: GoogleWorkspaceProvisioningService
   ) {}
 
   async createStaffUser(input: CreateStaffUserDto, actor: JwtPayload): Promise<StaffUserResponseDto> {
     this.ensureValidRole(input.role);
     this.ensureValidPassword(input.password);
+    const email = this.normalizeEmail(input.email);
+    const fullName = this.requireNonEmpty(input.fullName, "INVALID_FULL_NAME");
 
     const existing = await (this.prisma as any).staffUser.findUnique({
-      where: { email: input.email }
+      where: { email }
     });
 
     if (existing) {
@@ -37,9 +42,9 @@ export class StaffUsersService {
 
     const created = await (this.prisma as any).staffUser.create({
       data: {
-        email: input.email,
+        email,
         passwordHash,
-        fullName: input.fullName,
+        fullName,
         role: input.role,
         active: true
       }
@@ -54,6 +59,70 @@ export class StaffUsersService {
       metadataJson: {
         createdRole: created.role,
         createdActive: created.active
+      }
+    });
+
+    return this.toResponse(created);
+  }
+
+  async provisionStaffUser(input: ProvisionStaffUserDto, actor: JwtPayload): Promise<StaffUserResponseDto> {
+    this.ensureValidRole(input.role);
+    this.ensureValidPassword(input.password);
+
+    const email = this.normalizeEmail(input.email);
+    const givenName = this.requireNonEmpty(input.givenName, "INVALID_GIVEN_NAME");
+    const familyName = this.requireNonEmpty(input.familyName, "INVALID_FAMILY_NAME");
+    const alias = input.alias ? this.normalizeEmail(input.alias) : undefined;
+    const fullName = `${givenName} ${familyName}`;
+
+    const existing = await (this.prisma as any).staffUser.findUnique({
+      where: { email }
+    });
+
+    if (existing) {
+      throw new ConflictException("STAFF_USER_EMAIL_TAKEN");
+    }
+
+    const passwordHash = await bcrypt.hash(input.password, 10);
+
+    const created = await (this.prisma as any).staffUser.create({
+      data: {
+        email,
+        passwordHash,
+        fullName,
+        role: input.role,
+        active: true
+      }
+    });
+
+    try {
+      await this.googleWorkspaceProvisioningService.provisionUser({
+        primaryEmail: email,
+        givenName,
+        familyName,
+        fullName,
+        password: input.password,
+        alias
+      });
+    } catch (error) {
+      await (this.prisma as any).staffUser.delete({
+        where: { id: created.id }
+      });
+
+      throw error;
+    }
+
+    await this.staffAuditService.write({
+      eventType: "STAFF_USER_CREATED",
+      actor: this.toAuditActor(actor),
+      targetStaffUserId: created.id,
+      targetEmailSnapshot: created.email,
+      outcome: "success",
+      metadataJson: {
+        createdRole: created.role,
+        createdActive: created.active,
+        workspaceProvisioned: true,
+        workspaceAlias: alias ?? null
       }
     });
 
@@ -155,6 +224,15 @@ export class StaffUsersService {
       throw new ConflictException("CANNOT_REMOVE_LAST_ACTIVE_ADMIN");
     }
 
+    const shouldSyncWorkspace = this.googleWorkspaceProvisioningService.shouldManageUser(user.email);
+
+    if (shouldSyncWorkspace) {
+      await this.googleWorkspaceProvisioningService.setSuspendedState({
+        primaryEmail: user.email,
+        suspended: true
+      });
+    }
+
     const updated = await (this.prisma as any).staffUser.update({
       where: { id },
       data: { active: false }
@@ -168,7 +246,8 @@ export class StaffUsersService {
       outcome: "success",
       metadataJson: {
         activeFrom: user.active,
-        activeTo: updated.active
+        activeTo: updated.active,
+        workspaceSuspended: shouldSyncWorkspace ? true : null
       }
     });
 
@@ -177,6 +256,15 @@ export class StaffUsersService {
 
   async reactivate(id: string, actor: JwtPayload): Promise<StaffUserResponseDto> {
     const user = await this.findStaffUserOrThrow(id);
+
+    const shouldSyncWorkspace = this.googleWorkspaceProvisioningService.shouldManageUser(user.email);
+
+    if (shouldSyncWorkspace) {
+      await this.googleWorkspaceProvisioningService.setSuspendedState({
+        primaryEmail: user.email,
+        suspended: false
+      });
+    }
 
     const updated = await (this.prisma as any).staffUser.update({
       where: { id: user.id },
@@ -191,7 +279,8 @@ export class StaffUsersService {
       outcome: "success",
       metadataJson: {
         activeFrom: user.active,
-        activeTo: updated.active
+        activeTo: updated.active,
+        workspaceSuspended: shouldSyncWorkspace ? false : null
       }
     });
 
@@ -270,6 +359,30 @@ export class StaffUsersService {
     if (typeof password !== "string" || password.trim().length === 0) {
       throw new BadRequestException("INVALID_PASSWORD_INPUT");
     }
+  }
+
+  private normalizeEmail(email: string): string {
+    const normalized = email.trim().toLowerCase();
+
+    if (normalized.length === 0) {
+      throw new BadRequestException("INVALID_EMAIL_INPUT");
+    }
+
+    return normalized;
+  }
+
+  private requireNonEmpty(value: string, errorCode: string): string {
+    if (typeof value !== "string") {
+      throw new BadRequestException(errorCode);
+    }
+
+    const trimmed = value.trim();
+
+    if (trimmed.length === 0) {
+      throw new BadRequestException(errorCode);
+    }
+
+    return trimmed;
   }
 
   private toResponse(user: any): StaffUserResponseDto {

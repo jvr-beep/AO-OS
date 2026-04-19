@@ -19,4 +19,4 @@ RUN pnpm --filter api build
 ENV NODE_ENV=production
 EXPOSE 4000
 
-CMD ["node", "apps/api/dist/main.js"]
+CMD ["sh", "-c", "pnpm prisma migrate deploy --schema ./prisma/schema.prisma && node apps/api/dist/main.js"]

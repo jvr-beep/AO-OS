@@ -1,0 +1,7 @@
+tunnel: ao-os-api-staging
+credentials-file: /root/.cloudflared/STAGING_TUNNEL_ID.json
+
+ingress:
+  - hostname: api-staging.aosanctuary.com
+    service: http://localhost:4000
+  - service: http_status:404

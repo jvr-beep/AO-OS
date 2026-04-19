@@ -27,11 +27,19 @@ async function request(method, path, body, token) {
   const headers = { "Content-Type": "application/json" };
   if (token) headers.Authorization = `Bearer ${token}`;
 
-  const res = await fetch(`${BASE}${path}`, {
-    method,
-    headers,
-    body: body != null ? JSON.stringify(body) : undefined
-  });
+  let res;
+  try {
+    res = await fetch(`${BASE}${path}`, {
+      method,
+      headers,
+      body: body != null ? JSON.stringify(body) : undefined
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "unknown error";
+    throw new Error(
+      `Request to ${BASE}${path} failed. Make sure the AO OS API is running and reachable before running this smoke. Original error: ${message}`
+    );
+  }
 
   let json;
   try {
@@ -47,6 +55,20 @@ const post = (path, body, token) => request("POST", path, body, token);
 const get = (path, token) => request("GET", path, null, token);
 
 const cases = [];
+
+async function assertApiReachable() {
+  try {
+    const response = await fetch(`${BASE}/health`);
+    if (!response.ok) {
+      throw new Error(`Health check returned ${response.status}`);
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "unknown error";
+    throw new Error(
+      `AO OS API is not reachable at ${BASE}. Start the local API before running this smoke. Original error: ${message}`
+    );
+  }
+}
 
 function record(name, req, res, notes) {
   const pass = res.status >= 200 && res.status < 300;
@@ -81,18 +103,29 @@ async function resolveSiteId() {
     select: { id: true, code: true, name: true }
   });
 
-  if (!location) {
-    throw new Error(
-      "No Location rows found. Create at least one Location first, then re-run smoke."
-    );
+  if (location) {
+    console.log(`Using location ${location.id} (${location.code} / ${location.name})`);
+    return location.id;
   }
 
-  console.log(`Using location ${location.id} (${location.code} / ${location.name})`);
-  return location.id;
+  const createdLocation = await prisma.location.create({
+    data: {
+      code: `SMOKE-${TS}`,
+      name: "Smoke Test Location"
+    },
+    select: { id: true, code: true, name: true }
+  });
+
+  console.log(
+    `Created fallback location ${createdLocation.id} (${createdLocation.code} / ${createdLocation.name})`
+  );
+  return createdLocation.id;
 }
 
 async function main() {
   console.log("=== AO-OS Smoke Pass — Locker Policy Engine + Credential Lifecycle ===\n");
+
+  await assertApiReachable();
 
   const siteId = await resolveSiteId();
 

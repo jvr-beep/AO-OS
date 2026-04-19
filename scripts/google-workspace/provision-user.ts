@@ -14,8 +14,10 @@ type WorkspaceUserResponse = {
 };
 
 type StaffRole = "admin" | "operations" | "front_desk";
+type GoogleApiError = Error & { statusCode?: number };
 
 const prisma = new PrismaClient();
+const ALIAS_RETRY_DELAYS_MS = [2000, 4000, 7000, 10000];
 
 function usage(): string {
   return [
@@ -172,7 +174,9 @@ async function googleJsonFetch<T>(url: string, init: RequestInit, scopes: string
 
   if (!response.ok) {
     const body = await response.text();
-    throw new Error(`Google API request failed (${response.status}): ${body}`);
+    const error = new Error(`Google API request failed (${response.status}): ${body}`) as GoogleApiError;
+    error.statusCode = response.status;
+    throw error;
   }
 
   if (response.status === 204) {
@@ -180,6 +184,86 @@ async function googleJsonFetch<T>(url: string, init: RequestInit, scopes: string
   }
 
   return (await response.json()) as T;
+}
+
+function isGoogleApiError(error: unknown, statusCode: number, snippet?: string): boolean {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  const typedError = error as GoogleApiError;
+  if (typedError.statusCode !== statusCode) {
+    return false;
+  }
+
+  return snippet ? typedError.message.includes(snippet) : true;
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function getWorkspaceUser(primaryEmail: string): Promise<WorkspaceUserResponse> {
+  return googleJsonFetch<WorkspaceUserResponse>(
+    `https://admin.googleapis.com/admin/directory/v1/users/${encodeURIComponent(primaryEmail)}`,
+    { method: "GET" },
+    ["https://www.googleapis.com/auth/admin.directory.user"]
+  );
+}
+
+async function createOrGetWorkspaceUser(primaryEmail: string, userPayload: unknown): Promise<WorkspaceUserResponse> {
+  try {
+    return await googleJsonFetch<WorkspaceUserResponse>(
+      "https://admin.googleapis.com/admin/directory/v1/users",
+      {
+        method: "POST",
+        body: JSON.stringify(userPayload)
+      },
+      [
+        "https://www.googleapis.com/auth/admin.directory.user",
+        "https://www.googleapis.com/auth/admin.directory.user.alias"
+      ]
+    );
+  } catch (error) {
+    if (isGoogleApiError(error, 409)) {
+      return getWorkspaceUser(primaryEmail);
+    }
+
+    throw error;
+  }
+}
+
+async function createAliasWithRetry(primaryEmail: string, alias: string): Promise<void> {
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt <= ALIAS_RETRY_DELAYS_MS.length; attempt += 1) {
+    try {
+      await googleJsonFetch(
+        `https://admin.googleapis.com/admin/directory/v1/users/${encodeURIComponent(primaryEmail)}/aliases`,
+        {
+          method: "POST",
+          body: JSON.stringify({ alias })
+        },
+        ["https://www.googleapis.com/auth/admin.directory.user.alias"]
+      );
+      return;
+    } catch (error) {
+      if (isGoogleApiError(error, 409)) {
+        return;
+      }
+
+      lastError = error;
+
+      const canRetry = isGoogleApiError(error, 412, "User creation is not complete.");
+      if (!canRetry || attempt === ALIAS_RETRY_DELAYS_MS.length) {
+        throw error;
+      }
+
+      await sleep(ALIAS_RETRY_DELAYS_MS[attempt]);
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error(`Failed to create alias ${alias}`);
 }
 
 async function ensureAoOsStaffUserDoesNotExist(email: string): Promise<void> {
@@ -297,27 +381,10 @@ async function main(): Promise<void> {
     return;
   }
 
-  const user = await googleJsonFetch<WorkspaceUserResponse>(
-    "https://admin.googleapis.com/admin/directory/v1/users",
-    {
-      method: "POST",
-      body: JSON.stringify(userPayload)
-    },
-    [
-      "https://www.googleapis.com/auth/admin.directory.user",
-      "https://www.googleapis.com/auth/admin.directory.user.alias"
-    ]
-  );
+  const user = await createOrGetWorkspaceUser(primaryEmail, userPayload);
 
   for (const alias of aliases) {
-    await googleJsonFetch(
-      `https://admin.googleapis.com/admin/directory/v1/users/${encodeURIComponent(primaryEmail)}/aliases`,
-      {
-        method: "POST",
-        body: JSON.stringify({ alias })
-      },
-      ["https://www.googleapis.com/auth/admin.directory.user.alias"]
-    );
+    await createAliasWithRetry(primaryEmail, alias);
   }
 
   const aoOsStaffUser = createAoStaffUser

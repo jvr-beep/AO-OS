@@ -2,10 +2,9 @@
 
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { getApiBase } from '@/lib/api-base'
 import { getSession } from '@/lib/session'
 import { reportErrorAction } from '@/app/actions/report-error'
-
-const API_BASE = process.env.API_BASE_URL ?? 'http://localhost:4000/v1'
 
 function readRequired(formData: FormData, key: string): string {
   const value = formData.get(key)
@@ -40,7 +39,8 @@ function toIsoOrNow(input: string | undefined): string {
 }
 
 async function postWithAuth(path: string, body: Record<string, unknown>, accessToken: string) {
-  const res = await fetch(`${API_BASE}${path}`, {
+  const apiBase = getApiBase()
+  const res = await fetch(`${apiBase}${path}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
