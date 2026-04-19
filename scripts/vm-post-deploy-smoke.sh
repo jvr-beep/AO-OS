@@ -173,6 +173,8 @@ done
 
 echo "=== Starting web container ==="
 docker rm -f ao-os-web 2>/dev/null || true
+# Kill any other container still holding port 3000 (leftover from failed deploys)
+docker ps -q --filter publish=3000 | xargs -r docker rm -f 2>/dev/null || true
 
 if [[ "$BUILD_IMAGE" -eq 1 ]]; then
   docker compose -f "$COMPOSE_FILE" build web
