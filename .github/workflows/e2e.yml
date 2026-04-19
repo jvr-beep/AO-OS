@@ -24,9 +24,9 @@ jobs:
       AUTH_SEED_ADMIN_NAME: CI Admin
       NODE_ENV: test
       # Web env
-      SESSION_SECRET: ci-only-session-secret-32chars!!
-      MEMBER_SESSION_SECRET: ci-only-member-secret-32chars!
-      KIOSK_SESSION_SECRET: ci-only-kiosk-secret-32chars!!
+      SESSION_SECRET: ci-only-session-secret-exactly-32chars
+      MEMBER_SESSION_SECRET: ci-only-member-secret-exactly-32chars
+      KIOSK_SESSION_SECRET: ci-only-kiosk-secret-exactly-32chars!
       KIOSK_API_SECRET: ci-only-kiosk-api-secret-1234567
       API_BASE_URL: http://localhost:4000/v1
       # E2E

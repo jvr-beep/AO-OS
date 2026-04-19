@@ -23,17 +23,19 @@ test.describe('Kiosk public flow', () => {
     await expect(page.locator('text=Internal Server Error')).not.toBeVisible()
   })
 
-  test('waiver page loads (or redirects cleanly if no session)', async ({ page }) => {
-    // Direct navigation without a session — should either show waiver or redirect to /kiosk, never crash
+  test('waiver page loads or redirects cleanly without session', async ({ page }) => {
+    // No session → should redirect to /kiosk, never show a crash page
     await page.goto('/kiosk/waiver')
-    const url = page.url()
-    expect(url).toMatch(/\/(kiosk)/)
+    // Must end up somewhere under /kiosk
+    await expect(page).toHaveURL(/\/kiosk/, { timeout: 10_000 })
     await expect(page.locator('text=Internal Server Error')).not.toBeVisible()
     await expect(page.locator('text=Application error')).not.toBeVisible()
   })
 
-  test('kiosk select page loads or redirects cleanly', async ({ page }) => {
+  test('kiosk select page redirects cleanly without session', async ({ page }) => {
+    // No session → redirect to /kiosk, never crash
     await page.goto('/kiosk/select')
+    await expect(page).toHaveURL(/\/kiosk/, { timeout: 10_000 })
     await expect(page.locator('text=Internal Server Error')).not.toBeVisible()
     await expect(page.locator('text=Application error')).not.toBeVisible()
   })
