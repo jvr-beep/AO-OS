@@ -355,34 +355,38 @@ export class AuthService {
   }
 
   async passwordResetRequest(input: PasswordResetRequestDto): Promise<void> {
-    // Check member first
-    const member = await this.prisma.member.findUnique({ where: { email: input.email } });
-    if (member) {
-      await (this.prisma as any).authToken.updateMany({
-        where: { memberId: member.id, type: "password_reset", consumedAt: null },
-        data: { consumedAt: new Date() }
-      });
-      const { rawToken } = await this._createAuthToken(member.id, "password_reset", 30);
-      try {
-        await this.emailService.sendPasswordReset(input.email, rawToken);
-      } catch (err) {
-        this.logger.error(`Failed to send member password reset email to ${input.email}: ${err}`);
+    try {
+      // Check member first
+      const member = await this.prisma.member.findUnique({ where: { email: input.email } });
+      if (member) {
+        await (this.prisma as any).authToken.updateMany({
+          where: { memberId: member.id, type: "password_reset", consumedAt: null },
+          data: { consumedAt: new Date() }
+        });
+        const { rawToken } = await this._createAuthToken(member.id, "password_reset", 30);
+        try {
+          await this.emailService.sendPasswordReset(input.email, rawToken);
+        } catch (err) {
+          this.logger.error(`Failed to send member password reset email to ${input.email}: ${err}`);
+        }
+        return;
       }
-      return;
-    }
 
-    // Check staff user
-    const staffUser = await (this.prisma as any).staffUser.findUnique({ where: { email: input.email } }) as StaffUserRecord | null;
-    if (staffUser && staffUser.active) {
-      const payload = { sub: staffUser.id, email: staffUser.email, purpose: "staff_password_reset" };
-      const rawToken = await this.jwtService.signAsync(payload, { expiresIn: "30m" });
-      try {
-        await this.emailService.sendStaffPasswordReset(input.email, rawToken);
-      } catch (err) {
-        this.logger.error(`Failed to send staff password reset email to ${input.email}: ${err}`);
+      // Check staff user
+      const staffUser = await (this.prisma as any).staffUser.findUnique({ where: { email: input.email } }) as StaffUserRecord | null;
+      if (staffUser && staffUser.active) {
+        const payload = { sub: staffUser.id, email: staffUser.email, purpose: "staff_password_reset" };
+        const rawToken = await this.jwtService.signAsync(payload, { expiresIn: "30m" });
+        try {
+          await this.emailService.sendStaffPasswordReset(input.email, rawToken);
+        } catch (err) {
+          this.logger.error(`Failed to send staff password reset email to ${input.email}: ${err}`);
+        }
       }
+    } catch (err) {
+      this.logger.error(`passwordResetRequest internal error for ${input.email}: ${err}`);
     }
-    // Security: don't reveal whether email exists regardless of outcome
+    // Security: always return void — never reveal whether email exists or what failed
   }
 
   async staffPasswordResetConfirm(input: PasswordResetConfirmDto): Promise<{ email: string }> {

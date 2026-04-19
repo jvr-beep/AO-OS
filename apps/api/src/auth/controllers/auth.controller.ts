@@ -1,5 +1,5 @@
 import { Body, Controller, Post } from "@nestjs/common";
-import { Throttle } from "@nestjs/throttler";
+import { SkipThrottle, Throttle } from "@nestjs/throttler";
 import { AuthService, MemberAuthResponse } from "../auth.service";
 import { LoginDto } from "../dto/login.dto";
 import { LoginResponseDto } from "../dto/login.response.dto";
@@ -43,6 +43,7 @@ export class AuthController {
 
   // ── PASSWORD RESET (SELF-SERVE) ────────────────────────────────────
 
+  @SkipThrottle({ auth: true })
   @Post("password-reset/request")
   passwordResetRequest(@Body() body: PasswordResetRequestDto): Promise<void> {
     return this.authService.passwordResetRequest(body);
@@ -53,7 +54,7 @@ export class AuthController {
     return this.authService.passwordResetConfirm(body);
   }
 
-  @Throttle({ auth: { ttl: 60_000, limit: 10 } })
+  @SkipThrottle({ auth: true })
   @Post("staff-password-reset/request")
   staffPasswordResetRequest(@Body() body: PasswordResetRequestDto): Promise<void> {
     return this.authService.passwordResetRequest(body);

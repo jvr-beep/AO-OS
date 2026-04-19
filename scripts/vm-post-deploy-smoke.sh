@@ -223,14 +223,19 @@ kiosk_noauth=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
   -H "Content-Type: application/json" \
   -d '{}' || true)
 
+# Password reset: nonexistent email must return 200 (never reveals existence)
+pw_reset_code=$(http_code POST "$API_BASE/v1/auth/password-reset/request" \
+  '{"email":"smoke-test-nonexistent@ao-os-smoke.invalid"}')
+
 echo "CHECK|EXPECTED|ACTUAL|RESULT"
-check_result "API /v1/health"                      "200"     "$api_health"     "200"
-check_result "POST /v1/auth/login (seed admin)"    "200/201" "$login_code"     "200,201"
-check_result "GET /v1/members (Bearer)"            "200"     "$members_code"   "200"
-check_result "GET /v1/catalog/tiers (Bearer)"      "200"     "$catalog_code"   "200"
-check_result "GET /v1/visits (Bearer)"             "200"     "$visits_code"    "200"
-check_result "GET /v1/members (no auth)"           "401/403" "$members_noauth" "401,403"
-check_result "POST /v1/kiosk/* (no secret)"        "401"     "$kiosk_noauth"   "401"
+check_result "API /v1/health"                          "200"     "$api_health"     "200"
+check_result "POST /v1/auth/login (seed admin)"        "200/201" "$login_code"     "200,201"
+check_result "GET /v1/members (Bearer)"                "200"     "$members_code"   "200"
+check_result "GET /v1/catalog/tiers (Bearer)"          "200"     "$catalog_code"   "200"
+check_result "GET /v1/visits (Bearer)"                 "200"     "$visits_code"    "200"
+check_result "GET /v1/members (no auth)"               "401/403" "$members_noauth" "401,403"
+check_result "POST /v1/kiosk/* (no secret)"            "401"     "$kiosk_noauth"   "401"
+check_result "POST /v1/auth/password-reset/request"    "200/204" "$pw_reset_code"  "200,204"
 
 if [[ "$web_login" == "SKIP" ]]; then
   echo "Web /login|SKIP|SKIP|SKIP (WEB_BASE not set)"
