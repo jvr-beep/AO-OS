@@ -71,6 +71,12 @@ upsert_env "$ENV_FILE" "AUTH_SEED_ADMIN_PASSWORD"  "$SEED_PASSWORD"
 upsert_env "$ENV_FILE" "AUTH_SEED_ADMIN_NAME"      "$SEED_NAME"
 ensure_secret "$ENV_FILE" "KIOSK_API_SECRET"
 
+# Inject secrets from CI environment when present
+if [[ -n "${RESEND_API_KEY:-}" ]]; then
+  upsert_env "$ENV_FILE" "RESEND_API_KEY" "$RESEND_API_KEY"
+  echo "  Injected RESEND_API_KEY"
+fi
+
 # Web .env
 ensure_secret "$WEB_ENV_FILE" "SESSION_SECRET"
 ensure_secret "$WEB_ENV_FILE" "MEMBER_SESSION_SECRET"

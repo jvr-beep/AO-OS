@@ -30,13 +30,14 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
           GH_ACTOR: ${{ github.actor }}
           GH_REPOSITORY: ${{ github.repository }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
         with:
           host: ${{ secrets.VM_HOST }}
           username: ${{ secrets.VM_USER }}
           key: ${{ secrets.VM_SSH_KEY }}
           timeout: 30m
           command_timeout: 30m
-          envs: GH_TOKEN,GH_ACTOR,GH_REPOSITORY
+          envs: GH_TOKEN,GH_ACTOR,GH_REPOSITORY,RESEND_API_KEY
           script: |
             set -euo pipefail
 
