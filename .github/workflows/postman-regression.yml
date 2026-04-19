@@ -19,8 +19,8 @@ jobs:
       DIRECT_URL: postgresql://postgres:postgres@localhost:5432/ao_os
       PORT: 4000
       AUTH_JWT_SECRET: ci-only-jwt-secret-not-used-in-prod
-      AUTH_SEED_ADMIN_EMAIL: admin@ao-os.dev
-      AUTH_SEED_ADMIN_PASSWORD: CiTestPass123!
+      AUTH_SEED_ADMIN_EMAIL: ${{ secrets.CI_ADMIN_EMAIL || 'admin@ao-os.dev' }}
+      AUTH_SEED_ADMIN_PASSWORD: ${{ secrets.CI_ADMIN_PASSWORD || 'CiTestPass123!' }}
       AUTH_SEED_ADMIN_NAME: CI Admin
       NODE_ENV: test
 
@@ -94,10 +94,12 @@ jobs:
         run: npm install -g newman
 
       - name: Seed test staff users
+        env:
+          CI_FRONTDESK_PASSWORD: ${{ secrets.CI_FRONTDESK_PASSWORD || 'FrontDesk123!' }}
         run: |
           ADMIN_TOKEN=$(curl -s -X POST http://localhost:4000/v1/auth/login \
             -H "Content-Type: application/json" \
-            -d '{"email":"admin@ao-os.dev","password":"CiTestPass123!"}' \
+            -d "{\"email\":\"${AUTH_SEED_ADMIN_EMAIL}\",\"password\":\"${AUTH_SEED_ADMIN_PASSWORD}\"}" \
             | sed -n 's/.*"accessToken":"\([^"]*\)".*/\1/p')
           if [[ -z "$ADMIN_TOKEN" ]]; then
             echo "Failed to get admin token for seeding"
@@ -106,15 +108,15 @@ jobs:
           curl -s -X POST http://localhost:4000/v1/staff-users \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer $ADMIN_TOKEN" \
-            -d '{"email":"frontdesk@ao-os.dev","fullName":"Front Desk CI","role":"front_desk","password":"FrontDesk123!"}' \
+            -d "{\"email\":\"frontdesk@ao-os.dev\",\"fullName\":\"Front Desk CI\",\"role\":\"front_desk\",\"password\":\"${CI_FRONTDESK_PASSWORD}\"}" \
             | grep -q '"id"' && echo "Front desk user created" || echo "Front desk user already exists"
 
       - name: Run staff-users-verification collection
         run: |
           newman run postman/collections/staff-users-verification.postman_collection.json \
             --env-var "baseUrl=http://localhost:4000/v1" \
-            --env-var "adminEmail=admin@ao-os.dev" \
-            --env-var "adminPassword=CiTestPass123!" \
+            --env-var "adminEmail=${AUTH_SEED_ADMIN_EMAIL}" \
+            --env-var "adminPassword=${AUTH_SEED_ADMIN_PASSWORD}" \
             --reporters cli,json \
             --reporter-json-export /tmp/newman-staff.json \
             --bail
@@ -123,8 +125,8 @@ jobs:
         run: |
           newman run postman/collections/locker-credential-regression.postman_collection.json \
             --env-var "baseUrl=http://localhost:4000/v1" \
-            --env-var "adminEmail=admin@ao-os.dev" \
-            --env-var "adminPassword=CiTestPass123!" \
+            --env-var "adminEmail=${AUTH_SEED_ADMIN_EMAIL}" \
+            --env-var "adminPassword=${AUTH_SEED_ADMIN_PASSWORD}" \
             --reporters cli,json \
             --reporter-json-export /tmp/newman-locker.json \
             --bail
