@@ -106,32 +106,39 @@ export async function requestPasswordReset(formData: FormData) {
     redirect('/login?reset=error')
   }
 
+  const url = `${API_BASE}/auth/password-reset/request`
+  console.log('[password-reset] calling', url)
+
   let res: Response
 
   try {
-    res = await fetch(`${API_BASE}/auth/password-reset/request`, {
+    res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email }),
       cache: 'no-store',
     })
+    console.log('[password-reset] response status', res.status)
   } catch (err) {
+    console.error('[password-reset] fetch error', err instanceof Error ? err.message : err)
     await reportErrorAction({
       message: err instanceof Error ? err.message : 'Password reset fetch failed',
       page: '/login',
       errorName: err instanceof Error ? err.name : 'NetworkError',
-      apiUrl: `${API_BASE}/auth/password-reset/request`,
+      apiUrl: url,
     })
     redirect('/login?reset=error')
   }
 
   if (!res.ok) {
+    const body = await res.text().catch(() => '')
+    console.error('[password-reset] non-ok response', res.status, body)
     await reportErrorAction({
-      message: `Password reset request failed: HTTP ${res.status}`,
+      message: `Password reset request failed: HTTP ${res.status} — ${body}`,
       page: '/login',
       errorName: 'PasswordResetError',
       httpStatus: res.status,
-      apiUrl: `${API_BASE}/auth/password-reset/request`,
+      apiUrl: url,
     })
     redirect('/login?reset=error')
   }
