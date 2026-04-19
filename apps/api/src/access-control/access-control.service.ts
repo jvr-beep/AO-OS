@@ -83,7 +83,7 @@ export class AccessControlService {
     if (activeSubscription) {
       const entitlement = await this.prisma.zoneEntitlement.findUnique({
         where: {
-          uq_zone_entitlement_product_zone: {
+          productCode_productType_zoneCode: {
             productCode: activeSubscription.membershipPlan.code,
             productType: "membership_plan",
             zoneCode: zone.code,

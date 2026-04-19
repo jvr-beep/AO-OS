@@ -68,7 +68,7 @@ export class MeService {
         wristband: {
           include: {
             wristbandLinks: {
-              where: { status: "active" },
+              where: { linkStatus: "active" },
               include: { visit: { include: { tier: true } } },
               take: 1,
             },
