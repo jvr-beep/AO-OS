@@ -113,8 +113,7 @@ jobs:
 
       - name: Validate OpenAPI in SwaggerHub CLI
         if: ${{ env.SWAGGERHUB_TOKEN != '' }}
-        continue-on-error: true
-        run: pnpm swaggerhub:validate
+        run: pnpm swaggerhub:validate || echo "SwaggerHub validate failed (non-blocking)"
 
       - name: Skip SwaggerHub publish (missing token)
         if: ${{ env.SWAGGERHUB_TOKEN == '' }}
@@ -122,8 +121,7 @@ jobs:
 
       - name: Publish OpenAPI to SwaggerHub
         if: ${{ env.SWAGGERHUB_TOKEN != '' }}
-        continue-on-error: true
-        run: pnpm swaggerhub:push
+        run: pnpm swaggerhub:push || echo "SwaggerHub push failed (non-blocking)"
 
       - name: Notify on failure
         if: failure()
