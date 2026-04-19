@@ -73,6 +73,7 @@ jobs:
 
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ao_os
+      DIRECT_URL: postgresql://postgres:postgres@localhost:5432/ao_os
       PORT: 4000
       AUTH_JWT_SECRET: ci-only-jwt-secret-not-used-in-prod
       AUTH_SEED_ADMIN_EMAIL: admin@ao-os.dev
