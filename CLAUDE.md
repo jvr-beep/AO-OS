@@ -137,7 +137,70 @@ Webhook Event Processor live. Slack agent: n8n workflow `dyPXlybjKmTbadn4`.
 
 ---
 
-## Active Policies (synced from Google Drive)
+## Brand & Identity
+
+- Brand name: **Alpha Omega** / **AO** / **ΑΩ** — luxury thermal wellness sanctuary
+- Tone: Assured, unhurried, composed. Never promotional, never performative.
+- No exclamation points in operational or staff copy. Sentences end with periods.
+- Staff interfaces are functional. Member-facing copy is warm but never over-promises.
+
+**Color tokens:**
+
+| Token | Hex | Use |
+| --- | --- | --- |
+| `accent-primary` | `#2F8F83` | Electrum Teal — beacon color, use sparingly |
+| `surface-0` | `#0B0E11` | Obsidian — primary background |
+| `surface-1` | `#0F1620` | Deep Navy Stone — cards, alternate bg |
+| `surface-2` | `#1C222B` | Bronzed Charcoal — elevated surfaces |
+| `text-primary` | `#EDE9E3` | Warm Ivory — primary body text |
+
+**Facility zones (AO Toronto):**
+
+| Code | Name | Type |
+| --- | --- | --- |
+| `ALPHA` | Alpha Zone | Entry / arrival |
+| `OMEGA` | Omega Zone | Rest / departure |
+| `LABYRINTH` | Labyrinth | Transition corridors |
+| `BROTHERHOOD_HALL` | Brotherhood Hall | Social lounge |
+| `SANCTUARY` | Sanctuary | Quiet room |
+| `CALDARIUM` | Caldarium | Primary heat |
+| `THERMARIUM` | Thermarium | Secondary heat |
+| `FRIGIDARIUM` | Frigidarium | Cold contrast pool |
+
+Full doc: `docs/policy/brand-identity.md`
+
+---
+
+## Member Experience
+
+**Core principle:** Discretion, unhurried presence, nothing asked of members that isn't necessary.
+
+**Visit modes:**
+
+| Mode | Experience |
+|---|---|
+| `restore` | Thermal circuit focus — heat, cold contrast, rest |
+| `release` | Private room + thermal circuit |
+| `retreat` | Longest arc — room + full circuit + lounge |
+
+Ritual guidance (ElevenLabs Lane 2, George voice): `opening` → `mid` → `deep` → `closing`
+
+**Staff interaction rules:**
+
+- Greet by alias / preferred name — never legal name
+- Do not ask members about their visit mode
+- Check-in is confirmation of arrival, not interrogation
+- Session-expiry alerts go to staff only — never announced to member in public
+
+**Wristbands:** Must be assigned before any access. Lost wristband → void + reissue, no fee first occurrence.  
+**Lockers:** Assigned at check-in. Premium lockers are Tier-gated. Day-use releases on check-out.  
+**Member status:** `pending` → `active` → `suspended` → `cancelled`. Suspended cannot be overridden without admin approval.
+
+Full doc: `docs/policy/member-experience.md`
+
+---
+
+## Active Policies (synced from Google Drive via n8n)
 
 | Policy | File |
 |---|---|
@@ -145,7 +208,7 @@ Webhook Event Processor live. Slack agent: n8n workflow `dyPXlybjKmTbadn4`.
 | Brand & Identity | `docs/policy/brand-identity.md` |
 | Member Experience | `docs/policy/member-experience.md` |
 
-Policy files are auto-synced from the AO Google Drive policy folder via n8n.  
+Policy files are auto-synced from AO Google Drive (`AO Corp/Brand/Policy` folder) via n8n workflow `kG5zqJn3INv8yFgw`.  
 Do not edit policy files directly in the repo — edit in Drive, sync will propagate.
 
 ---
