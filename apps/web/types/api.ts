@@ -344,6 +344,108 @@ export interface RoomAccessEvent {
   createdAt: string
 }
 
+export interface Guest {
+  id: string
+  firstName: string
+  lastName?: string | null
+  phone?: string | null
+  email?: string | null
+  dateOfBirth?: string | null
+  preferredLanguage: string
+  membershipStatus: string
+  riskFlagStatus: string
+  marketingOptIn: boolean
+  createdAt: string
+  updatedAt: string
+  version: number
+}
+
+export interface GuestBooking {
+  id: string
+  guest_id: string
+  booking_code: string
+  status: 'reserved' | 'confirmed' | 'checked_in' | 'completed' | 'cancelled' | 'no_show'
+  booking_channel: 'web' | 'kiosk' | 'staff'
+  product_type: string
+  tier_id?: string | null
+  duration_minutes?: number | null
+  balance_due_cents: number
+  arrival_window_start?: string | null
+  arrival_window_end?: string | null
+  created_at: string
+  updated_at: string
+  version: number
+}
+
+export interface GuestVisit {
+  id: string
+  guest_id: string
+  guest_name?: string | null
+  guest_email?: string | null
+  tier_name?: string | null
+  tier_code?: string | null
+  booking_id?: string | null
+  source_type: string
+  product_type: string
+  tier_id?: string | null
+  visit_mode?: string | null
+  duration_minutes?: number | null
+  status: string
+  payment_status: string
+  check_in_channel: string
+  check_out_channel?: string | null
+  assigned_resource_id?: string | null
+  start_time?: string | null
+  scheduled_end_time?: string | null
+  actual_end_time?: string | null
+  version: number
+  created_at: string
+  updated_at: string
+}
+
+export interface FolioLineItem {
+  id: string
+  line_type: string
+  reference_code?: string | null
+  description: string
+  quantity: number
+  unit_amount_cents: number
+  total_amount_cents: number
+  metadata?: Record<string, unknown> | null
+  created_at: string
+}
+
+export interface FolioPayment {
+  id: string
+  payment_provider: string
+  transaction_type: string
+  amount_cents: number
+  status: string
+  created_at: string
+}
+
+export interface Folio {
+  id: string
+  visit_id: string
+  balance_due_cents: number
+  total_due_cents: number
+  amount_paid_cents: number
+  subtotal_cents: number
+  payment_status: string
+  line_items: FolioLineItem[]
+  payment_transactions: FolioPayment[]
+  created_at: string
+  updated_at: string
+}
+
+export interface Tier {
+  id: string
+  code: string
+  name: string
+  active: boolean
+  productType: string
+}
+
 export interface CleaningTask {
   id: string
   roomId: string

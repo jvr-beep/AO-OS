@@ -2,18 +2,37 @@ import Link from 'next/link'
 import { getApiBase } from '@/lib/api-base'
 import { getSession } from '@/lib/session'
 import { MemberLookup } from '@/components/member-lookup'
+import { reportErrorAction } from '@/app/actions/report-error'
 
 async function getApiHealth(): Promise<'ok' | 'degraded' | 'unreachable'> {
   try {
     const apiBase = getApiBase()
     const res = await fetch(`${apiBase}/health`, { cache: 'no-store' })
-    return res.ok ? 'ok' : 'degraded'
-  } catch {
+    if (!res.ok) {
+      await reportErrorAction({
+        message: `API health check degraded: HTTP ${res.status}`,
+        page: '/dashboard',
+        errorName: 'ApiHealthDegraded',
+        httpStatus: res.status,
+        apiUrl: `${apiBase}/health`,
+      })
+      return 'degraded'
+    }
+    return 'ok'
+  } catch (err) {
+    await reportErrorAction({
+      message: err instanceof Error ? err.message : 'API health check unreachable',
+      page: '/dashboard',
+      errorName: 'ApiHealthUnreachable',
+    })
     return 'unreachable'
   }
 }
 
 const QUICK_LINKS = [
+  { href: '/check-in', label: 'Check-In Console' },
+  { href: '/visits', label: 'Visits' },
+  { href: '/guests', label: 'Guests' },
   { href: '/members', label: 'Members' },
   { href: '/rooms', label: 'Rooms' },
   { href: '/bookings', label: 'Bookings' },

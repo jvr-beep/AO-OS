@@ -54,12 +54,12 @@ export default async function MembersPage({
 
       <div className="card overflow-hidden">
         <table className="w-full text-sm">
-          <thead className="bg-ao-dark border-b border-gray-700">
+          <thead className="bg-surface-0 border-b border-gray-700">
             <tr>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-ao-teal uppercase tracking-wide">Name</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-ao-teal uppercase tracking-wide">Member #</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-ao-teal uppercase tracking-wide">Email</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-ao-teal uppercase tracking-wide">Status</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-accent-primary uppercase tracking-wide">Name</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-accent-primary uppercase tracking-wide">Member #</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-accent-primary uppercase tracking-wide">Email</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-accent-primary uppercase tracking-wide">Status</th>
               <th className="px-4 py-3" />
             </tr>
           </thead>
@@ -84,7 +84,7 @@ export default async function MembersPage({
                   <td className="px-4 py-3 text-right">
                     <Link
                       href={`/members/${member.id}`}
-                      className="text-xs text-ao-teal hover:text-ao-primary transition-colors"
+                      className="text-xs text-accent-primary hover:text-accent-primary transition-colors"
                     >
                       View →
                     </Link>

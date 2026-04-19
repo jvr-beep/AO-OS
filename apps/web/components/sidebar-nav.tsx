@@ -7,11 +7,14 @@ import { clearBrowserSession } from '@/lib/browser-auth'
 
 const NAV_ITEMS = [
   { href: '/dashboard', label: 'Dashboard' },
+  { href: '/floor-plans', label: 'Floor Plans' },
+  { href: '/map-studio', label: 'Map Studio' },
   { href: '/members', label: 'Members' },
+  { href: '/guests', label: 'Guests' },
+  { href: '/visits', label: 'Visits' },
   { href: '/rooms', label: 'Rooms' },
   { href: '/bookings', label: 'Bookings' },
   { href: '/cleaning', label: 'Cleaning' },
-  { href: '/floor-plans', label: 'Floor Plans' },
   { href: '/wristbands', label: 'Wristbands' },
   { href: '/lockers', label: 'Lockers' },
 ]

@@ -87,24 +87,24 @@ export default async function CleaningPage({
           </form>
         </div>
         <table className="w-full text-sm">
-          <thead className="bg-ao-dark border-b border-gray-700">
+          <thead className="bg-surface-0 border-b border-gray-700">
             <tr>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-ao-teal uppercase tracking-wide">
+              <th className="text-left px-4 py-3 text-xs font-semibold text-accent-primary uppercase tracking-wide">
                 Created
               </th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-ao-teal uppercase tracking-wide">
+              <th className="text-left px-4 py-3 text-xs font-semibold text-accent-primary uppercase tracking-wide">
                 Room
               </th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-ao-teal uppercase tracking-wide">
+              <th className="text-left px-4 py-3 text-xs font-semibold text-accent-primary uppercase tracking-wide">
                 Task Type
               </th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-ao-teal uppercase tracking-wide">
+              <th className="text-left px-4 py-3 text-xs font-semibold text-accent-primary uppercase tracking-wide">
                 Status
               </th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-ao-teal uppercase tracking-wide">
+              <th className="text-left px-4 py-3 text-xs font-semibold text-accent-primary uppercase tracking-wide">
                 Notes
               </th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-ao-teal uppercase tracking-wide">
+              <th className="text-left px-4 py-3 text-xs font-semibold text-accent-primary uppercase tracking-wide">
                 Actions
               </th>
             </tr>
@@ -126,7 +126,7 @@ export default async function CleaningPage({
                       {new Date(task.createdAt).toLocaleString()}
                     </td>
                     <td className="px-4 py-3 text-xs">
-                      <Link href={`/rooms/${task.roomId}`} className="text-ao-teal hover:text-ao-primary transition-colors">
+                      <Link href={`/rooms/${task.roomId}`} className="text-accent-primary hover:text-accent-primary transition-colors">
                         {room ? `${room.code} (${room.name})` : task.roomId.slice(0, 8)}
                       </Link>
                     </td>

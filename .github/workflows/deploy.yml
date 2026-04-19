@@ -16,6 +16,8 @@ jobs:
     name: Deploy to Production
     runs-on: ubuntu-latest
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    env:
+      SWAGGERHUB_TOKEN: ${{ secrets.SWAGGERHUB_TOKEN }}
 
     environment:
       name: production
@@ -34,39 +36,59 @@ jobs:
           key: ${{ secrets.VM_SSH_KEY }}
           timeout: 10m
           command_timeout: 10m
+          envs: GH_TOKEN,GH_ACTOR,GH_REPOSITORY
           script: |
             set -euo pipefail
-            cd ~/AO-OS
 
             if [ -z "${GH_TOKEN:-}" ]; then
               echo "Missing required secret: GH_TOKEN"
               exit 1
             fi
 
-            NETRC_FILE="$(mktemp)"
-            cleanup() {
-              rm -f "$NETRC_FILE"
-            }
-            trap cleanup EXIT
-
-            umask 177
-            cat > "$NETRC_FILE" <<EOF
-            machine github.com
-              login ${GH_ACTOR}
-              password ${GH_TOKEN}
-            machine api.github.com
-              login ${GH_ACTOR}
-              password ${GH_TOKEN}
-            EOF
-
-            chmod 600 "$NETRC_FILE"
-            export NETRC="$NETRC_FILE"
-
-            git remote set-url origin "https://github.com/${GH_REPOSITORY}.git"
+            REPO_URL="https://${GH_ACTOR}:${GH_TOKEN}@github.com/${GH_REPOSITORY}.git"
+            REPO_DIR="$HOME/AO-OS"
+            BACKUP_DIR="$HOME/AO-OS-prev"
 
             echo "=== Pull latest ==="
-            git fetch origin
-            git pull --ff-only
+            if [ -d "$REPO_DIR/.git" ]; then
+              # Try fast path: fix permissions and pull
+              sudo chown -R "$(whoami)" "$REPO_DIR/.git" 2>/dev/null || true
+              sudo chmod -R u+rwX "$REPO_DIR/.git" 2>/dev/null || true
+              git -C "$REPO_DIR" remote set-url origin "$REPO_URL"
+              if git -C "$REPO_DIR" fetch origin && git -C "$REPO_DIR" pull --ff-only; then
+                echo "Pull succeeded"
+              else
+                echo "Pull failed — re-cloning"
+                rm -rf "$BACKUP_DIR"
+                mv "$REPO_DIR" "$BACKUP_DIR" 2>/dev/null || sudo rm -rf "$REPO_DIR"
+                git clone "$REPO_URL" "$REPO_DIR"
+              fi
+            else
+              echo "No repo found — cloning"
+              git clone "$REPO_URL" "$REPO_DIR"
+            fi
+
+            cd "$REPO_DIR"
+
+            # Restore .env files if missing (preserved from previous deploy)
+            if [ ! -f "apps/api/.env" ]; then
+              for backup in "$HOME/AO-OS-prev" "$HOME/AO-OS-release-isolated" "$HOME/AO-OS-prod-auth-inspect"; do
+                if [ -f "$backup/apps/api/.env" ]; then
+                  cp "$backup/apps/api/.env" apps/api/.env
+                  echo "Restored api .env from $backup"
+                  break
+                fi
+              done
+            fi
+            if [ ! -f "apps/web/.env" ]; then
+              for backup in "$HOME/AO-OS-prev" "$HOME/AO-OS-release-isolated" "$HOME/AO-OS-prod-auth-inspect"; do
+                if [ -f "$backup/apps/web/.env" ]; then
+                  cp "$backup/apps/web/.env" apps/web/.env
+                  echo "Restored web .env from $backup"
+                  break
+                fi
+              done
+            fi
 
             echo "=== Deploy ==="
             bash scripts/vm-post-deploy-smoke.sh --build
@@ -89,22 +111,38 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Validate OpenAPI in SwaggerHub CLI
-        if: ${{ secrets.SWAGGERHUB_TOKEN != '' }}
-        env:
-          SWAGGERHUB_TOKEN: ${{ secrets.SWAGGERHUB_TOKEN }}
+        if: ${{ env.SWAGGERHUB_TOKEN != '' }}
         run: pnpm swaggerhub:validate
 
       - name: Skip SwaggerHub publish (missing token)
-        if: ${{ secrets.SWAGGERHUB_TOKEN == '' }}
+        if: ${{ env.SWAGGERHUB_TOKEN == '' }}
         run: echo "SWAGGERHUB_TOKEN is not set; skipping SwaggerHub validation and publish."
 
       - name: Publish OpenAPI to SwaggerHub
-        if: ${{ secrets.SWAGGERHUB_TOKEN != '' }}
-        env:
-          SWAGGERHUB_TOKEN: ${{ secrets.SWAGGERHUB_TOKEN }}
+        if: ${{ env.SWAGGERHUB_TOKEN != '' }}
         run: pnpm swaggerhub:push
 
       - name: Notify on failure
         if: failure()
+        env:
+          N8N_WEBHOOK_URL: ${{ secrets.N8N_WEBHOOK_URL }}
+          N8N_API_KEY: ${{ secrets.N8N_API_KEY }}
         run: |
           echo "::error::Production deploy failed. Check VM logs: ssh ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} 'docker logs ao-os-api --tail 50'"
+          if [[ -z "${N8N_WEBHOOK_URL:-}" ]]; then
+            echo "N8N_WEBHOOK_URL not set – skipping n8n deploy-failure notification"
+            exit 0
+          fi
+          if [[ -z "${N8N_API_KEY:-}" ]]; then
+            echo "N8N_API_KEY not set – skipping n8n deploy-failure notification"
+            exit 0
+          fi
+          curl -s -X POST "$N8N_WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -H "X-N8N-API-KEY: ${N8N_API_KEY}" \
+            -d "$(jq -n \
+              --arg event "production_deploy_failure" \
+              --arg run_url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+              --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+              '{event: $event, run_url: $run_url, timestamp: $ts}'
+            )" || echo "n8n notification failed (non-blocking)"

@@ -1,5 +1,9 @@
-import { Module } from "@nestjs/common";
+import { Module, NestModule, MiddlewareConsumer } from "@nestjs/common";
 import { APP_GUARD } from "@nestjs/core";
+import { LocationModule } from "./location/location.module";
+import { LocationMiddleware } from "./location/location.middleware";
+import { StripeModule } from "./stripe/stripe.module";
+import { MeModule } from "./me/me.module";
 import { ThrottlerModule, ThrottlerGuard } from "@nestjs/throttler";
 import { PrismaModule } from "./prisma/prisma.module";
 import { HealthModule } from "./health/health.module";
@@ -34,6 +38,9 @@ import { FoliosModule } from "./folios/folios.module";
 import { OrchestratorsModule } from "./orchestrators/orchestrators.module";
 import { GuestAccessModule } from "./guest-access/guest-access.module";
 import { OpsModule } from "./ops/ops.module";
+import { VoiceModule } from "./voice/voice.module";
+import { KioskModule } from "./kiosk/kiosk.module";
+import { MapStudioModule } from "./map-studio/map-studio.module";
 
 @Module({
   imports: [
@@ -73,10 +80,20 @@ import { OpsModule } from "./ops/ops.module";
     FoliosModule,
     OrchestratorsModule,
     GuestAccessModule,
-    OpsModule
+    OpsModule,
+    VoiceModule,
+    LocationModule,
+    StripeModule,
+    MeModule,
+    KioskModule,
+    MapStudioModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard }
   ]
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer): void {
+    consumer.apply(LocationMiddleware).forRoutes("*");
+  }
+}

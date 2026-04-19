@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../../prisma/prisma.service";
+import { LocationContextService } from "../../location/location-context.service";
 import { AddOnResponseDto } from "../dto/add-on.response.dto";
 import { ListAddOnsQueryDto } from "../dto/list-add-ons.query.dto";
 import { ListTiersQueryDto } from "../dto/list-tiers.query.dto";
@@ -14,15 +15,26 @@ const DEFAULT_ADD_ONS: AddOnResponseDto[] = [
 
 @Injectable()
 export class CatalogService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly locationContext: LocationContextService,
+  ) {}
 
   async listTiers(query: ListTiersQueryDto): Promise<TierResponseDto[]> {
+    const locationId = this.locationContext.locationOrNull?.id ?? null;
     const tiers = await this.prisma.tier.findMany({
       where: {
         active: true,
+        ...(locationId ? { locationId } : {}),
         ...(query.product_type ? { productType: query.product_type } : {})
       },
-      orderBy: [{ productType: "asc" }, { upgradeRank: "asc" }, { name: "asc" }]
+      orderBy: [{ productType: "asc" }, { upgradeRank: "asc" }, { name: "asc" }],
+      include: {
+        durationOptions: {
+          where: { active: true },
+          orderBy: { durationMinutes: "asc" },
+        },
+      },
     });
 
     return tiers.map((tier) => ({
@@ -30,10 +42,16 @@ export class CatalogService {
       productType: tier.productType,
       code: tier.code,
       name: tier.name,
+      description: tier.publicDescription,
       publicDescription: tier.publicDescription,
       upgradeRank: tier.upgradeRank,
       basePriceCents: tier.basePriceCents,
-      active: tier.active
+      active: tier.active,
+      durationOptions: (tier.durationOptions ?? []).map((d) => ({
+        id: d.id,
+        durationMinutes: d.durationMinutes,
+        priceCents: d.priceCents,
+      })),
     }));
   }
 

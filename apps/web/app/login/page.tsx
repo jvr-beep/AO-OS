@@ -1,35 +1,17 @@
-import { redirect } from 'next/navigation'
 import LoginClient from './login-client'
-import { getSession } from '@/lib/session'
 
-export default async function LoginPage({
+export default function LoginPage({
   searchParams,
 }: {
-  searchParams: { error?: string; reset?: string; resetToken?: string }
+  searchParams: { reset?: string; resetToken?: string }
 }) {
-  const session = await getSession()
-
-  if (session.accessToken && session.user) {
-    redirect('/dashboard')
-  }
-
-  const resetState = searchParams.reset === 'sent' ||
-    searchParams.reset === 'error' ||
-    searchParams.reset === 'changed' ||
-    searchParams.reset === 'invalid' ||
-    searchParams.reset === 'mismatch'
+  const resetState = searchParams.reset === 'sent' || searchParams.reset === 'error'
     ? searchParams.reset
     : null
 
-  const loginError = searchParams.error === '1'
-    ? 'Invalid email or password.'
-    : null
+  const resetToken = searchParams.resetToken ?? null
 
   return (
-    <LoginClient
-      loginError={loginError}
-      resetState={resetState}
-      resetToken={searchParams.resetToken?.trim() ?? ''}
-    />
+    <LoginClient resetState={resetState} resetToken={resetToken} />
   )
 }

@@ -147,8 +147,8 @@
       ],
       "credentials": {
         "gmailOAuth2": {
-          "id": "REPLACE_WITH_GMAIL_CREDENTIAL_ID",
-          "name": "REPLACE_WITH_GMAIL_CREDENTIAL_NAME"
+          "id": "x6AvQfnLZII4DP3A",
+          "name": "Gmail OAuth2 API"
         }
       }
     }

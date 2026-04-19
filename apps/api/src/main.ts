@@ -1,3 +1,5 @@
+// Datadog APM — must be the first import
+import "./tracing";
 import "reflect-metadata";
 import { NestFactory } from "@nestjs/core";
 import { ValidationPipe } from "@nestjs/common";
@@ -46,7 +48,8 @@ function resolveAllowedOrigins(): string[] {
 }
 
 async function bootstrap(): Promise<void> {
-  const app = await NestFactory.create(AppModule);
+  // rawBody: true exposes req.rawBody for Stripe webhook signature verification
+  const app = await NestFactory.create(AppModule, { rawBody: true });
 
   app.use(helmet());
 

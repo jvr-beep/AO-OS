@@ -1,0 +1,117 @@
+name: Deploy Staging
+
+on:
+  push:
+    branches: [staging]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-staging
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    env:
+      SWAGGERHUB_TOKEN: ${{ secrets.SWAGGERHUB_TOKEN }}
+
+    environment:
+      name: staging
+      url: https://staging-api.aosanctuary.com/v1/health
+
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          GH_ACTOR: ${{ github.actor }}
+          GH_REPOSITORY: ${{ github.repository }}
+          DEPLOY_REF: ${{ github.ref_name }}
+        with:
+          host: ${{ secrets.VM_STAGING_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.VM_STAGING_SSH_KEY }}
+          timeout: 10m
+          command_timeout: 10m
+          envs: GH_TOKEN,GH_ACTOR,GH_REPOSITORY,DEPLOY_REF
+          script: |
+            set -euo pipefail
+            if [ -z "${GH_TOKEN:-}" ]; then
+              echo "Missing required secret: GH_TOKEN"
+              exit 1
+            fi
+
+            REPO_URL="https://${GH_ACTOR}:${GH_TOKEN}@github.com/${GH_REPOSITORY}.git"
+            REPO_DIR="$HOME/AO-OS"
+            BACKUP_DIR="$HOME/AO-OS-prev"
+
+            echo "=== Pull latest (${DEPLOY_REF}) ==="
+            if [ -d "$REPO_DIR/.git" ]; then
+              sudo chown -R "$(whoami)" "$REPO_DIR/.git" 2>/dev/null || true
+              sudo chmod -R u+rwX "$REPO_DIR/.git" 2>/dev/null || true
+              git -C "$REPO_DIR" remote set-url origin "$REPO_URL"
+              if git -C "$REPO_DIR" fetch origin && git -C "$REPO_DIR" checkout "${DEPLOY_REF}" && git -C "$REPO_DIR" pull --ff-only; then
+                echo "Pull succeeded"
+              else
+                echo "Pull failed — re-cloning"
+                rm -rf "$BACKUP_DIR"
+                mv "$REPO_DIR" "$BACKUP_DIR" 2>/dev/null || sudo rm -rf "$REPO_DIR"
+                git clone "$REPO_URL" "$REPO_DIR"
+                git -C "$REPO_DIR" checkout "${DEPLOY_REF}"
+              fi
+            else
+              echo "No repo found — cloning"
+              git clone "$REPO_URL" "$REPO_DIR"
+              git -C "$REPO_DIR" checkout "${DEPLOY_REF}"
+            fi
+
+            cd "$REPO_DIR"
+
+            # Restore .env files if missing (preserved from previous deploy)
+            if [ ! -f "apps/api/.env" ]; then
+              for backup in "$HOME/AO-OS-prev" "$HOME/AO-OS-release-isolated" "$HOME/AO-OS-prod-auth-inspect" "$HOME/AO-OS-release-facility-map"; do
+                if [ -f "$backup/apps/api/.env" ]; then
+                  cp "$backup/apps/api/.env" apps/api/.env
+                  echo "Restored api .env from $backup"
+                  break
+                fi
+              done
+            fi
+            if [ ! -f "apps/web/.env" ]; then
+              for backup in "$HOME/AO-OS-prev" "$HOME/AO-OS-release-isolated" "$HOME/AO-OS-prod-auth-inspect" "$HOME/AO-OS-release-facility-map"; do
+                if [ -f "$backup/apps/web/.env" ]; then
+                  cp "$backup/apps/web/.env" apps/web/.env
+                  echo "Restored web .env from $backup"
+                  break
+                fi
+              done
+            fi
+
+            echo "=== Deploy ==="
+            WEB_BASE="" bash scripts/vm-post-deploy-smoke.sh --build
+
+      - name: Notify on failure
+        if: failure()
+        env:
+          N8N_WEBHOOK_URL: ${{ secrets.N8N_WEBHOOK_URL }}
+          N8N_API_KEY: ${{ secrets.N8N_API_KEY }}
+        run: |
+          echo "::error::Staging deploy failed. Check VM logs: ssh ${{ secrets.VM_USER }}@${{ secrets.VM_STAGING_HOST }} 'docker logs ao-os-api --tail 50'"
+          if [[ -z "${N8N_WEBHOOK_URL:-}" ]]; then
+            echo "N8N_WEBHOOK_URL not set – skipping n8n deploy-failure notification"
+            exit 0
+          fi
+          if [[ -z "${N8N_API_KEY:-}" ]]; then
+            echo "N8N_API_KEY not set – skipping n8n deploy-failure notification"
+            exit 0
+          fi
+          curl -s -X POST "$N8N_WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -H "X-N8N-API-KEY: ${N8N_API_KEY}" \
+            -d "$(jq -n \
+              --arg event "staging_deploy_failure" \
+              --arg run_url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+              --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+              '{event: $event, run_url: $run_url, timestamp: $ts}'
+            )" || echo "n8n notification failed (non-blocking)"

@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { getApiBase } from '@/lib/api-base'
 import { getSession } from '@/lib/session'
+import { reportErrorAction } from '@/app/actions/report-error'
 
 function readRequired(formData: FormData, key: string): string {
   const value = formData.get(key)
@@ -76,6 +77,19 @@ async function withSession() {
   return session
 }
 
+async function reportActionError(error: unknown, page: string, apiPath?: string) {
+  const message = error instanceof Error ? error.message : String(error)
+  const errorName = error instanceof Error ? error.name : 'OperatorActionError'
+  const httpStatus = message.match(/^(\d{3}) /) ? parseInt(message.slice(0, 3), 10) : undefined
+  await reportErrorAction({
+    message,
+    page,
+    errorName,
+    httpStatus,
+    apiUrl: apiPath ? `${API_BASE}${apiPath}` : undefined,
+  })
+}
+
 export async function issueCredentialAction(formData: FormData) {
   try {
     const session = await withSession()
@@ -87,6 +101,7 @@ export async function issueCredentialAction(formData: FormData) {
     redirect('/wristbands?ok=Credential+issued')
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Issue failed'
+    await reportActionError(error, '/wristbands', '/wristbands/issue')
     redirect(`/wristbands?error=${encodeURIComponent(message)}`)
   }
 }
@@ -101,6 +116,7 @@ export async function activateCredentialAction(formData: FormData) {
     redirect('/wristbands?ok=Credential+activated')
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Activate failed'
+    await reportActionError(error, '/wristbands', '/wristbands/activate')
     redirect(`/wristbands?error=${encodeURIComponent(message)}`)
   }
 }
@@ -115,6 +131,7 @@ export async function suspendCredentialAction(formData: FormData) {
     redirect('/wristbands?ok=Credential+suspended')
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Suspend failed'
+    await reportActionError(error, '/wristbands', '/wristbands/suspend')
     redirect(`/wristbands?error=${encodeURIComponent(message)}`)
   }
 }
@@ -134,6 +151,7 @@ export async function replaceCredentialAction(formData: FormData) {
     redirect('/wristbands?ok=Credential+replaced')
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Replace failed'
+    await reportActionError(error, '/wristbands', '/wristbands/replace')
     redirect(`/wristbands?error=${encodeURIComponent(message)}`)
   }
 }
@@ -180,6 +198,7 @@ export async function evaluateLockerPolicyAction(formData: FormData) {
     )
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Policy evaluate failed'
+    await reportActionError(error, '/lockers', '/lockers/policy/evaluate')
     redirect(`/lockers?error=${encodeURIComponent(message)}`)
   }
 }
@@ -217,6 +236,7 @@ export async function assignLockerAction(formData: FormData) {
     redirect('/lockers?ok=Locker+assigned')
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Assign failed'
+    await reportActionError(error, '/lockers', '/lockers/assign')
     redirect(`/lockers?error=${encodeURIComponent(message)}`)
   }
 }
@@ -238,6 +258,7 @@ export async function unassignLockerAction(formData: FormData) {
     redirect('/lockers?ok=Locker+released')
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Release failed'
+    await reportActionError(error, '/lockers', '/lockers/unassign')
     redirect(`/lockers?error=${encodeURIComponent(message)}`)
   }
 }
@@ -266,6 +287,7 @@ export async function moveLockerAction(formData: FormData) {
     redirect(`/lockers/${toLockerId}?ok=Locker+moved`)
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Move failed'
+    await reportActionError(error, `/lockers/${fromLockerId}`, '/lockers/move')
     redirect(`/lockers/${fromLockerId}?error=${encodeURIComponent(message)}`)
   }
 }
@@ -286,6 +308,7 @@ export async function resolveAbandonedLockersAction(formData: FormData) {
     redirect(`/lockers?ok=${encodeURIComponent(`Released ${released} abandoned locker(s)`)}`)
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Resolve failed'
+    await reportActionError(error, '/lockers', '/lockers/resolve-abandoned')
     redirect(`/lockers?error=${encodeURIComponent(message)}`)
   }
 }
@@ -314,6 +337,7 @@ export async function createBookingAction(formData: FormData) {
     redirect(`${redirectTo}?ok=${encodeURIComponent('Booking created')}`)
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Create booking failed'
+    await reportActionError(error, redirectTo, '/bookings')
     redirect(`${redirectTo}?error=${encodeURIComponent(message)}`)
   }
 }
@@ -333,6 +357,7 @@ export async function checkInBookingAction(formData: FormData) {
     redirect(`${redirectTo}?ok=${encodeURIComponent('Booking checked in')}`)
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Check-in failed'
+    await reportActionError(error, redirectTo)
     redirect(`${redirectTo}?error=${encodeURIComponent(message)}`)
   }
 }
@@ -352,6 +377,7 @@ export async function checkOutBookingAction(formData: FormData) {
     redirect(`${redirectTo}?ok=${encodeURIComponent('Booking checked out')}`)
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Check-out failed'
+    await reportActionError(error, redirectTo)
     redirect(`${redirectTo}?error=${encodeURIComponent(message)}`)
   }
 }
@@ -372,6 +398,7 @@ export async function cancelBookingAction(formData: FormData) {
     redirect(`${redirectTo}?ok=${encodeURIComponent('Booking cancelled')}`)
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Cancel failed'
+    await reportActionError(error, redirectTo)
     redirect(`${redirectTo}?error=${encodeURIComponent(message)}`)
   }
 }
@@ -394,6 +421,7 @@ export async function startCleaningTaskAction(formData: FormData) {
     redirect(`${redirectTo}?ok=${encodeURIComponent('Cleaning task started')}`)
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Task start failed'
+    await reportActionError(error, redirectTo)
     redirect(`${redirectTo}?error=${encodeURIComponent(message)}`)
   }
 }
@@ -417,6 +445,222 @@ export async function completeCleaningTaskAction(formData: FormData) {
     redirect(`${redirectTo}?ok=${encodeURIComponent('Cleaning task completed')}`)
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Task complete failed'
+    await reportActionError(error, redirectTo)
+    redirect(`${redirectTo}?error=${encodeURIComponent(message)}`)
+  }
+}
+
+export async function createGuestAction(formData: FormData) {
+  try {
+    const session = await withSession()
+    const firstName = readRequired(formData, 'firstName')
+    const lastName = readOptional(formData, 'lastName')
+    const email = readOptional(formData, 'email')
+    const phone = readOptional(formData, 'phone')
+
+    const result = await postWithAuth(
+      '/guests',
+      { firstName, lastName, email, phone },
+      session.accessToken!,
+    )
+
+    const guestId = typeof result.id === 'string' ? result.id : ''
+    redirect(`/guests/${guestId}?ok=${encodeURIComponent('Guest created')}`)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Create guest failed'
+    await reportActionError(error, '/guests', '/guests')
+    redirect(`/guests?error=${encodeURIComponent(message)}`)
+  }
+}
+
+export async function guestBookingCheckInAction(formData: FormData) {
+  const redirectTo = readRedirectTarget(formData, '/check-in')
+
+  try {
+    const session = await withSession()
+    const bookingId = readOptional(formData, 'bookingId')
+    const bookingCode = readOptional(formData, 'bookingCode')
+
+    if (!bookingId && !bookingCode) {
+      throw new Error('bookingId or bookingCode is required')
+    }
+
+    const result = await postWithAuth(
+      '/orchestrators/check-in/booking',
+      { booking_id: bookingId, booking_code: bookingCode, changed_by_user_id: session.user?.id },
+      session.accessToken!,
+    )
+
+    const visitId = typeof result.visit_id === 'string' ? result.visit_id : ''
+    revalidatePath('/check-in')
+    revalidatePath('/visits')
+    redirect(`/visits/${visitId}?ok=${encodeURIComponent('Guest checked in from booking')}`)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Booking check-in failed'
+    await reportActionError(error, redirectTo, '/orchestrators/check-in/booking')
+    redirect(`${redirectTo}?error=${encodeURIComponent(message)}`)
+  }
+}
+
+export async function guestWalkInCheckInAction(formData: FormData) {
+  const redirectTo = readRedirectTarget(formData, '/check-in')
+
+  try {
+    const session = await withSession()
+    const guestId = readRequired(formData, 'guestId')
+    const tierId = readRequired(formData, 'tierId')
+    const productType = readRequired(formData, 'productType')
+    const durationMinutes = parseInt(readRequired(formData, 'durationMinutes'), 10)
+    const quotedPriceCents = parseInt(readRequired(formData, 'quotedPriceCents'), 10)
+    const amountPaidCents = parseInt(readOptional(formData, 'amountPaidCents') ?? '0', 10)
+    const paymentProvider = readOptional(formData, 'paymentProvider') ?? 'cash'
+
+    const result = await postWithAuth(
+      '/orchestrators/check-in/walk-in',
+      {
+        guest_id: guestId,
+        tier_id: tierId,
+        product_type: productType,
+        duration_minutes: durationMinutes,
+        quoted_price_cents: quotedPriceCents,
+        amount_paid_cents: amountPaidCents,
+        payment_provider: paymentProvider,
+        changed_by_user_id: session.user?.id,
+      },
+      session.accessToken!,
+    )
+
+    const visitId = typeof result.visit_id === 'string' ? result.visit_id : ''
+    revalidatePath('/check-in')
+    revalidatePath('/visits')
+    redirect(`/visits/${visitId}?ok=${encodeURIComponent('Walk-in checked in')}`)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Walk-in check-in failed'
+    await reportActionError(error, redirectTo, '/orchestrators/check-in/walk-in')
+    redirect(`${redirectTo}?error=${encodeURIComponent(message)}`)
+  }
+}
+
+export async function guestCheckoutAction(formData: FormData) {
+  const redirectTo = readRedirectTarget(formData, '/check-in')
+
+  try {
+    const session = await withSession()
+    const visitId = readRequired(formData, 'visitId')
+    const checkOutChannel = readOptional(formData, 'checkOutChannel') ?? 'staff'
+
+    await postWithAuth(
+      '/orchestrators/checkout',
+      {
+        visit_id: visitId,
+        check_out_channel: checkOutChannel,
+        changed_by_user_id: session.user?.id,
+      },
+      session.accessToken!,
+    )
+
+    revalidatePath('/check-in')
+    revalidatePath('/visits')
+    revalidatePath(`/visits/${visitId}`)
+    redirect(`/visits/${visitId}?ok=${encodeURIComponent('Guest checked out')}`)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Checkout failed'
+    await reportActionError(error, redirectTo, '/orchestrators/checkout')
+    redirect(`${redirectTo}?error=${encodeURIComponent(message)}`)
+  }
+}
+
+export async function addFolioLineItemAction(formData: FormData) {
+  const folioId = readRequired(formData, 'folioId')
+  const redirectTo = readRedirectTarget(formData, '/visits')
+
+  try {
+    const session = await withSession()
+    const lineType = readRequired(formData, 'lineType')
+    const description = readRequired(formData, 'description')
+    const quantity = parseInt(readOptional(formData, 'quantity') ?? '1', 10)
+    const unitAmountCents = parseInt(readRequired(formData, 'unitAmountCents'), 10)
+
+    await postWithAuth(
+      `/folios/${folioId}/line-items`,
+      { line_type: lineType, description, quantity, unit_amount_cents: unitAmountCents },
+      session.accessToken!,
+    )
+
+    revalidatePath(redirectTo)
+    redirect(`${redirectTo}?ok=${encodeURIComponent('Line item added')}`)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Add line item failed'
+    await reportActionError(error, redirectTo, `/folios/${folioId}/line-items`)
+    redirect(`${redirectTo}?error=${encodeURIComponent(message)}`)
+  }
+}
+
+export async function recordFolioPaymentAction(formData: FormData) {
+  const folioId = readRequired(formData, 'folioId')
+  const redirectTo = readRedirectTarget(formData, '/visits')
+
+  try {
+    const session = await withSession()
+    const paymentProvider = readRequired(formData, 'paymentProvider')
+    const transactionType = readOptional(formData, 'transactionType') ?? 'sale'
+    const amountCents = parseInt(readRequired(formData, 'amountCents'), 10)
+
+    await postWithAuth(
+      `/folios/${folioId}/payments`,
+      { payment_provider: paymentProvider, transaction_type: transactionType, amount_cents: amountCents, status: 'succeeded' },
+      session.accessToken!,
+    )
+
+    revalidatePath(redirectTo)
+    redirect(`${redirectTo}?ok=${encodeURIComponent('Payment recorded')}`)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Record payment failed'
+    await reportActionError(error, redirectTo, `/folios/${folioId}/payments`)
+    redirect(`${redirectTo}?error=${encodeURIComponent(message)}`)
+  }
+}
+
+/**
+ * Assign wristband and activate a kiosk-originated visit in one step.
+ * Transitions: paid_pending_assignment → checked_in → active
+ * Sets start_time and scheduled_end_time on the visit.
+ */
+export async function assignKioskVisitAction(formData: FormData) {
+  const redirectTo = readRedirectTarget(formData, '/check-in')
+
+  try {
+    const session = await withSession()
+    const visitId = readRequired(formData, 'visitId')
+
+    async function patchStatus(status: string, reasonCode: string) {
+      const res = await fetch(`${API_BASE}/visits/${visitId}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.accessToken!}`,
+        },
+        body: JSON.stringify({ status, reason_code: reasonCode, changed_by_user_id: session.user?.id }),
+        cache: 'no-store',
+      })
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        throw new Error(body?.message ?? `Status transition to ${status} failed`)
+      }
+      return res.json()
+    }
+
+    // paid_pending_assignment → checked_in → active
+    await patchStatus('checked_in', 'wristband_assigned')
+    await patchStatus('active', 'visit_activated')
+
+    revalidatePath('/check-in')
+    revalidatePath('/visits')
+    revalidatePath(`/visits/${visitId}`)
+    redirect(`${redirectTo}?ok=${encodeURIComponent('Visit activated — wristband issued')}`)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Assign failed'
+    await reportActionError(error, redirectTo)
     redirect(`${redirectTo}?error=${encodeURIComponent(message)}`)
   }
 }
@@ -443,6 +687,7 @@ export async function createRoomAccessEventAction(formData: FormData) {
     redirect(`${redirectTo}?ok=${encodeURIComponent('Room access event recorded')}`)
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Room access event failed'
+    await reportActionError(error, redirectTo, '/rooms/access')
     redirect(`${redirectTo}?error=${encodeURIComponent(message)}`)
   }
 }

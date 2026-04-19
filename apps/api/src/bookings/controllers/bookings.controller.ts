@@ -18,29 +18,29 @@ import { RolesGuard } from '../../auth/guards/roles.guard';
 import { Roles } from '../../auth/decorators/roles.decorator';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Controller()
+@Controller('guest-bookings')
 export class BookingsController {
   constructor(private readonly bookingsService: BookingsService) {}
 
-  @Post('bookings')
+  @Post()
   @Roles('front_desk', 'operations', 'admin')
   createBooking(@Body() dto: CreateBookingDto) {
     return this.bookingsService.createBooking(dto);
   }
 
-  @Get('bookings/code/:bookingCode')
+  @Get('code/:bookingCode')
   @Roles('front_desk', 'operations', 'admin')
   getBookingByCode(@Param('bookingCode') bookingCode: string) {
     return this.bookingsService.getBookingByCode(bookingCode);
   }
 
-  @Get('bookings/qr/:qrToken')
+  @Get('qr/:qrToken')
   @Roles('front_desk', 'operations', 'admin')
   getBookingByQrToken(@Param('qrToken') qrToken: string) {
     return this.bookingsService.getBookingByQrToken(qrToken);
   }
 
-  @Get('bookings/:bookingId')
+  @Get(':bookingId')
   @Roles('front_desk', 'operations', 'admin')
   getBooking(@Param('bookingId', ParseUUIDPipe) bookingId: string) {
     return this.bookingsService.getBooking(bookingId);
@@ -55,7 +55,7 @@ export class BookingsController {
     return this.bookingsService.listGuestBookings(guestId, query);
   }
 
-  @Patch('bookings/:bookingId/status')
+  @Patch(':bookingId/status')
   @Roles('front_desk', 'operations', 'admin')
   updateBookingStatus(
     @Param('bookingId', ParseUUIDPipe) bookingId: string,

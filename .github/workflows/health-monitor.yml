@@ -1,0 +1,164 @@
+name: Production Health Monitor
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+permissions:
+  issues: write
+
+jobs:
+  health-check:
+    name: Check Production Health
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Ping API health endpoint
+        id: api
+        run: |
+          code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 \
+            https://api.aosanctuary.com/v1/health || echo "000")
+          body=$(curl -s --max-time 15 https://api.aosanctuary.com/v1/health || echo "unreachable")
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          echo "body=$body" >> "$GITHUB_OUTPUT"
+
+      - name: Ping Web login page
+        id: web
+        run: |
+          code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 \
+            https://app.aosanctuary.com/login || echo "000")
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+
+      - name: Evaluate overall health
+        id: health
+        run: |
+          api="${{ steps.api.outputs.code }}"
+          web="${{ steps.web.outputs.code }}"
+          if [[ "$api" == "200" && "$web" == "200" ]]; then
+            echo "degraded=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "degraded=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Look up open incident issue
+        id: incident
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          num=$(gh issue list \
+            --repo "${{ github.repository }}" \
+            --label incident \
+            --state open \
+            --json number \
+            --jq '.[0].number // ""' 2>/dev/null || echo "")
+          echo "number=$num" >> "$GITHUB_OUTPUT"
+
+      - name: Ensure labels exist
+        if: steps.health.outputs.degraded == 'true' && steps.incident.outputs.number == ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh label create incident \
+            --color D93F0B \
+            --description "Auto-detected production incident" \
+            --repo "${{ github.repository }}" 2>/dev/null || true
+          gh label create copilot \
+            --color 0075CA \
+            --description "Assigned to Copilot coding agent" \
+            --repo "${{ github.repository }}" 2>/dev/null || true
+
+      - name: Open incident issue
+        if: steps.health.outputs.degraded == 'true' && steps.incident.outputs.number == ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          API_CODE: ${{ steps.api.outputs.code }}
+          WEB_CODE: ${{ steps.web.outputs.code }}
+          API_BODY: ${{ steps.api.outputs.body }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          ts=$(date -u '+%Y-%m-%d %H:%M UTC')
+          {
+            echo "## 🚨 Production Health Check Failed"
+            echo ""
+            echo "**Detected:** $ts"
+            echo "**Run:** $RUN_URL"
+            echo ""
+            echo "| Service | HTTP Status |"
+            echo "|---------|-------------|"
+            echo "| API \`api.aosanctuary.com/v1/health\` | \`$API_CODE\` |"
+            echo "| Web \`app.aosanctuary.com/login\` | \`$WEB_CODE\` |"
+            echo ""
+            echo "**API response body:**"
+            echo '```'
+            echo "$API_BODY"
+            echo '```'
+            echo ""
+            echo "## Requested Actions"
+            echo "1. Check recent commits on \`main\` and identify the regression."
+            echo "2. Inspect live container logs: \`docker logs ao-os-api --tail 100\`"
+            echo "3. Inspect web container logs: \`docker logs ao-os-web --tail 100\`"
+            echo "4. Implement a targeted fix in the affected module."
+            echo "5. Open a PR — CI (typecheck + integration tests) must pass."
+            echo "6. The PR will auto-merge once CI is green; deploy runs automatically."
+            echo ""
+            echo "This issue was auto-created by the production health monitor."
+            echo "It will auto-close when the next health check passes."
+          } > /tmp/incident-body.md
+
+          gh issue create \
+            --repo "${{ github.repository }}" \
+            --title "🚨 Production incident – $ts" \
+            --body-file /tmp/incident-body.md \
+            --label "incident,copilot"
+
+      - name: Notify n8n on new incident
+        if: steps.health.outputs.degraded == 'true' && steps.incident.outputs.number == ''
+        env:
+          N8N_WEBHOOK_URL: ${{ secrets.N8N_WEBHOOK_URL }}
+          N8N_API_KEY: ${{ secrets.N8N_API_KEY }}
+        run: |
+          if [[ -z "${N8N_WEBHOOK_URL:-}" ]]; then
+            echo "N8N_WEBHOOK_URL secret not set – skipping n8n notification"
+            exit 0
+          fi
+          if [[ -z "${N8N_API_KEY:-}" ]]; then
+            echo "N8N_API_KEY secret not set – skipping n8n notification"
+            exit 0
+          fi
+          curl -s -X POST "$N8N_WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -H "X-N8N-API-KEY: ${N8N_API_KEY}" \
+            -d "$(jq -n \
+              --arg event "production_health_failure" \
+              --arg api_status "${{ steps.api.outputs.code }}" \
+              --arg web_status "${{ steps.web.outputs.code }}" \
+              --arg run_url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+              --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+              '{event: $event, api_status: $api_status, web_status: $web_status, run_url: $run_url, timestamp: $ts}'
+            )" || echo "n8n notification failed (non-blocking)"
+
+      - name: Notify Slack on new incident
+        if: steps.health.outputs.degraded == 'true' && steps.incident.outputs.number == ''
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          if [[ -z "${SLACK_WEBHOOK_URL:-}" ]]; then
+            echo "SLACK_WEBHOOK_URL not set – skipping Slack notification"
+            exit 0
+          fi
+          curl -s -X POST "$SLACK_WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -d "$(jq -n \
+              --arg text "🚨 *AO-OS Production Incident*\nAPI: ${{ steps.api.outputs.code }} | Web: ${{ steps.web.outputs.code }}\nRun: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+              '{text: $text}'
+            )" || echo "Slack notification failed (non-blocking)"
+
+      - name: Auto-close resolved incident
+        if: steps.health.outputs.degraded == 'false' && steps.incident.outputs.number != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue close "${{ steps.incident.outputs.number }}" \
+            --repo "${{ github.repository }}" \
+            --comment "✅ All health checks passing. Incident auto-resolved at $(date -u '+%Y-%m-%dT%H:%M:%SZ')."

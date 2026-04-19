@@ -5,6 +5,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { LocationContextService } from '../../location/location-context.service';
 import { CreateVisitDto } from '../dto/create-visit.dto';
 import { TransitionVisitStatusDto } from '../dto/transition-visit-status.dto';
 import { ListVisitsQueryDto } from '../dto/list-visits.query.dto';
@@ -24,7 +25,10 @@ const VALID_STATUS_TRANSITIONS: Partial<Record<GuestVisitStatus, GuestVisitStatu
 
 @Injectable()
 export class VisitsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly locationContext: LocationContextService,
+  ) {}
 
   async initiateVisit(dto: CreateVisitDto) {
     const tier = await this.prisma.tier.findUnique({ where: { id: dto.tier_id } });
@@ -45,6 +49,8 @@ export class VisitsService {
       }
     }
 
+    const locationId = this.locationContext.locationOrNull?.id ?? null;
+
     const visit = await this.prisma.$transaction(async (tx: any) => {
       const created = await tx.visit.create({
         data: {
@@ -53,6 +59,7 @@ export class VisitsService {
           sourceType: dto.source_type,
           productType: dto.product_type,
           tierId: dto.tier_id,
+          locationId,
           durationMinutes: dto.duration_minutes,
           status: 'initiated',
           waiverRequired: dto.waiver_required ?? true,
@@ -81,7 +88,10 @@ export class VisitsService {
   }
 
   async getVisit(visitId: string) {
-    const visit = await this.prisma.visit.findUnique({ where: { id: visitId } });
+    const visit = await this.prisma.visit.findUnique({
+      where: { id: visitId },
+      include: { guest: true, tier: true },
+    });
     if (!visit) throw new NotFoundException('Visit not found');
     return this.toResponse(visit);
   }
@@ -107,12 +117,39 @@ export class VisitsService {
     }));
   }
 
+  async listVisits(query: ListVisitsQueryDto) {
+    const statuses = query.status
+      ? Array.isArray(query.status)
+        ? query.status
+        : [query.status]
+      : undefined;
+
+    const locationId = this.locationContext.locationOrNull?.id ?? null;
+
+    const visits = await this.prisma.visit.findMany({
+      where: {
+        ...(locationId ? { locationId } : {}),
+        ...(statuses ? { status: { in: statuses } } : {}),
+      },
+      include: { guest: true, tier: true },
+      orderBy: { createdAt: 'desc' },
+      take: 200,
+    });
+    return visits.map((v: any) => this.toResponse(v));
+  }
+
   async listGuestVisits(guestId: string, query: ListVisitsQueryDto) {
     const guest = await this.prisma.guest.findUnique({ where: { id: guestId } });
     if (!guest) throw new NotFoundException('Guest not found');
 
+    const statuses = query.status
+      ? Array.isArray(query.status)
+        ? query.status
+        : [query.status]
+      : undefined;
+
     const visits = await this.prisma.visit.findMany({
-      where: { guestId, ...(query.status ? { status: query.status } : {}) },
+      where: { guestId, ...(statuses ? { status: { in: statuses } } : {}) },
       orderBy: { createdAt: 'desc' },
     });
     return visits.map((v: any) => this.toResponse(v));
@@ -138,6 +175,11 @@ export class VisitsService {
     }
     if (dto.payment_status !== undefined) {
       updateData.paymentStatus = dto.payment_status;
+    }
+    if (dto.status === 'active' && !visit.startTime) {
+      const now = new Date();
+      updateData.startTime = now;
+      updateData.scheduledEndTime = new Date(now.getTime() + visit.durationMinutes * 60 * 1000);
     }
     if (dto.status === 'checked_out' && !visit.actualEndTime) {
       updateData.actualEndTime = new Date();
@@ -167,13 +209,22 @@ export class VisitsService {
   }
 
   private toResponse(visit: any) {
+    const guestName = visit.guest
+      ? `${visit.guest.firstName ?? ''} ${visit.guest.lastName ?? ''}`.trim() || null
+      : null;
+
     return {
       id: visit.id,
       guest_id: visit.guestId,
+      guest_name: guestName,
+      guest_email: visit.guest?.email ?? null,
+      tier_name: visit.tier?.name ?? null,
+      tier_code: visit.tier?.code ?? null,
       booking_id: visit.bookingId ?? null,
       source_type: visit.sourceType,
       product_type: visit.productType,
       tier_id: visit.tierId,
+      visit_mode: visit.visitMode ?? null,
       duration_minutes: visit.durationMinutes,
       status: visit.status,
       start_time: visit.startTime?.toISOString() ?? null,

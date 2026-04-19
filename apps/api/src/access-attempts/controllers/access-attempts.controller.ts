@@ -18,11 +18,15 @@ export class AccessAttemptsController {
   }
 
   @Get("access-attempts")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("front_desk", "operations", "admin")
   listAttempts(): Promise<AccessAttemptResponseDto[]> {
     return this.accessAttemptsService.listAttempts();
   }
 
   @Get("members/:id/access-attempts")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("front_desk", "operations", "admin")
   listMemberAttempts(@Param("id") id: string): Promise<AccessAttemptResponseDto[]> {
     return this.accessAttemptsService.listMemberAttempts(id);
   }

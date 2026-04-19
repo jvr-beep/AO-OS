@@ -1,6 +1,7 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from "@nestjs/common";
 import { Prisma, ResourceAvailabilityStatus } from "@prisma/client";
 import { PrismaService } from "../../prisma/prisma.service";
+import { LocationContextService } from "../../location/location-context.service";
 import { AvailabilitySearchResponseDto } from "../dto/availability-search.response.dto";
 import { CreateHoldDto } from "../dto/create-hold.dto";
 import { FinalizeAssignmentResponseDto } from "../dto/finalize-assignment.response.dto";
@@ -10,17 +11,23 @@ import { SearchAvailabilityQueryDto } from "../dto/search-availability.query.dto
 
 @Injectable()
 export class InventoryService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly locationContext: LocationContextService,
+  ) {}
 
   async searchAvailability(query: SearchAvailabilityQueryDto): Promise<AvailabilitySearchResponseDto> {
     if (!query.product_type) {
       throw new BadRequestException("product_type is required");
     }
 
+    const locationId = this.locationContext.locationOrNull?.id ?? null;
+
     const resources = await this.prisma.resource.findMany({
       where: {
         resourceType: query.product_type,
         status: "available",
+        ...(locationId ? { locationId } : {}),
         ...(query.tier_id ? { tierId: query.tier_id } : {})
       },
       include: { tier: true }
@@ -55,11 +62,14 @@ export class InventoryService {
       throw new NotFoundException("Visit not found");
     }
 
+    const locationId = this.locationContext.locationOrNull?.id ?? null;
+
     const resource = await this.prisma.resource.findFirst({
       where: {
         resourceType: dto.product_type,
         tierId: dto.tier_id,
-        status: "available"
+        status: "available",
+        ...(locationId ? { locationId } : {}),
       },
       orderBy: { updatedAt: "asc" }
     });

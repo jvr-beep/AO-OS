@@ -67,11 +67,15 @@ export class WristbandsController {
   }
 
   @Get(":id")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("front_desk", "operations", "admin")
   getWristbandById(@Param("id") id: string): Promise<WristbandResponseDto> {
     return this.wristbandsService.getWristbandById(id);
   }
 
   @Get()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("front_desk", "operations", "admin")
   listWristbands(): Promise<WristbandResponseDto[]> {
     return this.wristbandsService.listWristbands();
   }

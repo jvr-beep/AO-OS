@@ -128,21 +128,21 @@ export default function RoomsPage() {
           </form>
         </div>
         <table className="w-full text-sm">
-          <thead className="bg-ao-dark border-b border-gray-700">
+          <thead className="bg-surface-0 border-b border-gray-700">
             <tr>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-ao-teal uppercase tracking-wide">
+              <th className="text-left px-4 py-3 text-xs font-semibold text-accent-primary uppercase tracking-wide">
                 Code
               </th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-ao-teal uppercase tracking-wide">
+              <th className="text-left px-4 py-3 text-xs font-semibold text-accent-primary uppercase tracking-wide">
                 Name
               </th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-ao-teal uppercase tracking-wide">
+              <th className="text-left px-4 py-3 text-xs font-semibold text-accent-primary uppercase tracking-wide">
                 Type
               </th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-ao-teal uppercase tracking-wide">
+              <th className="text-left px-4 py-3 text-xs font-semibold text-accent-primary uppercase tracking-wide">
                 Status
               </th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-ao-teal uppercase tracking-wide">
+              <th className="text-left px-4 py-3 text-xs font-semibold text-accent-primary uppercase tracking-wide">
                 Flags
               </th>
               <th className="px-4 py-3" />
@@ -190,15 +190,15 @@ export default function RoomsPage() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2 text-xs">
-                      <Link href={`/rooms/${room.id}`} className="text-ao-teal hover:text-ao-primary transition-colors">
+                      <Link href={`/rooms/${room.id}`} className="text-accent-primary hover:text-accent-primary transition-colors">
                         View
                       </Link>
                       <span className="text-gray-600">|</span>
-                      <Link href={`/bookings?roomId=${room.id}`} className="text-ao-teal hover:text-ao-primary transition-colors">
+                      <Link href={`/bookings?roomId=${room.id}`} className="text-accent-primary hover:text-accent-primary transition-colors">
                         Book
                       </Link>
                       <span className="text-gray-600">|</span>
-                      <Link href={`/rooms/${room.id}#log-access`} className="text-ao-teal hover:text-ao-primary transition-colors">
+                      <Link href={`/rooms/${room.id}#log-access`} className="text-accent-primary hover:text-accent-primary transition-colors">
                         Log Access
                       </Link>
                     </div>

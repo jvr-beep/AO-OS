@@ -53,7 +53,7 @@ export default async function WristbandsPage({
 
       <div className="grid grid-cols-1 gap-4 mb-6 lg:grid-cols-2">
         <div className="card">
-          <h2 className="text-sm font-semibold text-ao-primary mb-3 uppercase tracking-wide">Issue Credential</h2>
+          <h2 className="text-sm font-semibold text-accent-primary mb-3 uppercase tracking-wide">Issue Credential</h2>
           <p className="text-xs text-gray-400 mb-3">Allowed roles: operations, admin.</p>
           <BrowserApiForm
             actionPath="/wristbands/issue"
@@ -85,7 +85,7 @@ export default async function WristbandsPage({
         </div>
 
         <div className="card">
-          <h2 className="text-sm font-semibold text-ao-primary mb-3 uppercase tracking-wide">Activate Credential</h2>
+          <h2 className="text-sm font-semibold text-accent-primary mb-3 uppercase tracking-wide">Activate Credential</h2>
           <p className="text-xs text-gray-400 mb-3">Allowed roles: front_desk, operations, admin.</p>
           <BrowserApiForm
             actionPath="/wristbands/activate"
@@ -111,7 +111,7 @@ export default async function WristbandsPage({
         </div>
 
         <div className="card">
-          <h2 className="text-sm font-semibold text-ao-primary mb-3 uppercase tracking-wide">Suspend Credential</h2>
+          <h2 className="text-sm font-semibold text-accent-primary mb-3 uppercase tracking-wide">Suspend Credential</h2>
           <p className="text-xs text-gray-400 mb-3">Allowed roles: operations, admin.</p>
           <BrowserApiForm
             actionPath="/wristbands/suspend"
@@ -137,7 +137,7 @@ export default async function WristbandsPage({
         </div>
 
         <div className="card">
-          <h2 className="text-sm font-semibold text-ao-primary mb-3 uppercase tracking-wide">Replace Credential</h2>
+          <h2 className="text-sm font-semibold text-accent-primary mb-3 uppercase tracking-wide">Replace Credential</h2>
           <p className="text-xs text-gray-400 mb-3">Allowed roles: operations, admin.</p>
           <BrowserApiForm
             actionPath="/wristbands/replace"
@@ -190,18 +190,18 @@ export default async function WristbandsPage({
           </form>
         </div>
         <table className="w-full text-sm">
-          <thead className="border-b border-gray-600 bg-ao-dark">
+          <thead className="border-b border-gray-600 bg-surface-0">
             <tr>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-ao-teal uppercase tracking-wide">
+              <th className="text-left px-4 py-3 text-xs font-semibold text-accent-primary uppercase tracking-wide">
                 UID
               </th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-ao-teal uppercase tracking-wide">
+              <th className="text-left px-4 py-3 text-xs font-semibold text-accent-primary uppercase tracking-wide">
                 Status
               </th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-ao-teal uppercase tracking-wide">
+              <th className="text-left px-4 py-3 text-xs font-semibold text-accent-primary uppercase tracking-wide">
                 Member ID
               </th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-ao-teal uppercase tracking-wide">
+              <th className="text-left px-4 py-3 text-xs font-semibold text-accent-primary uppercase tracking-wide">
                 Created
               </th>
             </tr>

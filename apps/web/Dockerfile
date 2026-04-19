@@ -8,8 +8,15 @@ RUN corepack enable
 # Copy workspace sources so pnpm can resolve monorepo packages.
 COPY . .
 
-# Install dependencies and build Next.js app.
+# Install dependencies.
 RUN pnpm install --frozen-lockfile
+
+# Build-time secrets (Next.js bakes NEXT_PUBLIC_* vars into the bundle at build time).
+ARG SESSION_SECRET
+ARG NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=""
+ENV SESSION_SECRET=$SESSION_SECRET
+ENV NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=$NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+
 RUN pnpm --filter @ao-os/web build
 
 ENV NODE_ENV=production

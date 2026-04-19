@@ -3,6 +3,7 @@
 import { redirect } from 'next/navigation'
 import { getApiBase } from '@/lib/api-base'
 import { getSession } from '@/lib/session'
+import { reportErrorAction } from '@/app/actions/report-error'
 import type { Role } from '@/types/api'
 
 type LoginResponse = {
@@ -218,5 +219,5 @@ export async function confirmStaffPasswordReset(formData: FormData) {
     redirect(buildResetPasswordUrl(token, 'error'))
   }
 
-  redirect('/login?reset=changed')
+  redirect('/login?reset=confirmed')
 }
