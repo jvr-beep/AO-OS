@@ -7,7 +7,7 @@ export function middleware(req: NextRequest) {
   if (pathname.startsWith('/_next')) return NextResponse.next()
 
   // ── Member portal ────────────────────────────────────────────────────────
-  if (pathname.startsWith('/member')) {
+  if (pathname === '/member' || pathname.startsWith('/member/')) {
     // Login page is public
     if (pathname === '/member/login') return NextResponse.next()
 
