@@ -19,8 +19,8 @@ jobs:
       DIRECT_URL: postgresql://postgres:postgres@localhost:5432/ao_os
       PORT: 4000
       AUTH_JWT_SECRET: ci-only-jwt-secret-not-used-in-prod
-      AUTH_SEED_ADMIN_EMAIL: ${{ secrets.CI_ADMIN_EMAIL || 'admin@ao-os.dev' }}
-      AUTH_SEED_ADMIN_PASSWORD: ${{ secrets.CI_ADMIN_PASSWORD || 'CiTestPass123!' }}
+      AUTH_SEED_ADMIN_EMAIL: ${{ secrets.CI_ADMIN_EMAIL }}
+      AUTH_SEED_ADMIN_PASSWORD: ${{ secrets.CI_ADMIN_PASSWORD }}
       AUTH_SEED_ADMIN_NAME: CI Admin
       NODE_ENV: test
 
@@ -95,7 +95,7 @@ jobs:
 
       - name: Seed test staff users
         env:
-          CI_FRONTDESK_PASSWORD: ${{ secrets.CI_FRONTDESK_PASSWORD || 'FrontDesk123!' }}
+          CI_FRONTDESK_PASSWORD: ${{ secrets.CI_FRONTDESK_PASSWORD }}
         run: |
           ADMIN_TOKEN=$(curl -s -X POST http://localhost:4000/v1/auth/login \
             -H "Content-Type: application/json" \

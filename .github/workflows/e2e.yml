@@ -21,8 +21,8 @@ jobs:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ao_os
       DIRECT_URL: postgresql://postgres:postgres@localhost:5432/ao_os
       AUTH_JWT_SECRET: ci-only-jwt-secret-not-used-in-prod
-      AUTH_SEED_ADMIN_EMAIL: ${{ secrets.CI_ADMIN_EMAIL || 'admin@ao-os.dev' }}
-      AUTH_SEED_ADMIN_PASSWORD: ${{ secrets.CI_ADMIN_PASSWORD || 'CiTestPass123!' }}
+      AUTH_SEED_ADMIN_EMAIL: ${{ secrets.CI_ADMIN_EMAIL }}
+      AUTH_SEED_ADMIN_PASSWORD: ${{ secrets.CI_ADMIN_PASSWORD }}
       AUTH_SEED_ADMIN_NAME: CI Admin
       NODE_ENV: test
       # Web runtime env
@@ -34,8 +34,8 @@ jobs:
       # E2E
       E2E_BASE_URL: http://localhost:3000
       E2E_API_BASE: http://localhost:4000/v1
-      E2E_ADMIN_EMAIL: ${{ secrets.CI_ADMIN_EMAIL || 'admin@ao-os.dev' }}
-      E2E_ADMIN_PASSWORD: ${{ secrets.CI_ADMIN_PASSWORD || 'CiTestPass123!' }}
+      E2E_ADMIN_EMAIL: ${{ secrets.CI_ADMIN_EMAIL }}
+      E2E_ADMIN_PASSWORD: ${{ secrets.CI_ADMIN_PASSWORD }}
 
     services:
       postgres:

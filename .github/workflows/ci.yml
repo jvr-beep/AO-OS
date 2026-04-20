@@ -76,8 +76,8 @@ jobs:
       DIRECT_URL: postgresql://postgres:postgres@localhost:5432/ao_os
       PORT: 4000
       AUTH_JWT_SECRET: ci-only-jwt-secret-not-used-in-prod
-      AUTH_SEED_ADMIN_EMAIL: admin@ao-os.dev
-      AUTH_SEED_ADMIN_PASSWORD: CiTestPass123!
+      AUTH_SEED_ADMIN_EMAIL: ${{ secrets.CI_ADMIN_EMAIL }}
+      AUTH_SEED_ADMIN_PASSWORD: ${{ secrets.CI_ADMIN_PASSWORD }}
       AUTH_SEED_ADMIN_NAME: CI Admin
       NODE_ENV: test
 
