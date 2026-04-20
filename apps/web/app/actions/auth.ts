@@ -93,7 +93,14 @@ export async function loginAction(
     return { error: result.error }
   }
 
-  await saveLoginSession(result.data)
+  console.log(`[auth] doLogin ok for ${result.data.staffUser.email}, saving session`)
+  try {
+    await saveLoginSession(result.data)
+  } catch (err) {
+    console.error('[auth] saveLoginSession threw:', err instanceof Error ? err.message : String(err))
+    return { error: 'Could not sign in right now. Please try again.' }
+  }
+  console.log('[auth] session saved, redirecting to /dashboard')
 
   redirect('/dashboard')
 }
