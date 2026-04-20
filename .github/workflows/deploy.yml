@@ -2,7 +2,7 @@ name: Deploy
 
 on:
   workflow_run:
-    workflows: [CI]
+    workflows: [E2E Tests]
     types: [completed]
     branches: [main]
   workflow_dispatch:

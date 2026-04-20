@@ -1,7 +1,9 @@
 name: E2E Tests
 
 on:
-  push:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
     branches: [main]
   workflow_dispatch:
 
@@ -13,17 +15,17 @@ jobs:
   e2e:
     name: Playwright E2E
     runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
 
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ao_os
       DIRECT_URL: postgresql://postgres:postgres@localhost:5432/ao_os
-      PORT: 4000
       AUTH_JWT_SECRET: ci-only-jwt-secret-not-used-in-prod
       AUTH_SEED_ADMIN_EMAIL: ${{ secrets.CI_ADMIN_EMAIL || 'admin@ao-os.dev' }}
       AUTH_SEED_ADMIN_PASSWORD: ${{ secrets.CI_ADMIN_PASSWORD || 'CiTestPass123!' }}
       AUTH_SEED_ADMIN_NAME: CI Admin
       NODE_ENV: test
-      # Web env
+      # Web runtime env
       SESSION_SECRET: ci-only-session-secret-exactly-32chars
       MEMBER_SESSION_SECRET: ci-only-member-secret-exactly-32chars
       KIOSK_SESSION_SECRET: ci-only-kiosk-secret-exactly-32chars!
@@ -53,6 +55,29 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull pre-built images
+        run: |
+          # Use the triggering CI run's exact SHA; fall back to :latest for manual dispatch
+          SHA="${{ github.event.workflow_run.head_sha }}"
+          if [[ -n "$SHA" ]]; then
+            docker pull ghcr.io/jvr-beep/ao-os-api:${SHA}
+            docker pull ghcr.io/jvr-beep/ao-os-web:${SHA}
+            docker tag ghcr.io/jvr-beep/ao-os-api:${SHA} ao-os-api:ci
+            docker tag ghcr.io/jvr-beep/ao-os-web:${SHA} ao-os-web:ci
+          else
+            docker pull ghcr.io/jvr-beep/ao-os-api:latest
+            docker pull ghcr.io/jvr-beep/ao-os-web:latest
+            docker tag ghcr.io/jvr-beep/ao-os-api:latest ao-os-api:ci
+            docker tag ghcr.io/jvr-beep/ao-os-web:latest ao-os-web:ci
+          fi
+
       - uses: pnpm/action-setup@v4
         with:
           version: 10.32.1
@@ -74,19 +99,19 @@ jobs:
       - name: Seed base data
         run: pnpm prisma db execute --file prisma/seed.sql --schema prisma/schema.prisma
 
-      - name: Build API
-        run: pnpm --filter api build
-
-      - name: Start API
+      - name: Start API container
         run: |
-          node apps/api/dist/main.js > /tmp/api.log 2>&1 &
-          echo $! > /tmp/api.pid
-          sleep 2
-          if ! kill -0 "$(cat /tmp/api.pid)" 2>/dev/null; then
-            echo "API crashed on start"
-            cat /tmp/api.log
-            exit 1
-          fi
+          docker run -d --name ao-os-api --network host \
+            -e DATABASE_URL="${{ env.DATABASE_URL }}" \
+            -e DIRECT_URL="${{ env.DIRECT_URL }}" \
+            -e PORT=4000 \
+            -e AUTH_JWT_SECRET="${{ env.AUTH_JWT_SECRET }}" \
+            -e AUTH_SEED_ADMIN_EMAIL="${{ env.AUTH_SEED_ADMIN_EMAIL }}" \
+            -e AUTH_SEED_ADMIN_PASSWORD="${{ env.AUTH_SEED_ADMIN_PASSWORD }}" \
+            -e AUTH_SEED_ADMIN_NAME="${{ env.AUTH_SEED_ADMIN_NAME }}" \
+            -e KIOSK_API_SECRET="${{ env.KIOSK_API_SECRET }}" \
+            -e NODE_ENV=test \
+            ao-os-api:ci
 
       - name: Wait for API health
         run: |
@@ -98,16 +123,19 @@ jobs:
             sleep 2
           done
           echo "API did not become healthy"
-          cat /tmp/api.log
+          docker logs ao-os-api
           exit 1
 
-      - name: Build web
-        run: pnpm --filter @ao-os/web build
-
-      - name: Start web
+      - name: Start Web container
         run: |
-          pnpm --filter @ao-os/web start > /tmp/web.log 2>&1 &
-          echo $! > /tmp/web.pid
+          docker run -d --name ao-os-web --network host \
+            -e SESSION_SECRET="${{ env.SESSION_SECRET }}" \
+            -e MEMBER_SESSION_SECRET="${{ env.MEMBER_SESSION_SECRET }}" \
+            -e KIOSK_SESSION_SECRET="${{ env.KIOSK_SESSION_SECRET }}" \
+            -e KIOSK_API_SECRET="${{ env.KIOSK_API_SECRET }}" \
+            -e API_BASE_URL="http://localhost:4000/v1" \
+            -e NODE_ENV=production \
+            ao-os-web:ci
 
       - name: Wait for web health
         run: |
@@ -119,7 +147,7 @@ jobs:
             sleep 2
           done
           echo "Web did not become healthy"
-          cat /tmp/web.log
+          docker logs ao-os-web
           exit 1
 
       - name: Install Playwright browsers
@@ -133,9 +161,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report
-          path: |
-            apps/web/playwright-report/
-            /tmp/playwright-results.json
+          path: apps/web/playwright-report/
           retention-days: 14
 
       - name: Upload failure screenshots & traces
@@ -148,17 +174,17 @@ jobs:
 
       - name: Show API log on failure
         if: failure()
-        run: cat /tmp/api.log || true
+        run: docker logs ao-os-api || true
 
       - name: Show web log on failure
         if: failure()
-        run: cat /tmp/web.log || true
+        run: docker logs ao-os-web || true
 
-      - name: Stop services
+      - name: Stop containers
         if: always()
         run: |
-          kill "$(cat /tmp/api.pid)" 2>/dev/null || true
-          kill "$(cat /tmp/web.pid)" 2>/dev/null || true
+          docker rm -f ao-os-api 2>/dev/null || true
+          docker rm -f ao-os-web 2>/dev/null || true
 
       - name: Notify self-heal on failure
         if: failure()
