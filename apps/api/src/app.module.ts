@@ -41,6 +41,7 @@ import { OpsModule } from "./ops/ops.module";
 import { VoiceModule } from "./voice/voice.module";
 import { KioskModule } from "./kiosk/kiosk.module";
 import { MapStudioModule } from "./map-studio/map-studio.module";
+import { SimulationModule } from "./simulation/simulation.module";
 
 @Module({
   imports: [
@@ -87,6 +88,7 @@ import { MapStudioModule } from "./map-studio/map-studio.module";
     MeModule,
     KioskModule,
     MapStudioModule,
+    SimulationModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard }
