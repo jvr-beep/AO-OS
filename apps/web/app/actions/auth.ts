@@ -55,6 +55,8 @@ async function doLogin(formData: FormData): Promise<LoginResult> {
   }
 
   if (!res.ok) {
+    const errBody = await res.text().catch(() => '')
+    console.error(`[login-diag] status=${res.status} body=${errBody.slice(0, 200)}`)
     if (res.status === 401 || res.status === 403) {
       return { ok: false, error: 'Invalid email or password.' }
     }
