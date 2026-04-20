@@ -44,6 +44,7 @@ async function doLogin(formData: FormData): Promise<LoginResult> {
   let res: Response
 
   try {
+    console.log(`[login-diag] fetching ${API_BASE}/auth/login`);
     res = await fetch(`${API_BASE}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
