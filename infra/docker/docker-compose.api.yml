@@ -1,8 +1,6 @@
 services:
   api:
-    build:
-      context: ../..
-      dockerfile: apps/api/Dockerfile
+    image: ghcr.io/jvr-beep/ao-os-api:latest
     container_name: ao-os-api
     restart: unless-stopped
     extra_hosts:
@@ -19,14 +17,7 @@ services:
       start_period: 30s
 
   web:
-    build:
-      context: ../..
-      dockerfile: apps/web/Dockerfile
-      args:
-        # SESSION_SECRET and NEXT_PUBLIC_* are baked in at build time by Next.js.
-        # The deploy script reads these from apps/web/.env before building.
-        SESSION_SECRET: ${SESSION_SECRET:-}
-        NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY:-}
+    image: ghcr.io/jvr-beep/ao-os-web:latest
     container_name: ao-os-web
     restart: unless-stopped
     env_file:

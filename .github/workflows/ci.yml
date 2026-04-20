@@ -151,3 +151,127 @@ jobs:
                 file_path: $file_path
               }'
             )" || echo "Self-heal notification failed (non-blocking)"
+
+  build-api:
+    name: Build & Push API image
+    runs-on: ubuntu-latest
+    needs: [typecheck, integration-tests]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push API
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: apps/api/Dockerfile
+          push: true
+          tags: ghcr.io/jvr-beep/ao-os-api:latest
+          cache-from: type=gha,scope=api
+          cache-to: type=gha,mode=max,scope=api
+
+      - name: Notify self-heal on failure
+        if: failure()
+        env:
+          AO_OS_SELF_HEAL: ${{ secrets.AO_OS_SELF_HEAL }}
+        run: |
+          if [[ -z "${AO_OS_SELF_HEAL:-}" ]]; then
+            echo "AO_OS_SELF_HEAL not set — skipping"
+            exit 0
+          fi
+          curl -s -X POST "$AO_OS_SELF_HEAL" \
+            -H "Content-Type: application/json" \
+            -d "$(jq -n \
+              --arg owner "${{ github.repository_owner }}" \
+              --arg repo "${{ github.event.repository.name }}" \
+              --arg branch "${{ github.ref_name }}" \
+              --arg commit_sha "${{ github.sha }}" \
+              --arg run_id "${{ github.run_id }}" \
+              '{
+                owner: $owner,
+                repo: $repo,
+                branch: $branch,
+                commit_sha: $commit_sha,
+                run_id: $run_id,
+                service: "api",
+                error_type: "docker_build_failure",
+                error_message: "API Docker build failed — see CI run for details",
+                file_path: "apps/api/Dockerfile"
+              }'
+            )" || echo "Self-heal notification failed (non-blocking)"
+
+  build-web:
+    name: Build & Push Web image
+    runs-on: ubuntu-latest
+    needs: [typecheck, integration-tests]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push Web
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: apps/web/Dockerfile
+          push: true
+          tags: ghcr.io/jvr-beep/ao-os-web:latest
+          cache-from: type=gha,scope=web
+          cache-to: type=gha,mode=max,scope=web
+
+      - name: Notify self-heal on failure
+        if: failure()
+        env:
+          AO_OS_SELF_HEAL: ${{ secrets.AO_OS_SELF_HEAL }}
+        run: |
+          if [[ -z "${AO_OS_SELF_HEAL:-}" ]]; then
+            echo "AO_OS_SELF_HEAL not set — skipping"
+            exit 0
+          fi
+          curl -s -X POST "$AO_OS_SELF_HEAL" \
+            -H "Content-Type: application/json" \
+            -d "$(jq -n \
+              --arg owner "${{ github.repository_owner }}" \
+              --arg repo "${{ github.event.repository.name }}" \
+              --arg branch "${{ github.ref_name }}" \
+              --arg commit_sha "${{ github.sha }}" \
+              --arg run_id "${{ github.run_id }}" \
+              '{
+                owner: $owner,
+                repo: $repo,
+                branch: $branch,
+                commit_sha: $commit_sha,
+                run_id: $run_id,
+                service: "web",
+                error_type: "docker_build_failure",
+                error_message: "Web Docker build failed — see CI run for details",
+                file_path: "apps/web/Dockerfile"
+              }'
+            )" || echo "Self-heal notification failed (non-blocking)"

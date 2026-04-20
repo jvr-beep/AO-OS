@@ -2,17 +2,18 @@ FROM node:22-bookworm-slim
 
 WORKDIR /app
 
-# Enable pnpm from packageManager metadata in the repo.
 RUN corepack enable
-
-# Install OpenSSL for Prisma runtime compatibility.
 RUN apt-get update -y && apt-get install -y openssl
 
-# Copy workspace sources so pnpm can resolve monorepo packages and Prisma schema.
+# Copy manifests before source so dependency install is a cached layer.
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/api/package.json ./apps/api/
+COPY prisma ./prisma/
+
+RUN pnpm install --frozen-lockfile
+
 COPY . .
 
-# Install dependencies and build API artifacts.
-RUN pnpm install --frozen-lockfile
 RUN pnpm prisma generate --schema ./prisma/schema.prisma
 RUN pnpm --filter api build
 

@@ -35,9 +35,10 @@ jobs:
           host: ${{ secrets.VM_HOST }}
           username: ${{ secrets.VM_USER }}
           key: ${{ secrets.VM_SSH_KEY }}
-          timeout: 60m
-          command_timeout: 60m
+          timeout: 15m
+          command_timeout: 15m
           envs: GH_TOKEN,GH_ACTOR,GH_REPOSITORY,RESEND_API_KEY
+          # GH_ACTOR is used by vm-post-deploy-smoke.sh for GHCR docker login
           script: |
             set -euo pipefail
 
@@ -52,7 +53,6 @@ jobs:
 
             echo "=== Pull latest ==="
             if [ -d "$REPO_DIR/.git" ]; then
-              # Try fast path: fix permissions and pull
               sudo chown -R "$(whoami)" "$REPO_DIR/.git" 2>/dev/null || true
               sudo chmod -R u+rwX "$REPO_DIR/.git" 2>/dev/null || true
               git -C "$REPO_DIR" remote set-url origin "$REPO_URL"
@@ -92,7 +92,7 @@ jobs:
             fi
 
             echo "=== Deploy ==="
-            bash scripts/vm-post-deploy-smoke.sh --build
+            bash scripts/vm-post-deploy-smoke.sh
 
       - name: Checkout repository
         uses: actions/checkout@v4

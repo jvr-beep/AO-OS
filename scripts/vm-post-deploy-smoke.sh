@@ -2,11 +2,6 @@
 
 set -euo pipefail
 
-BUILD_IMAGE=0
-if [[ "${1:-}" == "--build" ]]; then
-  BUILD_IMAGE=1
-fi
-
 REPO_ROOT="${REPO_ROOT:-$HOME/AO-OS}"
 API_BASE="${API_BASE:-http://localhost:4000}"
 WEB_BASE="${WEB_BASE-http://localhost:3000}"
@@ -91,13 +86,22 @@ if [[ -z "$(read_env "$WEB_ENV_FILE" "API_BASE_URL")" ]]; then
   upsert_env "$WEB_ENV_FILE" "API_BASE_URL" "http://ao-os-api:4000/v1"
 fi
 
-# Export build-time vars for docker-compose ARG interpolation
-SESSION_SECRET_VAL=$(read_env "$WEB_ENV_FILE" "SESSION_SECRET")
-STRIPE_PK=$(read_env "$WEB_ENV_FILE" "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY")
-export SESSION_SECRET="${SESSION_SECRET_VAL:-}"
-export NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY="${STRIPE_PK:-}"
-
 echo "=== Env configured ==="
+
+# ── Pull pre-built images from GHCR ──────────────────────────────────────────
+
+echo "=== Pulling images from GHCR ==="
+
+if [[ -z "${GH_TOKEN:-}" ]]; then
+  echo "ERROR: GH_TOKEN not set — cannot authenticate with GHCR"
+  exit 1
+fi
+
+echo "$GH_TOKEN" | docker login ghcr.io -u "${GH_ACTOR:-github-actions}" --password-stdin
+
+docker compose -f "$COMPOSE_FILE" pull
+
+echo "=== Images pulled ==="
 
 # ── HTTP helpers ──────────────────────────────────────────────────────────────
 
@@ -132,20 +136,10 @@ check_result() {
   fi
 }
 
-# ── Build API image ───────────────────────────────────────────────────────────
-
-echo "=== Building API image ==="
-docker rm -f ao-os-api 2>/dev/null || true
-
-if [[ "$BUILD_IMAGE" -eq 1 ]]; then
-  docker compose -f "$COMPOSE_FILE" build api
-fi
-
 # ── Run database migrations ───────────────────────────────────────────────────
 
 echo "=== Running database migrations ==="
-# Runs prisma migrate deploy in a temporary container using the freshly-built
-# API image. The image contains the full repo at /app including prisma/migrations/.
+docker rm -f ao-os-api 2>/dev/null || true
 docker compose -f "$COMPOSE_FILE" run --rm --no-deps \
   -e DATABASE_URL="$(read_env "$ENV_FILE" "DATABASE_URL")" \
   api sh -c "node_modules/.bin/prisma migrate deploy" \
@@ -169,16 +163,11 @@ for i in $(seq 1 60); do
   sleep 2
 done
 
-# ── Build & start web ─────────────────────────────────────────────────────────
+# ── Start web container ───────────────────────────────────────────────────────
 
 echo "=== Starting web container ==="
 docker rm -f ao-os-web 2>/dev/null || true
-# Kill any other container still holding port 3000 (leftover from failed deploys)
 docker ps -q --filter publish=3000 | xargs -r docker rm -f 2>/dev/null || true
-
-if [[ "$BUILD_IMAGE" -eq 1 ]]; then
-  docker compose -f "$COMPOSE_FILE" build web
-fi
 docker compose -f "$COMPOSE_FILE" up -d --force-recreate --remove-orphans web
 
 # ── Smoke tests ───────────────────────────────────────────────────────────────
@@ -189,7 +178,6 @@ FAILED=0
 api_health=$(http_code GET "$API_BASE/v1/health")
 
 if [[ -n "${WEB_BASE:-}" ]]; then
-  # Give web container a moment to start
   sleep 5
   web_login=$(http_code GET "$WEB_BASE/login")
 else
@@ -217,7 +205,6 @@ fi
 
 members_noauth=$(http_code GET "$API_BASE/v1/members")
 
-# Kiosk endpoint: POST /v1/kiosk/visit-payment with no secret → 401
 kiosk_noauth=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
   "$API_BASE/v1/kiosk/visit-payment" \
   -H "Content-Type: application/json" \
