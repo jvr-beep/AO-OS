@@ -1587,11 +1587,35 @@ model MapFloorVersion {
   notes       String?
   createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
 
-  floor       MapFloor  @relation(fields: [floorId], references: [id], onDelete: Cascade)
+  floor       MapFloor             @relation(fields: [floorId], references: [id], onDelete: Cascade)
+  approvals   MapVersionApproval[]
 
   @@unique([floorId, versionNum])
   @@index([floorId, isDraft])
   @@map("map_floor_versions")
+}
+
+enum MapApprovalStatus {
+  pending
+  approved
+  rejected
+}
+
+model MapVersionApproval {
+  id          String            @id @default(uuid())
+  versionId   String            @map("version_id")
+  requestedBy String            @map("requested_by")
+  status      MapApprovalStatus @default(pending)
+  reviewedBy  String?           @map("reviewed_by")
+  reviewNote  String?           @map("review_note")
+  n8nRunId    String?           @map("n8n_run_id")
+  requestedAt DateTime          @default(now()) @map("requested_at") @db.Timestamptz(6)
+  resolvedAt  DateTime?         @map("resolved_at") @db.Timestamptz(6)
+
+  version     MapFloorVersion   @relation(fields: [versionId], references: [id], onDelete: Cascade)
+
+  @@index([versionId, status])
+  @@map("map_version_approvals")
 }
 
 model MapObject {

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ConflictException } from "@nestjs/common";
+import { Injectable, NotFoundException, ConflictException, BadRequestException } from "@nestjs/common";
 import { resolveDisplayName } from "../../members/utils/member-display";
 import { PrismaService } from "../../prisma/prisma.service";
 import { LocationContextService } from "../../location/location-context.service";
@@ -9,6 +9,8 @@ import { MapFloorResponseDto, MapFloorVersionSummaryDto } from "../dto/map-floor
 import { MapFloorVersionResponseDto } from "../dto/map-floor-version.response.dto";
 import { MapObjectResponseDto } from "../dto/map-object.response.dto";
 import { MapStudioLiveResponseDto, LiveObjectStateDto } from "../dto/map-studio-live.response.dto";
+import { MapVersionApprovalResponseDto } from "../dto/map-version-approval.response.dto";
+import { MapAiAnalysisResponseDto, MapAiSuggestionDto } from "../dto/map-ai-analysis.response.dto";
 
 @Injectable()
 export class MapStudioService {
@@ -362,6 +364,256 @@ export class MapStudioService {
     };
 
     return { ...base, state: stateMap[locker.status] ?? "unknown" };
+  }
+
+  // ── Phase 4: Approval workflow ────────────────────────────────────────────
+
+  async requestApproval(
+    floorId: string,
+    versionId: string,
+    staffId: string,
+    note?: string,
+  ): Promise<MapVersionApprovalResponseDto> {
+    await this.assertFloorOwnership(floorId);
+    const version = await this.prisma.mapFloorVersion.findFirst({
+      where: { id: versionId, floorId },
+      include: { floor: { select: { name: true } } },
+    });
+    if (!version) throw new NotFoundException("Version not found");
+    if (!version.isDraft) throw new ConflictException("Version is already published");
+
+    const existing = await this.prisma.mapVersionApproval.findFirst({
+      where: { versionId, status: "pending" },
+    });
+    if (existing) throw new ConflictException("Approval already pending for this version");
+
+    const approval = await this.prisma.mapVersionApproval.create({
+      data: { versionId, requestedBy: staffId, reviewNote: note ?? null },
+    });
+
+    // Notify n8n approval workflow (non-blocking)
+    this.fireN8nApprovalWebhook({
+      floorId,
+      versionId,
+      versionNum: version.versionNum,
+      floorName: (version as any).floor?.name ?? floorId,
+      label: version.label,
+      requestedBy: staffId,
+      note: note ?? null,
+      approvalId: approval.id,
+    }).catch(() => {});
+
+    return this.toApprovalDto(approval);
+  }
+
+  async approveVersion(
+    floorId: string,
+    versionId: string,
+    staffId: string,
+    reviewNote?: string,
+  ): Promise<MapVersionApprovalResponseDto> {
+    await this.assertFloorOwnership(floorId);
+    const approval = await this.prisma.mapVersionApproval.findFirst({
+      where: { versionId, status: "pending" },
+    });
+    if (!approval) throw new NotFoundException("No pending approval for this version");
+
+    const [updated] = await this.prisma.$transaction([
+      this.prisma.mapVersionApproval.update({
+        where: { id: approval.id },
+        data: { status: "approved", reviewedBy: staffId, reviewNote: reviewNote ?? null, resolvedAt: new Date() },
+      }),
+      this.prisma.mapFloorVersion.update({
+        where: { id: versionId },
+        data: { isDraft: false, publishedAt: new Date(), publishedBy: staffId },
+      }),
+    ]);
+
+    return this.toApprovalDto(updated);
+  }
+
+  async rejectVersion(
+    floorId: string,
+    versionId: string,
+    staffId: string,
+    reviewNote?: string,
+  ): Promise<MapVersionApprovalResponseDto> {
+    await this.assertFloorOwnership(floorId);
+    const approval = await this.prisma.mapVersionApproval.findFirst({
+      where: { versionId, status: "pending" },
+    });
+    if (!approval) throw new NotFoundException("No pending approval for this version");
+
+    const updated = await this.prisma.mapVersionApproval.update({
+      where: { id: approval.id },
+      data: { status: "rejected", reviewedBy: staffId, reviewNote: reviewNote ?? null, resolvedAt: new Date() },
+    });
+
+    return this.toApprovalDto(updated);
+  }
+
+  async getVersionApproval(floorId: string, versionId: string): Promise<MapVersionApprovalResponseDto | null> {
+    await this.assertFloorOwnership(floorId);
+    const approval = await this.prisma.mapVersionApproval.findFirst({
+      where: { versionId },
+      orderBy: { requestedAt: "desc" },
+    });
+    return approval ? this.toApprovalDto(approval) : null;
+  }
+
+  // ── Phase 4: AI floor analysis ────────────────────────────────────────────
+
+  async analyzeFloor(floorId: string): Promise<MapAiAnalysisResponseDto> {
+    await this.assertFloorOwnership(floorId);
+
+    const floor = await this.prisma.mapFloor.findFirst({
+      where: { id: floorId, locationId: this.locationId },
+      select: { name: true },
+    });
+    if (!floor) throw new NotFoundException("Floor not found");
+
+    const objects = await this.prisma.mapObject.findMany({
+      where: { floorId, active: true },
+      orderBy: { code: "asc" },
+    });
+
+    const webhookUrl = process.env.N8N_MAP_STUDIO_AI_WEBHOOK;
+
+    if (webhookUrl) {
+      try {
+        const res = await fetch(webhookUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            floorId,
+            floorName: floor.name,
+            objects: objects.map((o) => ({
+              code: o.code,
+              label: o.label,
+              objectType: o.objectType,
+              svgElementId: o.svgElementId,
+              roomId: o.roomId,
+              accessPointId: o.accessPointId,
+              lockerId: o.lockerId,
+              accessZoneId: o.accessZoneId,
+            })),
+          }),
+          signal: AbortSignal.timeout(30_000),
+        });
+
+        if (res.ok) {
+          const data = await res.json() as { suggestions?: MapAiSuggestionDto[]; summary?: string };
+          return {
+            floorId,
+            floorName: floor.name,
+            objectCount: objects.length,
+            analysedAt: new Date(),
+            suggestions: data.suggestions ?? [],
+            summary: data.summary ?? "Analysis complete.",
+          };
+        }
+      } catch {
+        // fall through to local analysis
+      }
+    }
+
+    // Local fallback analysis when n8n is unavailable
+    const suggestions: MapAiSuggestionDto[] = [];
+
+    const rooms = objects.filter((o) => o.objectType === "room");
+    const doors = objects.filter((o) => o.objectType === "door");
+    const readers = objects.filter((o) => o.objectType === "access_reader");
+
+    for (const r of rooms) {
+      if (!r.roomId) {
+        suggestions.push({
+          type: "missing_binding",
+          severity: "warning",
+          objectCode: r.code,
+          message: `Room "${r.label}" has no Room ID binding.`,
+          suggestion: "Bind this map object to a Room record in the database.",
+        });
+      }
+      if (!r.svgElementId) {
+        suggestions.push({
+          type: "missing_binding",
+          severity: "info",
+          objectCode: r.code,
+          message: `Room "${r.label}" has no SVG element ID.`,
+          suggestion: "Set svgElementId to enable live overlay highlighting.",
+        });
+      }
+    }
+
+    for (const d of doors) {
+      if (!d.accessPointId) {
+        suggestions.push({
+          type: "missing_binding",
+          severity: "warning",
+          objectCode: d.code,
+          message: `Door "${d.label}" has no Access Point binding.`,
+          suggestion: "Bind to an AccessPoint to enable zone-based access control.",
+        });
+      }
+    }
+
+    if (readers.length === 0 && doors.length > 0) {
+      suggestions.push({
+        type: "anomaly",
+        severity: "info",
+        objectCode: null,
+        message: `${doors.length} door(s) defined but no access readers placed.`,
+        suggestion: "Add access_reader objects for doors that have physical readers installed.",
+      });
+    }
+
+    const codes = objects.map((o) => o.code);
+    const duplicates = codes.filter((c, i) => codes.indexOf(c) !== i);
+    for (const dup of [...new Set(duplicates)]) {
+      suggestions.push({
+        type: "naming",
+        severity: "critical",
+        objectCode: dup,
+        message: `Duplicate object code "${dup}" detected.`,
+        suggestion: "Each map object must have a unique code within the floor.",
+      });
+    }
+
+    const summary =
+      suggestions.length === 0
+        ? `Floor looks good — ${objects.length} objects, no issues detected.`
+        : `Found ${suggestions.length} suggestion(s) across ${objects.length} objects.`;
+
+    return { floorId, floorName: floor.name, objectCount: objects.length, analysedAt: new Date(), suggestions, summary };
+  }
+
+  private async fireN8nApprovalWebhook(payload: Record<string, unknown>): Promise<void> {
+    const webhookUrl = process.env.N8N_MAP_STUDIO_APPROVAL_WEBHOOK;
+    if (!webhookUrl) return;
+    const appBase = process.env.AO_APP_BASE_URL ?? "https://app.aosanctuary.com";
+    await fetch(webhookUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...payload,
+        reviewUrl: `${appBase}/map-studio/${payload.floorId}`,
+      }),
+      signal: AbortSignal.timeout(10_000),
+    });
+  }
+
+  private toApprovalDto(a: any): MapVersionApprovalResponseDto {
+    return {
+      id: a.id,
+      versionId: a.versionId,
+      requestedBy: a.requestedBy,
+      status: a.status,
+      reviewedBy: a.reviewedBy ?? null,
+      reviewNote: a.reviewNote ?? null,
+      n8nRunId: a.n8nRunId ?? null,
+      requestedAt: a.requestedAt,
+      resolvedAt: a.resolvedAt ?? null,
+    };
   }
 
   private async assertFloorOwnership(floorId: string): Promise<void> {

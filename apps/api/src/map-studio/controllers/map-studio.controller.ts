@@ -23,6 +23,8 @@ import { MapFloorResponseDto } from "../dto/map-floor.response.dto";
 import { MapFloorVersionResponseDto } from "../dto/map-floor-version.response.dto";
 import { MapObjectResponseDto } from "../dto/map-object.response.dto";
 import { MapStudioLiveResponseDto } from "../dto/map-studio-live.response.dto";
+import { MapVersionApprovalResponseDto } from "../dto/map-version-approval.response.dto";
+import { MapAiAnalysisResponseDto } from "../dto/map-ai-analysis.response.dto";
 
 @Controller("map-studio")
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -132,5 +134,60 @@ export class MapStudioController {
   @Roles("front_desk", "operations", "admin")
   getLiveState(@Param("floorId") floorId: string): Promise<MapStudioLiveResponseDto> {
     return this.mapStudioService.getLiveState(floorId);
+  }
+
+  // ── Phase 4: Approval workflow ────────────────────────────────────────────
+
+  @Get("floors/:floorId/versions/:versionId/approval")
+  @Roles("front_desk", "operations", "admin")
+  getVersionApproval(
+    @Param("floorId") floorId: string,
+    @Param("versionId") versionId: string,
+  ): Promise<MapVersionApprovalResponseDto | null> {
+    return this.mapStudioService.getVersionApproval(floorId, versionId);
+  }
+
+  @Post("floors/:floorId/versions/:versionId/request-approval")
+  @Roles("front_desk", "operations", "admin")
+  requestApproval(
+    @Param("floorId") floorId: string,
+    @Param("versionId") versionId: string,
+    @Body() body: { note?: string },
+    @Req() req: Request,
+  ): Promise<MapVersionApprovalResponseDto> {
+    const staffId = (req as any).user?.sub ?? "system";
+    return this.mapStudioService.requestApproval(floorId, versionId, staffId, body?.note);
+  }
+
+  @Post("floors/:floorId/versions/:versionId/approve")
+  @Roles("operations", "admin")
+  approveVersion(
+    @Param("floorId") floorId: string,
+    @Param("versionId") versionId: string,
+    @Body() body: { reviewNote?: string },
+    @Req() req: Request,
+  ): Promise<MapVersionApprovalResponseDto> {
+    const staffId = (req as any).user?.sub ?? "system";
+    return this.mapStudioService.approveVersion(floorId, versionId, staffId, body?.reviewNote);
+  }
+
+  @Post("floors/:floorId/versions/:versionId/reject")
+  @Roles("operations", "admin")
+  rejectVersion(
+    @Param("floorId") floorId: string,
+    @Param("versionId") versionId: string,
+    @Body() body: { reviewNote?: string },
+    @Req() req: Request,
+  ): Promise<MapVersionApprovalResponseDto> {
+    const staffId = (req as any).user?.sub ?? "system";
+    return this.mapStudioService.rejectVersion(floorId, versionId, staffId, body?.reviewNote);
+  }
+
+  // ── Phase 4: AI analysis ──────────────────────────────────────────────────
+
+  @Post("floors/:floorId/ai-analyze")
+  @Roles("operations", "admin")
+  analyzeFloor(@Param("floorId") floorId: string): Promise<MapAiAnalysisResponseDto> {
+    return this.mapStudioService.analyzeFloor(floorId);
   }
 }
