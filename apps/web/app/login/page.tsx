@@ -5,7 +5,7 @@ export default function LoginPage({
 }: {
   searchParams: { reset?: string; resetToken?: string }
 }) {
-  const resetState = searchParams.reset === 'sent' || searchParams.reset === 'error'
+  const resetState = (searchParams.reset === 'sent' || searchParams.reset === 'error' || searchParams.reset === 'expired' || searchParams.reset === 'confirmed')
     ? searchParams.reset
     : null
 

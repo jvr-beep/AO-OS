@@ -376,7 +376,7 @@ export class AuthService {
       const staffUser = await (this.prisma as any).staffUser.findUnique({ where: { email: input.email } }) as StaffUserRecord | null;
       if (staffUser && staffUser.active) {
         const payload = { sub: staffUser.id, email: staffUser.email, purpose: "staff_password_reset" };
-        const rawToken = await this.jwtService.signAsync(payload, { expiresIn: "30m" });
+        const rawToken = await this.jwtService.signAsync(payload, { expiresIn: "24h" });
         try {
           await this.emailService.sendStaffPasswordReset(input.email, rawToken);
         } catch (err) {
@@ -393,8 +393,9 @@ export class AuthService {
     let payload: { sub: string; email: string; purpose: string };
     try {
       payload = await this.jwtService.verifyAsync(input.token);
-    } catch {
-      throw new BadRequestException("INVALID_OR_EXPIRED_TOKEN");
+    } catch (err: any) {
+      const code = err?.name === "TokenExpiredError" ? "EXPIRED_TOKEN" : "INVALID_OR_EXPIRED_TOKEN";
+      throw new BadRequestException(code);
     }
 
     if (payload.purpose !== "staff_password_reset") {

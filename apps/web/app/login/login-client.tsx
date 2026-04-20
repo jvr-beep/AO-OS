@@ -10,7 +10,7 @@ const LAST_USER_KEY = 'ao-os-last-login-user'
 const MAX_USERS = 8
 
 type Props = {
-  resetState: 'sent' | 'error' | 'confirmed' | null
+  resetState: 'sent' | 'error' | 'expired' | 'confirmed' | null
   resetToken: string | null
 }
 
@@ -92,6 +92,12 @@ export default function LoginClient({ resetState, resetToken }: Props) {
         {resetState === 'error' && (
           <div className="mb-4 rounded border border-warning/40 bg-warning/10 px-4 py-3 text-sm text-text-primary font-sans">
             Could not submit password reset request. Please try again.
+          </div>
+        )}
+
+        {resetState === 'expired' && (
+          <div className="mb-4 rounded border border-warning/40 bg-warning/10 px-4 py-3 text-sm text-text-primary font-sans">
+            That reset link has expired. Request a new one below.
           </div>
         )}
 

@@ -185,7 +185,8 @@ export async function confirmStaffPasswordReset(formData: FormData) {
       httpStatus: res.status,
       apiUrl: `${API_BASE}/auth/staff-password-reset/confirm`,
     })
-    redirect('/login?reset=error')
+    const isExpired = body.includes('EXPIRED_TOKEN')
+    redirect(isExpired ? '/login?reset=expired' : '/login?reset=error')
   }
 
   redirect('/login?reset=confirmed')
