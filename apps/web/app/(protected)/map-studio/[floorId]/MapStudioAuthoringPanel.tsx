@@ -71,7 +71,11 @@ const severityClass = {
   critical: 'bg-red-900/30 text-red-300',
 }
 
-export function MapStudioAuthoringPanel({ floorId }: { floorId: string }) {
+const API = 'https://api.aosanctuary.com/v1'
+
+export function MapStudioAuthoringPanel({ floorId, token }: { floorId: string; token: string }) {
+  const base = `${API}/map-studio/floors/${floorId}`
+  const auth = { Authorization: `Bearer ${token}` }
   const [tab, setTab] = useState<Tab>('upload')
   const [versions, setVersions] = useState<MapFloorVersion[] | null>(null)
   const [objects, setObjects] = useState<MapObject[] | null>(null)
@@ -104,7 +108,7 @@ export function MapStudioAuthoringPanel({ floorId }: { floorId: string }) {
   const loadVersions = useCallback(async () => {
     setBusy(true)
     try {
-      const res = await fetch(`/api/map-studio/${floorId}/versions`, { cache: 'no-store' })
+      const res = await fetch(`${base}/versions`, { headers: auth, cache: 'no-store' })
       const data: MapFloorVersion[] = await res.json()
       setVersions(data)
       // Load approval status for all draft versions
@@ -117,7 +121,7 @@ export function MapStudioAuthoringPanel({ floorId }: { floorId: string }) {
 
   const loadApproval = async (versionId: string) => {
     try {
-      const res = await fetch(`/api/map-studio/${floorId}/versions/${versionId}/approval`, { cache: 'no-store' })
+      const res = await fetch(`${base}/versions/${versionId}/approval`, { headers: auth, cache: 'no-store' })
       if (res.ok) {
         const data = await res.json()
         setApprovals((prev) => ({ ...prev, [versionId]: data }))
@@ -135,7 +139,7 @@ export function MapStudioAuthoringPanel({ floorId }: { floorId: string }) {
     if (!confirm('Publish this version? It will become the live map for this floor.')) return
     setBusy(true)
     try {
-      const res = await fetch(`/api/map-studio/${floorId}/versions/${versionId}/publish`, { method: 'PUT' })
+      const res = await fetch(`${base}/versions/${versionId}/publish`, { method: 'PUT', headers: auth })
       if (res.ok) { flash('Version published.'); loadVersions() }
       else { const j = await res.json(); flash(j.message ?? 'Failed to publish.', true) }
     } finally { setBusy(false) }
@@ -145,7 +149,7 @@ export function MapStudioAuthoringPanel({ floorId }: { floorId: string }) {
     if (!confirm(`Create a new draft from v${versionNum}?`)) return
     setBusy(true)
     try {
-      const res = await fetch(`/api/map-studio/${floorId}/versions/${versionId}/rollback`, { method: 'POST' })
+      const res = await fetch(`${base}/versions/${versionId}/rollback`, { method: 'POST', headers: auth })
       if (res.ok) { flash(`New draft created from v${versionNum}.`); loadVersions() }
       else { flash('Rollback failed.', true) }
     } finally { setBusy(false) }
@@ -154,9 +158,9 @@ export function MapStudioAuthoringPanel({ floorId }: { floorId: string }) {
   const requestApproval = async (versionId: string) => {
     setBusy(true)
     try {
-      const res = await fetch(`/api/map-studio/${floorId}/versions/${versionId}/request-approval`, {
+      const res = await fetch(`${base}/versions/${versionId}/request-approval`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { ...auth, 'Content-Type': 'application/json' },
         body: JSON.stringify({ note: approvalNote[versionId] || undefined }),
       })
       if (res.ok) {
@@ -174,9 +178,9 @@ export function MapStudioAuthoringPanel({ floorId }: { floorId: string }) {
     if (!confirm('Approve and publish this version?')) return
     setBusy(true)
     try {
-      const res = await fetch(`/api/map-studio/${floorId}/versions/${versionId}/approve`, {
+      const res = await fetch(`${base}/versions/${versionId}/approve`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { ...auth, 'Content-Type': 'application/json' },
         body: JSON.stringify({ reviewNote: reviewNote || undefined }),
       })
       if (res.ok) { flash('Version approved and published.'); setReviewNote(''); loadVersions() }
@@ -189,9 +193,9 @@ export function MapStudioAuthoringPanel({ floorId }: { floorId: string }) {
     if (!confirm('Reject this version?')) return
     setBusy(true)
     try {
-      const res = await fetch(`/api/map-studio/${floorId}/versions/${versionId}/reject`, {
+      const res = await fetch(`${base}/versions/${versionId}/reject`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { ...auth, 'Content-Type': 'application/json' },
         body: JSON.stringify({ reviewNote }),
       })
       if (res.ok) { flash('Version rejected.'); setReviewNote(''); loadVersions() }
@@ -213,9 +217,9 @@ export function MapStudioAuthoringPanel({ floorId }: { floorId: string }) {
     if (!svgPreview) return
     setBusy(true)
     try {
-      const res = await fetch(`/api/map-studio/${floorId}/versions`, {
+      const res = await fetch(`${base}/versions`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { ...auth, 'Content-Type': 'application/json' },
         body: JSON.stringify({
           svgContent: svgPreview,
           label: uploadLabel || undefined,
@@ -239,7 +243,7 @@ export function MapStudioAuthoringPanel({ floorId }: { floorId: string }) {
   const loadObjects = useCallback(async () => {
     setBusy(true)
     try {
-      const res = await fetch(`/api/map-studio/${floorId}/objects`, { cache: 'no-store' })
+      const res = await fetch(`${base}/objects`, { headers: auth, cache: 'no-store' })
       setObjects(await res.json())
     } finally { setBusy(false) }
   }, [floorId])
@@ -248,9 +252,9 @@ export function MapStudioAuthoringPanel({ floorId }: { floorId: string }) {
     if (!editingObj || !editingObj.code || !editingObj.label || !editingObj.objectType) return
     setBusy(true)
     try {
-      const res = await fetch(`/api/map-studio/${floorId}/objects`, {
+      const res = await fetch(`${base}/objects`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { ...auth, 'Content-Type': 'application/json' },
         body: JSON.stringify(editingObj),
       })
       if (res.ok) { flash('Object saved.'); setEditingObj(null); loadObjects() }
@@ -262,7 +266,7 @@ export function MapStudioAuthoringPanel({ floorId }: { floorId: string }) {
     if (!confirm(`Delete object "${obj.label}" (${obj.code})?`)) return
     setBusy(true)
     try {
-      const res = await fetch(`/api/map-studio/${floorId}/objects/${obj.id}`, { method: 'DELETE' })
+      const res = await fetch(`${base}/objects/${obj.id}`, { method: 'DELETE', headers: auth })
       if (res.ok || res.status === 204) { flash('Object deleted.'); loadObjects() }
       else { flash('Delete failed.', true) }
     } finally { setBusy(false) }
@@ -274,7 +278,7 @@ export function MapStudioAuthoringPanel({ floorId }: { floorId: string }) {
     setBusy(true)
     setAiAnalysis(null)
     try {
-      const res = await fetch(`/api/map-studio/${floorId}/ai-analyze`, { method: 'POST' })
+      const res = await fetch(`${base}/ai-analyze`, { method: 'POST', headers: auth })
       if (res.ok) { setAiAnalysis(await res.json()) }
       else { const j = await res.json(); flash(j.message ?? 'Analysis failed.', true) }
     } finally { setBusy(false) }

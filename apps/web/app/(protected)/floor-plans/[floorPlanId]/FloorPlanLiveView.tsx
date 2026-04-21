@@ -61,12 +61,16 @@ function statusDot(area: LiveArea) {
   return 'bg-surface-2'
 }
 
+const API = 'https://api.aosanctuary.com/v1'
+
 export function FloorPlanLiveView({
   floorPlanId,
   initialData,
+  token,
 }: {
   floorPlanId: string
   initialData: LiveData | null
+  token: string
 }) {
   const [data, setData] = useState<LiveData | null>(initialData)
   const [selectedArea, setSelectedArea] = useState<LiveArea | null>(null)
@@ -76,7 +80,8 @@ export function FloorPlanLiveView({
   const refresh = useCallback(async () => {
     setRefreshing(true)
     try {
-      const res = await fetch(`/api/floor-plans/${floorPlanId}/live`, {
+      const res = await fetch(`${API}/floor-plans/${floorPlanId}/live`, {
+        headers: { Authorization: `Bearer ${token}` },
         cache: 'no-store',
       })
       if (res.ok) {
@@ -95,6 +100,7 @@ export function FloorPlanLiveView({
   }, [floorPlanId, selectedArea])
 
   useEffect(() => {
+    if (!initialData) refresh()
     const interval = setInterval(refresh, 30_000)
     return () => clearInterval(interval)
   }, [refresh])

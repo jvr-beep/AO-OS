@@ -82,12 +82,16 @@ function StatePill({ state }: { state: LiveObject['state'] }) {
   )
 }
 
+const API = 'https://api.aosanctuary.com/v1'
+
 export function MapStudioViewer({
   floorId,
   initialData,
+  token,
 }: {
   floorId: string
   initialData: LiveData | null
+  token: string
 }) {
   const [data, setData] = useState<LiveData | null>(initialData)
   const [selected, setSelected] = useState<LiveObject | null>(null)
@@ -99,7 +103,10 @@ export function MapStudioViewer({
   const refresh = useCallback(async () => {
     setRefreshing(true)
     try {
-      const res = await fetch(`/api/map-studio/${floorId}/live`, { cache: 'no-store' })
+      const res = await fetch(`${API}/map-studio/floors/${floorId}/live`, {
+        headers: { Authorization: `Bearer ${token}` },
+        cache: 'no-store',
+      })
       if (res.ok) {
         const json: LiveData = await res.json()
         setData(json)
@@ -111,8 +118,9 @@ export function MapStudioViewer({
     }
   }, [floorId])
 
-  // Auto-refresh every 30s
+  // Auto-refresh every 30s, initial load if no initialData
   useEffect(() => {
+    if (!initialData) refresh()
     const id = setInterval(refresh, 30_000)
     return () => clearInterval(id)
   }, [refresh])
