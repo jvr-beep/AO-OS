@@ -44,8 +44,6 @@ async function doLogin(formData: FormData): Promise<LoginResult> {
   let res: Response
 
   try {
-    const myIp = await fetch('https://api64.ipify.org?format=json', { cache: 'no-store' }).then(r => r.json()).catch(() => ({ ip: 'unknown' }))
-    console.log(`[login-diag] vercel-outbound-ip=${myIp.ip} fetching ${API_BASE}/auth/login`);
     res = await fetch(`${API_BASE}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -57,8 +55,6 @@ async function doLogin(formData: FormData): Promise<LoginResult> {
   }
 
   if (!res.ok) {
-    const errBody = await res.text().catch(() => '')
-    console.error(`[login-diag] status=${res.status} body=${errBody.slice(0, 200)}`)
     if (res.status === 401 || res.status === 403) {
       return { ok: false, error: 'Invalid email or password.' }
     }
@@ -68,6 +64,11 @@ async function doLogin(formData: FormData): Promise<LoginResult> {
 
   const data = await res.json() as LoginResponse
   return { ok: true, data }
+}
+
+export async function setSessionAction(data: LoginResponse) {
+  await saveLoginSession(data)
+  redirect('/dashboard')
 }
 
 export async function login(formData: FormData) {
