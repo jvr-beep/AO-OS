@@ -44,7 +44,8 @@ async function doLogin(formData: FormData): Promise<LoginResult> {
   let res: Response
 
   try {
-    console.log(`[login-diag] fetching ${API_BASE}/auth/login`);
+    const myIp = await fetch('https://api64.ipify.org?format=json', { cache: 'no-store' }).then(r => r.json()).catch(() => ({ ip: 'unknown' }))
+    console.log(`[login-diag] vercel-outbound-ip=${myIp.ip} fetching ${API_BASE}/auth/login`);
     res = await fetch(`${API_BASE}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
