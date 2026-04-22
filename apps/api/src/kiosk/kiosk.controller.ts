@@ -5,6 +5,7 @@ import { BillingService } from '../stripe/billing.service'
 import { VoiceService, VisitMode, RitualPhase } from '../voice/voice.service'
 import { CreateVisitPaymentIntentDto } from '../stripe/dto/create-visit-payment-intent.dto'
 import { KioskBookingService } from './kiosk-booking.service'
+import { InventoryService } from '../inventory/services/inventory.service'
 
 class RitualGuidanceDto {
   @IsString()
@@ -30,15 +31,39 @@ class BookingCheckinDto {
   booking_id!: string
 }
 
+class InventoryHoldDto {
+  @IsString()
+  visit_id!: string
+
+  @IsString()
+  tier_id!: string
+
+  @IsString()
+  @IsIn(['locker', 'room'])
+  product_type!: 'locker' | 'room'
+
+  duration_minutes!: number
+}
+
+class InventoryFinalizeDto {
+  @IsString()
+  visit_id!: string
+
+  @IsString()
+  hold_id!: string
+}
+
 /**
  * Kiosk-specific API surface.
  * All routes here are protected by the shared KIOSK_API_SECRET header,
  * not by staff JWT — the kiosk server-action layer is the sole caller.
  *
- * POST /v1/kiosk/visit-payment     — create a Stripe PaymentIntent for a guest visit
- * POST /v1/kiosk/ritual-guidance   — Lane 2 TTS ritual coaching (George voice)
- * POST /v1/kiosk/booking-lookup    — find a booking by code or phone
- * POST /v1/kiosk/booking-checkin   — create a visit from a booking + payment intent if balance due
+ * POST /v1/kiosk/visit-payment        — create a Stripe PaymentIntent for a guest visit
+ * POST /v1/kiosk/ritual-guidance      — Lane 2 TTS ritual coaching (George voice)
+ * POST /v1/kiosk/booking-lookup       — find a booking by code or phone
+ * POST /v1/kiosk/booking-checkin      — create a visit from a booking + payment intent if balance due
+ * POST /v1/kiosk/inventory-hold       — reserve a resource during payment window
+ * POST /v1/kiosk/inventory-finalize   — convert hold to assignment after payment
  */
 @Controller('kiosk')
 @UseGuards(KioskApiKeyGuard)
@@ -47,6 +72,7 @@ export class KioskController {
     private readonly billingService: BillingService,
     private readonly voiceService: VoiceService,
     private readonly kioskBookingService: KioskBookingService,
+    private readonly inventoryService: InventoryService,
   ) {}
 
   @Post('visit-payment')
@@ -86,5 +112,26 @@ export class KioskController {
   @HttpCode(201)
   checkinBooking(@Body() dto: BookingCheckinDto) {
     return this.kioskBookingService.checkinBooking(dto.booking_id)
+  }
+
+  @Post('inventory-hold')
+  @HttpCode(201)
+  createInventoryHold(@Body() dto: InventoryHoldDto) {
+    return this.inventoryService.createHold({
+      visit_id: dto.visit_id,
+      tier_id: dto.tier_id,
+      product_type: dto.product_type,
+      duration_minutes: dto.duration_minutes,
+      hold_scope: 'resource',
+    })
+  }
+
+  @Post('inventory-finalize')
+  @HttpCode(200)
+  finalizeInventory(@Body() dto: InventoryFinalizeDto) {
+    return this.inventoryService.finalizeAssignment({
+      visit_id: dto.visit_id,
+      hold_id: dto.hold_id,
+    })
   }
 }

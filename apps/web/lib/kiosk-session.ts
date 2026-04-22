@@ -25,11 +25,14 @@ export interface KioskSessionData {
   bookingData?: KioskBookingData
   productType?: 'locker' | 'room'
   tierCode?: string
+  tierId?: string
   tierName?: string
   visitMode?: 'restore' | 'release' | 'retreat'
   amountCents?: number
   paymentIntentId?: string
   clientSecret?: string
+  holdId?: string
+  holdExpiresAt?: string
   waiverCompleted?: boolean
   wristbandAssigned?: boolean
 }

@@ -186,11 +186,35 @@ export async function selectTierAction(formData: FormData): Promise<void> {
 
     session.visitId = visit.id
     session.tierCode = tierCode
+    session.tierId = tierId
     session.tierName = tierName
     session.visitMode = (visitMode as 'restore' | 'release' | 'retreat') || 'restore'
     session.amountCents = amountCents
     session.paymentIntentId = payment.paymentIntentId
     session.clientSecret = payment.clientSecret
+
+    // Reserve a resource for this visit during the payment window
+    const holdRes = await fetch(`${API_BASE}/kiosk/inventory-hold`, {
+      method: 'POST',
+      headers: {
+        ...LOCATION_HEADERS,
+        'x-ao-kiosk-secret': process.env.KIOSK_API_SECRET ?? '',
+      },
+      body: JSON.stringify({
+        visit_id: visit.id,
+        tier_id: tierId,
+        product_type: session.productType,
+        duration_minutes: durationMinutes,
+      }),
+    })
+
+    if (holdRes.ok) {
+      const hold = await holdRes.json()
+      session.holdId = hold.id
+      session.holdExpiresAt = hold.expiresAt
+    }
+    // Hold failure is non-fatal — proceed without hold, resource assigned at check-in
+
     await session.save()
   } catch (err: any) {
     console.error(`[kiosk-error] selectTierAction: ${err?.message ?? err}`)
@@ -292,6 +316,23 @@ export async function confirmBookingCheckinAction(): Promise<void> {
 
 export async function completeKioskAction(): Promise<void> {
   const session = await getKioskSession()
+
+  // Finalize resource hold → marks resource as occupied and visit as checked_in
+  if (session.holdId && session.visitId) {
+    try {
+      await fetch(`${API_BASE}/kiosk/inventory-finalize`, {
+        method: 'POST',
+        headers: {
+          ...LOCATION_HEADERS,
+          'x-ao-kiosk-secret': process.env.KIOSK_API_SECRET ?? '',
+        },
+        body: JSON.stringify({ visit_id: session.visitId, hold_id: session.holdId }),
+      })
+    } catch {
+      // Non-fatal — staff can finalize manually if needed
+    }
+  }
+
   session.wristbandAssigned = true
   await session.save()
   redirect('/kiosk/active')

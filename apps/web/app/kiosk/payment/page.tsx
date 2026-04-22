@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { getKioskSession } from '@/lib/kiosk-session'
 import { KioskPaymentClient } from './KioskPaymentClient'
+import { HoldTimer } from './HoldTimer'
 
 export default async function KioskPaymentPage() {
   const session = await getKioskSession()
@@ -40,7 +41,13 @@ export default async function KioskPaymentPage() {
           amountCents={session.amountCents ?? 0}
         />
 
-        <p className="text-center text-xs text-text-muted mt-6">
+        {session.holdExpiresAt && (
+          <div className="mt-4">
+            <HoldTimer expiresAt={session.holdExpiresAt} />
+          </div>
+        )}
+
+        <p className="text-center text-xs text-text-muted mt-4">
           Payments processed securely by Stripe. AO does not store card details.
         </p>
       </div>
