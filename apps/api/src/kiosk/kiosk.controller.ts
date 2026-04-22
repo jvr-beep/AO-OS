@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body, Query, HttpCode, UseGuards } from '@nestjs/common'
+import { Controller, Post, Get, Body, Query, HttpCode, UseGuards, Logger } from '@nestjs/common'
 import { IsString, IsIn, IsOptional } from 'class-validator'
 import { KioskApiKeyGuard } from '../auth/guards/kiosk-api-key.guard'
 import { BillingService } from '../stripe/billing.service'
@@ -79,6 +79,8 @@ class ResolveQrDto {
 @Controller('kiosk')
 @UseGuards(KioskApiKeyGuard)
 export class KioskController {
+  private readonly logger = new Logger(KioskController.name)
+
   constructor(
     private readonly billingService: BillingService,
     private readonly voiceService: VoiceService,
@@ -174,7 +176,10 @@ export class KioskController {
     const { memberId } = this.qrTokenService.verify(dto.token)
 
     const member = await this.prisma.member.findUnique({ where: { id: memberId } })
-    if (!member) throw new Error('Member not found')
+    if (!member) {
+      this.logger.warn(`resolve-qr: member ${memberId} not found in DB`)
+      throw new Error('Member not found')
+    }
 
     // Find existing guest by email or phone
     let guest = member.email
@@ -212,6 +217,10 @@ export class KioskController {
       latestWaiver != null &&
       latestWaiver.isCurrent &&
       (currentWaiverDoc == null || latestWaiver.waiverVersion === currentWaiverDoc.version)
+
+    this.logger.log(
+      `resolve-qr: member ${memberId} → guest ${guest.id} | waiver_current=${waiverCurrent}`,
+    )
 
     return {
       guest_id: guest.id,

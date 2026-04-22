@@ -415,6 +415,8 @@ export async function resolveQrAction(formData: FormData): Promise<void> {
     await session.save()
   } catch (err: any) {
     if (err?.digest?.startsWith('NEXT_REDIRECT')) throw err
+    console.error(`[kiosk-error] resolveQrAction: ${err?.message ?? err}`)
+    await reportErrorAction({ message: err?.message ?? 'resolveQrAction failed', page: '/kiosk/scan', errorName: err?.name ?? 'KioskError', apiUrl: `${API_BASE}/kiosk/resolve-qr` })
     redirect(`/kiosk/scan?error=${encodeURIComponent(err?.message ?? 'QR scan failed')}`)
   }
 

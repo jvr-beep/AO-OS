@@ -9,7 +9,7 @@ import {
   Alert,
 } from 'react-native'
 import SignatureCanvas from 'react-native-signature-canvas'
-import { getCurrentWaiver, getWaiverStatus, submitWaiver, WaiverDocument } from '@/lib/api'
+import { getCurrentWaiver, getWaiverStatus, submitWaiver, reportMobileError, WaiverDocument } from '@/lib/api'
 import { getSession } from '@/lib/storage'
 import { WAIVER_VERSION } from '@/lib/config'
 
@@ -49,6 +49,7 @@ export default function WaiverScreen() {
       await submitWaiver(guestId, sig, waiver.version ?? WAIVER_VERSION)
       setStep('done')
     } catch (err: any) {
+      reportMobileError({ message: err?.message ?? 'submitWaiver failed', screen: 'waiver', errorName: err?.name })
       Alert.alert('Submission failed', err.message)
       setStep('sign')
     }

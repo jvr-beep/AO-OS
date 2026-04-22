@@ -11,7 +11,7 @@ import {
   AppStateStatus,
 } from 'react-native'
 import QRCode from 'react-native-qrcode-svg'
-import { getMemberProfile, getQrToken, MemberProfile } from '@/lib/api'
+import { getMemberProfile, getQrToken, reportMobileError, MemberProfile } from '@/lib/api'
 
 const QR_REFRESH_MS = 4 * 60 * 1000 // 4 min — token TTL is 5 min
 const FOREGROUND_REFRESH_THRESHOLD_MS = 60_000 // refresh on resume if < 60s left
@@ -27,7 +27,14 @@ export default function HomeScreen() {
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   async function fetchToken() {
-    const { token: t, expiresAt: exp } = await getQrToken()
+    let result: { token: string; expiresAt: string }
+    try {
+      result = await getQrToken()
+    } catch (err: any) {
+      reportMobileError({ message: err?.message ?? 'getQrToken failed', screen: 'home', errorName: err?.name })
+      throw err
+    }
+    const { token: t, expiresAt: exp } = result
     setToken(t)
     const expDate = new Date(exp)
     setExpiresAt(expDate)
@@ -41,6 +48,11 @@ export default function HomeScreen() {
     try {
       const [p] = await Promise.all([getMemberProfile(), fetchToken()])
       setProfile(p)
+    } catch (err: any) {
+      // 401s are handled by the unauthorized handler in _layout; other errors reported above
+      if (!err?.message?.includes('Session expired')) {
+        reportMobileError({ message: err?.message ?? 'loadAll failed', screen: 'home', errorName: err?.name })
+      }
     } finally {
       setLoading(false)
       setRefreshing(false)

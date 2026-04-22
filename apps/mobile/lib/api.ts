@@ -32,6 +32,32 @@ async function memberFetch<T>(
   return res.json() as Promise<T>
 }
 
+// ── Error reporting ───────────────────────────────────────────────────────
+
+export async function reportMobileError(params: {
+  message: string
+  screen: string
+  errorName?: string
+}): Promise<void> {
+  try {
+    await memberFetch('/ops/exceptions', {
+      method: 'POST',
+      body: JSON.stringify({
+        exception_type: 'MOBILE_CLIENT_ERROR',
+        severity: 'warning',
+        payload: {
+          message: params.message,
+          page: `mobile:${params.screen}`,
+          error_name: params.errorName ?? null,
+          api_url: null,
+        },
+      }),
+    })
+  } catch {
+    // Never throw from error reporter
+  }
+}
+
 // ── Auth ──────────────────────────────────────────────────────────────────
 
 export async function memberLogin(email: string, password: string): Promise<{
