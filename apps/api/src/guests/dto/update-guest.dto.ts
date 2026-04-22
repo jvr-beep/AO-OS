@@ -10,4 +10,5 @@ export class UpdateGuestDto {
   marketingOptIn?: boolean;
   riskFlagStatus?: GuestRiskFlagStatus;
   riskFlagReason?: string | null;
+  preferences?: Record<string, unknown> | null;
 }

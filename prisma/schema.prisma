@@ -1150,6 +1150,7 @@ model Guest {
   riskFlaggedAt     DateTime?             @map("risk_flagged_at") @db.Timestamptz(6)
   riskFlaggedBy     String?               @map("risk_flagged_by")
   marketingOptIn    Boolean               @default(false) @map("marketing_opt_in")
+  preferences       Json?                 @map("preferences")
   locationId        String?               @map("location_id")
   version           Int                   @default(1)
   createdAt         DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
@@ -1242,6 +1243,11 @@ model Resource {
   createdAt             DateTime                   @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt             DateTime                   @updatedAt @map("updated_at") @db.Timestamptz(6)
 
+  description           String?                    @db.Text
+  features              Json                       @default("[]")
+  floorSection          String?                    @map("floor_section")
+  isDiscrete            Boolean                    @default(false) @map("is_discrete")
+  maxOccupancy          Int?                       @map("max_occupancy")
   locationId            String?                    @map("location_id")
 
   location              Location?                  @relation("LocationResources", fields: [locationId], references: [id])

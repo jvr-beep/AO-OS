@@ -70,6 +70,7 @@ export class GuestsService {
           ...(dto.dateOfBirth !== undefined ? { dateOfBirth: dto.dateOfBirth ? new Date(dto.dateOfBirth) : null } : {}),
           ...(dto.preferredLanguage !== undefined ? { preferredLanguage: dto.preferredLanguage?.trim() || "en" } : {}),
           ...(dto.marketingOptIn !== undefined ? { marketingOptIn: dto.marketingOptIn } : {}),
+          ...(dto.preferences !== undefined ? { preferences: dto.preferences ?? null } : {}),
           ...(riskFlagChange ? { riskFlagStatus: dto.riskFlagStatus } : {}),
           ...(riskFlagChange ? { riskFlagReason: dto.riskFlagReason ?? null } : {}),
           ...(riskFlagChange ? { riskFlaggedAt: new Date() } : {}),
@@ -216,6 +217,7 @@ export class GuestsService {
     riskFlaggedAt?: Date | null;
     riskFlaggedBy?: string | null;
     marketingOptIn: boolean;
+    preferences?: unknown;
     createdAt: Date;
     updatedAt: Date;
     version: number;
@@ -234,6 +236,7 @@ export class GuestsService {
       riskFlaggedAt: guest.riskFlaggedAt?.toISOString() ?? null,
       riskFlaggedBy: guest.riskFlaggedBy ?? null,
       marketingOptIn: guest.marketingOptIn,
+      preferences: (guest.preferences as Record<string, unknown> | null) ?? null,
       createdAt: guest.createdAt.toISOString(),
       updatedAt: guest.updatedAt.toISOString(),
       version: guest.version,

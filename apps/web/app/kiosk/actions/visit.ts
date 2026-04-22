@@ -141,7 +141,7 @@ export async function selectTierAction(formData: FormData): Promise<void> {
   if (!tierCode || !tierId) redirect('/kiosk/select?error=Please+select+a+tier')
 
   try {
-    // Initiate visit
+    // Initiate visit — hold and payment happen after room selection
     const visitRes = await fetch(`${API_BASE}/visits`, {
       method: 'POST',
       headers: LOCATION_HEADERS,
@@ -151,7 +151,7 @@ export async function selectTierAction(formData: FormData): Promise<void> {
         product_type: session.productType,
         tier_id: tierId,
         duration_minutes: durationMinutes,
-        waiver_required: false, // already completed
+        waiver_required: false,
         visit_mode: visitMode,
       }),
     })
@@ -163,58 +163,13 @@ export async function selectTierAction(formData: FormData): Promise<void> {
 
     const visit = await visitRes.json()
 
-    // Create payment intent via kiosk endpoint (shared secret, no JWT required)
-    const paymentRes = await fetch(`${API_BASE}/kiosk/visit-payment`, {
-      method: 'POST',
-      headers: {
-        ...LOCATION_HEADERS,
-        'x-ao-kiosk-secret': process.env.KIOSK_API_SECRET ?? '',
-      },
-      body: JSON.stringify({
-        visitId: visit.id,
-        guestId: session.guestId,
-        tierCode,
-        amountCents,
-      }),
-    })
-
-    if (!paymentRes.ok) {
-      const body = await paymentRes.json().catch(() => ({}))
-      redirect(`/kiosk/select?error=${encodeURIComponent(body?.message ?? 'Failed to create payment')}`)
-    }
-
-    const payment = await paymentRes.json()
-
     session.visitId = visit.id
     session.tierCode = tierCode
     session.tierId = tierId
     session.tierName = tierName
     session.visitMode = (visitMode as 'restore' | 'release' | 'retreat') || 'restore'
     session.amountCents = amountCents
-    session.paymentIntentId = payment.paymentIntentId
-    session.clientSecret = payment.clientSecret
-
-    // Reserve a resource for this visit during the payment window
-    const holdRes = await fetch(`${API_BASE}/kiosk/inventory-hold`, {
-      method: 'POST',
-      headers: {
-        ...LOCATION_HEADERS,
-        'x-ao-kiosk-secret': process.env.KIOSK_API_SECRET ?? '',
-      },
-      body: JSON.stringify({
-        visit_id: visit.id,
-        tier_id: tierId,
-        product_type: session.productType,
-        duration_minutes: durationMinutes,
-      }),
-    })
-
-    if (holdRes.ok) {
-      const hold = await holdRes.json()
-      session.holdId = hold.id
-      session.holdExpiresAt = hold.expiresAt
-    }
-    // Hold failure is non-fatal — proceed without hold, resource assigned at check-in
+    session.durationMinutes = durationMinutes
 
     await session.save()
   } catch (err: any) {
@@ -223,7 +178,7 @@ export async function selectTierAction(formData: FormData): Promise<void> {
     redirect(`/kiosk/select?error=${encodeURIComponent(err.message ?? 'Failed to set up your visit')}`)
   }
 
-  redirect('/kiosk/payment')
+  redirect('/kiosk/select-room')
 }
 
 // ── Booking path: look up booking by code or phone ───────────────────────
@@ -271,6 +226,8 @@ export async function lookupBookingAction(formData: FormData): Promise<void> {
     session.waiverCompleted = waiverCurrent
     session.bookingData = {
       bookingCode: booking.booking_code,
+      tierId: booking.tier_id,
+      tierCode: booking.tier_code ?? '',
       tierName: booking.tier_name,
       productType: booking.product_type,
       arrivalWindowStart: booking.arrival_window_start,
@@ -312,14 +269,11 @@ export async function confirmBookingCheckinAction(): Promise<void> {
 
     const data = await res.json()
     session.visitId = data.visit_id
-    session.waiverCompleted = true // booking guests are pre-verified
+    session.tierId = data.tier_id
+    session.tierCode = data.tier_code
+    session.waiverCompleted = true
     session.productType = (session.bookingData?.productType ?? 'locker') as 'locker' | 'room'
-
-    if (data.client_secret) {
-      session.amountCents = data.balance_due_cents
-      session.paymentIntentId = data.payment_intent_id
-      session.clientSecret = data.client_secret
-    }
+    session.amountCents = data.balance_due_cents
 
     await session.save()
   } catch (err: any) {
@@ -327,9 +281,86 @@ export async function confirmBookingCheckinAction(): Promise<void> {
     redirect(`/kiosk/booking/confirm?error=${encodeURIComponent(err?.message ?? 'Check-in failed')}`)
   }
 
-  // Skip waiver for booked guests — go to payment if balance due, else assign
-  const hasBalance = (session.clientSecret != null)
-  redirect(hasBalance ? '/kiosk/payment' : '/kiosk/assign')
+  redirect('/kiosk/select-room')
+}
+
+// ── Step 4b: Select room/locker + create hold + payment intent ────────────
+
+export async function selectRoomAction(formData: FormData): Promise<void> {
+  const session = await getKioskSession()
+  if (!session.guestId || !session.visitId || !session.tierId) redirect('/kiosk')
+
+  const resourceId = formData.get('resourceId')?.toString()
+  const resourceLabel = formData.get('resourceLabel')?.toString() ?? ''
+  const floorSection = formData.get('floorSection')?.toString() || null
+
+  if (!resourceId) redirect('/kiosk/select-room?error=Please+select+a+room+or+locker')
+
+  try {
+    // Create inventory hold on the chosen resource
+    const holdRes = await fetch(`${API_BASE}/kiosk/inventory-hold`, {
+      method: 'POST',
+      headers: {
+        ...LOCATION_HEADERS,
+        'x-ao-kiosk-secret': process.env.KIOSK_API_SECRET ?? '',
+      },
+      body: JSON.stringify({
+        visit_id: session.visitId,
+        tier_id: session.tierId,
+        product_type: session.productType,
+        duration_minutes: session.durationMinutes ?? session.bookingData?.durationMinutes ?? 120,
+        resource_id: resourceId,
+      }),
+    })
+
+    if (!holdRes.ok) {
+      const body = await holdRes.json().catch(() => ({}))
+      redirect(`/kiosk/select-room?error=${encodeURIComponent(body?.message ?? 'Resource is no longer available')}`)
+    }
+
+    const hold = await holdRes.json()
+    session.holdId = hold.id
+    session.holdExpiresAt = hold.expiresAt
+    session.selectedResourceId = resourceId
+    session.selectedResourceLabel = resourceLabel
+    session.selectedFloorSection = floorSection
+
+    // Create payment intent if there is a balance due
+    const amountCents = session.amountCents ?? 0
+    if (amountCents > 0) {
+      const paymentRes = await fetch(`${API_BASE}/kiosk/visit-payment`, {
+        method: 'POST',
+        headers: {
+          ...LOCATION_HEADERS,
+          'x-ao-kiosk-secret': process.env.KIOSK_API_SECRET ?? '',
+        },
+        body: JSON.stringify({
+          visitId: session.visitId,
+          guestId: session.guestId,
+          tierCode: session.tierCode,
+          amountCents,
+        }),
+      })
+
+      if (!paymentRes.ok) {
+        const body = await paymentRes.json().catch(() => ({}))
+        redirect(`/kiosk/select-room?error=${encodeURIComponent(body?.message ?? 'Failed to create payment')}`)
+      }
+
+      const payment = await paymentRes.json()
+      session.paymentIntentId = payment.paymentIntentId
+      session.clientSecret = payment.clientSecret
+    }
+
+    await session.save()
+  } catch (err: any) {
+    if (err?.digest?.startsWith('NEXT_REDIRECT')) throw err
+    console.error(`[kiosk-error] selectRoomAction: ${err?.message ?? err}`)
+    await reportErrorAction({ message: err?.message ?? 'selectRoomAction failed', page: '/kiosk/select-room', errorName: err?.name ?? 'KioskError', apiUrl: `${API_BASE}/kiosk/inventory-hold` })
+    redirect(`/kiosk/select-room?error=${encodeURIComponent(err.message ?? 'Failed to reserve resource')}`)
+  }
+
+  redirect(session.clientSecret ? '/kiosk/payment' : '/kiosk/assign')
 }
 
 // ── Step 5: Complete visit after wristband assigned ───────────────────────

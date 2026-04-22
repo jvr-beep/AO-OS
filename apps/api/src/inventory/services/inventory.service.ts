@@ -52,6 +52,35 @@ export class InventoryService {
     };
   }
 
+  async listAvailableResources(productType: string, tierId?: string, locationId?: string | null) {
+    const resources = await this.prisma.resource.findMany({
+      where: {
+        resourceType: productType as any,
+        status: "available",
+        ...(tierId ? { tierId } : {}),
+        ...(locationId ? { locationId } : {}),
+      },
+      include: { tier: { select: { name: true, code: true } } },
+      orderBy: [{ floorSection: 'asc' }, { displayLabel: 'asc' }],
+    });
+
+    return resources.map((r) => ({
+      id: r.id,
+      displayLabel: r.displayLabel,
+      resourceType: r.resourceType,
+      zoneCode: r.zoneCode,
+      floorSection: (r as any).floorSection ?? null,
+      isDiscrete: (r as any).isDiscrete ?? false,
+      maxOccupancy: (r as any).maxOccupancy ?? null,
+      description: (r as any).description ?? null,
+      features: (r as any).features ?? [],
+      tierId: r.tierId,
+      tierName: r.tier.name,
+      tierCode: r.tier.code,
+      status: r.status,
+    }));
+  }
+
   async createHold(dto: CreateHoldDto): Promise<ResourceHoldResponseDto> {
     if (!dto.visit_id || !dto.tier_id || !dto.product_type || !dto.hold_scope) {
       throw new BadRequestException("visit_id, product_type, tier_id, and hold_scope are required");
@@ -64,15 +93,25 @@ export class InventoryService {
 
     const locationId = this.locationContext.locationOrNull?.id ?? null;
 
-    const resource = await this.prisma.resource.findFirst({
-      where: {
-        resourceType: dto.product_type,
-        tierId: dto.tier_id,
-        status: "available",
-        ...(locationId ? { locationId } : {}),
-      },
-      orderBy: { updatedAt: "asc" }
-    });
+    let resource;
+    if (dto.resource_id) {
+      resource = await this.prisma.resource.findFirst({
+        where: { id: dto.resource_id, status: "available" },
+      });
+      if (!resource) {
+        throw new ConflictException("Requested resource is not available");
+      }
+    } else {
+      resource = await this.prisma.resource.findFirst({
+        where: {
+          resourceType: dto.product_type,
+          tierId: dto.tier_id,
+          status: "available",
+          ...(locationId ? { locationId } : {}),
+        },
+        orderBy: { updatedAt: "asc" }
+      });
+    }
 
     if (!resource) {
       throw new ConflictException("No resource available");
@@ -213,6 +252,11 @@ export class InventoryService {
       displayLabel: r.displayLabel,
       resourceType: r.resourceType,
       zoneCode: r.zoneCode,
+      floorSection: (r as any).floorSection ?? null,
+      isDiscrete: (r as any).isDiscrete ?? false,
+      maxOccupancy: (r as any).maxOccupancy ?? null,
+      description: (r as any).description ?? null,
+      features: (r as any).features ?? [],
       status: r.status,
       tierId: r.tierId,
       tierName: r.tier.name,

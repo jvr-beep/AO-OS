@@ -4,4 +4,5 @@ export class CreateHoldDto {
   tier_id!: string;
   duration_minutes!: number;
   hold_scope!: "resource" | "tier_pool";
+  resource_id?: string;
 }

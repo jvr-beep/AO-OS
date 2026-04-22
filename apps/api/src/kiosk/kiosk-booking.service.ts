@@ -5,14 +5,12 @@ import {
   BadRequestException,
 } from '@nestjs/common'
 import { PrismaService } from '../prisma/prisma.service'
-import { BillingService } from '../stripe/billing.service'
 import { LocationContextService } from '../location/location-context.service'
 
 @Injectable()
 export class KioskBookingService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly billing: BillingService,
     private readonly locationContext: LocationContextService,
   ) {}
 
@@ -109,28 +107,11 @@ export class KioskBookingService {
       return { visit }
     })
 
-    const balanceDueCents = booking.balanceDueCents ?? 0
-
-    if (balanceDueCents > 0) {
-      const payment = await this.billing.createVisitPaymentIntent({
-        visitId: visit.id,
-        guestId: booking.guestId,
-        tierCode: booking.tier.code,
-        amountCents: balanceDueCents,
-      })
-      return {
-        visit_id: visit.id,
-        balance_due_cents: balanceDueCents,
-        payment_intent_id: payment.paymentIntentId,
-        client_secret: payment.clientSecret,
-      }
-    }
-
     return {
       visit_id: visit.id,
-      balance_due_cents: 0,
-      payment_intent_id: null,
-      client_secret: null,
+      tier_id: booking.tierId,
+      tier_code: booking.tier.code,
+      balance_due_cents: booking.balanceDueCents ?? 0,
     }
   }
 
@@ -140,6 +121,7 @@ export class KioskBookingService {
         id: booking.id,
         booking_code: booking.bookingCode,
         status: booking.status,
+        tier_id: booking.tierId,
         tier_name: booking.tier?.name ?? null,
         product_type: booking.productType,
         arrival_window_start: booking.arrivalWindowStart.toISOString(),

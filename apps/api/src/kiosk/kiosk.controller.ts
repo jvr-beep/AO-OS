@@ -1,5 +1,5 @@
-import { Controller, Post, Body, HttpCode, UseGuards } from '@nestjs/common'
-import { IsString, IsIn } from 'class-validator'
+import { Controller, Post, Get, Body, Query, HttpCode, UseGuards } from '@nestjs/common'
+import { IsString, IsIn, IsOptional } from 'class-validator'
 import { KioskApiKeyGuard } from '../auth/guards/kiosk-api-key.guard'
 import { BillingService } from '../stripe/billing.service'
 import { VoiceService, VisitMode, RitualPhase } from '../voice/voice.service'
@@ -43,6 +43,10 @@ class InventoryHoldDto {
   product_type!: 'locker' | 'room'
 
   duration_minutes!: number
+
+  @IsOptional()
+  @IsString()
+  resource_id?: string
 }
 
 class InventoryFinalizeDto {
@@ -118,6 +122,16 @@ export class KioskController {
     return this.kioskBookingService.checkinBooking(dto.booking_id)
   }
 
+  @Get('available-resources')
+  @HttpCode(200)
+  getAvailableResources(
+    @Query('product_type') productType: string,
+    @Query('tier_id') tierId?: string,
+  ) {
+    const locationId = null
+    return this.inventoryService.listAvailableResources(productType, tierId, locationId)
+  }
+
   @Post('inventory-hold')
   @HttpCode(201)
   createInventoryHold(@Body() dto: InventoryHoldDto) {
@@ -127,6 +141,7 @@ export class KioskController {
       product_type: dto.product_type,
       duration_minutes: dto.duration_minutes,
       hold_scope: 'resource',
+      resource_id: dto.resource_id,
     })
   }
 

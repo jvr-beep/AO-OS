@@ -8,6 +8,8 @@ import type { IronSession } from 'iron-session'
  */
 export interface KioskBookingData {
   bookingCode: string
+  tierId: string
+  tierCode: string
   tierName: string | null
   productType: string
   arrivalWindowStart: string
@@ -31,10 +33,15 @@ export interface KioskSessionData {
   amountCents?: number
   paymentIntentId?: string
   clientSecret?: string
+  durationMinutes?: number
   holdId?: string
   holdExpiresAt?: string
   waiverCompleted?: boolean
   wristbandAssigned?: boolean
+  selectedResourceId?: string
+  selectedResourceLabel?: string
+  selectedFloorSection?: string | null
+  guestPreferences?: Record<string, unknown> | null
 }
 
 const KIOSK_SESSION_OPTIONS = {

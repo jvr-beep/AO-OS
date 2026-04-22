@@ -12,6 +12,7 @@ export class GuestResponseDto {
   riskFlaggedAt?: string | null;
   riskFlaggedBy?: string | null;
   marketingOptIn!: boolean;
+  preferences?: Record<string, unknown> | null;
   createdAt!: string;
   updatedAt!: string;
   version!: number;
