@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { getKioskSession } from '@/lib/kiosk-session'
 import { lookupBookingAction } from '../actions/visit'
+import { KioskErrorBanner } from '../components/KioskErrorBanner'
 
 export default async function KioskBookingLookupPage({
   searchParams,
@@ -85,9 +86,7 @@ export default async function KioskBookingLookupPage({
             </div>
           )}
 
-          {searchParams.error && (
-            <p className="text-critical text-xs text-center">{searchParams.error}</p>
-          )}
+          {searchParams.error && <KioskErrorBanner message={searchParams.error} />}
 
           <button
             type="submit"

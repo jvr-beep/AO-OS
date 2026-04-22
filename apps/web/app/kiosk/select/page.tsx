@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { getKioskSession } from '@/lib/kiosk-session'
 import { selectTierAction } from '../actions/visit'
+import { KioskErrorBanner } from '../components/KioskErrorBanner'
 
 const API_BASE = process.env.API_BASE_URL ?? 'http://localhost:4000/v1'
 
@@ -144,13 +145,7 @@ export default async function SelectPage({
           )}
         </div>
 
-        {searchParams.error && (
-          <p className="text-critical text-xs text-center mb-4">{searchParams.error}</p>
-        )}
-
-        <a href="/kiosk" className="block text-center text-xs text-text-muted uppercase tracking-wider hover:text-text-primary transition-colors">
-          Start Over
-        </a>
+        {searchParams.error && <KioskErrorBanner message={searchParams.error} />}
       </div>
     </div>
   )

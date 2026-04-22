@@ -1,4 +1,5 @@
 import { identifyGuestAction } from '../actions/visit'
+import { KioskErrorBanner } from '../components/KioskErrorBanner'
 
 export default function KioskIdentityPage({
   searchParams,
@@ -59,9 +60,7 @@ export default function KioskIdentityPage({
             />
           </div>
 
-          {searchParams.error && (
-            <p className="text-critical text-xs text-center">{searchParams.error}</p>
-          )}
+          {searchParams.error && <KioskErrorBanner message={searchParams.error} />}
 
           <button
             type="submit"

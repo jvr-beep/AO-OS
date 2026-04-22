@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { getKioskSession } from '@/lib/kiosk-session'
 import { confirmBookingCheckinAction } from '../../actions/visit'
+import { KioskErrorBanner } from '../../components/KioskErrorBanner'
 
 function formatTime(iso: string) {
   return new Date(iso).toLocaleTimeString('en-CA', {
@@ -73,9 +74,7 @@ export default async function BookingConfirmPage({
           )}
         </div>
 
-        {searchParams.error && (
-          <p className="text-critical text-xs text-center mb-4">{searchParams.error}</p>
-        )}
+        {searchParams.error && <KioskErrorBanner message={searchParams.error} />}
 
         <form action={confirmBookingCheckinAction}>
           <button

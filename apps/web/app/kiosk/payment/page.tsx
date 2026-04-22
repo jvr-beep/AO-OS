@@ -2,8 +2,13 @@ import { redirect } from 'next/navigation'
 import { getKioskSession } from '@/lib/kiosk-session'
 import { KioskPaymentClient } from './KioskPaymentClient'
 import { HoldTimer } from './HoldTimer'
+import { KioskErrorBanner } from '../components/KioskErrorBanner'
 
-export default async function KioskPaymentPage() {
+export default async function KioskPaymentPage({
+  searchParams,
+}: {
+  searchParams?: { error?: string }
+}) {
   const session = await getKioskSession()
 
   if (!session.guestId || !session.visitId) {
@@ -40,6 +45,8 @@ export default async function KioskPaymentPage() {
           visitId={session.visitId}
           amountCents={session.amountCents ?? 0}
         />
+
+        {searchParams?.error && <KioskErrorBanner message={searchParams.error} />}
 
         {session.holdExpiresAt && (
           <div className="mt-4">

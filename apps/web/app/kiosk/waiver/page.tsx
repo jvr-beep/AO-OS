@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { getKioskSession } from '@/lib/kiosk-session'
 import { acceptWaiverAction } from '../actions/visit'
+import { KioskErrorBanner } from '../components/KioskErrorBanner'
 
 const API_BASE = process.env.API_BASE_URL ?? 'http://localhost:4000/v1'
 
@@ -71,9 +72,7 @@ export default async function WaiverPage({
             </p>
           </div>
 
-          {searchParams.error && (
-            <p className="text-critical text-xs text-center mb-4">{searchParams.error}</p>
-          )}
+          {searchParams.error && <KioskErrorBanner message={searchParams.error} />}
 
           <form action={acceptWaiverAction}>
             <input type="hidden" name="reconfirm" value="true" />
@@ -126,9 +125,7 @@ export default async function WaiverPage({
             />
           </div>
 
-          {searchParams.error && (
-            <p className="text-critical text-xs text-center">{searchParams.error}</p>
-          )}
+          {searchParams.error && <KioskErrorBanner message={searchParams.error} />}
 
           <button
             type="submit"
