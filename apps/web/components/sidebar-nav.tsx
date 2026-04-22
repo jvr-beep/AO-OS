@@ -21,6 +21,7 @@ const NAV_ITEMS = [
 const ADMIN_ITEMS = [
   { href: '/staff', label: 'Staff' },
   { href: '/staff/audit', label: 'Audit Log' },
+  { href: '/settings', label: 'Settings' },
   { href: '/sandbox', label: 'Sandbox' },
 ]
 
