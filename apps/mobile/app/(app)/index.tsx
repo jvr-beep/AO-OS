@@ -7,11 +7,14 @@ import {
   ActivityIndicator,
   ScrollView,
   RefreshControl,
+  AppState,
+  AppStateStatus,
 } from 'react-native'
 import QRCode from 'react-native-qrcode-svg'
 import { getMemberProfile, getQrToken, MemberProfile } from '@/lib/api'
 
 const QR_REFRESH_MS = 4 * 60 * 1000 // 4 min — token TTL is 5 min
+const FOREGROUND_REFRESH_THRESHOLD_MS = 60_000 // refresh on resume if < 60s left
 
 export default function HomeScreen() {
   const [profile, setProfile] = useState<MemberProfile | null>(null)
@@ -49,9 +52,24 @@ export default function HomeScreen() {
     timerRef.current = setInterval(() => {
       setSecondsLeft((s) => Math.max(0, s - 1))
     }, 1000)
+
+    // Refresh QR on foreground resume if token is near expiry or already expired
+    const appStateSub = AppState.addEventListener('change', (state: AppStateStatus) => {
+      if (state === 'active') {
+        setExpiresAt((current) => {
+          const msLeft = current ? current.getTime() - Date.now() : 0
+          if (msLeft < FOREGROUND_REFRESH_THRESHOLD_MS) {
+            fetchToken()
+          }
+          return current
+        })
+      }
+    })
+
     return () => {
       if (timerRef.current) clearInterval(timerRef.current)
       if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current)
+      appStateSub.remove()
     }
   }, [])
 

@@ -5,6 +5,7 @@ import { resolveQrAction } from '../actions/visit'
 
 export function KioskScanClient({ error }: { error?: string }) {
   const videoRef = useRef<HTMLVideoElement>(null)
+  const canvasRef = useRef<HTMLCanvasElement>(null)
   const formRef = useRef<HTMLFormElement>(null)
   const tokenInputRef = useRef<HTMLInputElement>(null)
   const [scanning, setScanning] = useState(false)
@@ -15,14 +16,9 @@ export function KioskScanClient({ error }: { error?: string }) {
   useEffect(() => {
     let stream: MediaStream | null = null
     let animFrame: number
+    let jsQR: ((data: Uint8ClampedArray, width: number, height: number) => { data: string } | null) | null = null
 
     async function startCamera() {
-      // BarcodeDetector is available in Chrome 83+ (standard kiosk environment)
-      if (!('BarcodeDetector' in window)) {
-        setCameraError('QR scanning requires a Chromium-based browser. Please use the booking code or walk-in path.')
-        return
-      }
-
       try {
         stream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
@@ -31,30 +27,63 @@ export function KioskScanClient({ error }: { error?: string }) {
         videoRef.current.srcObject = stream
         await videoRef.current.play()
         setScanning(true)
-        scan()
+
+        if ('BarcodeDetector' in window) {
+          scanNative()
+        } else {
+          // jsQR fallback for Safari / Firefox
+          const mod = await import('jsqr')
+          jsQR = mod.default
+          scanCanvas()
+        }
       } catch {
-        setCameraError('Camera access denied. Please allow camera access and try again.')
+        setCameraError('Camera access denied. Please allow camera access or use a booking code.')
       }
     }
 
-    const detector = 'BarcodeDetector' in window
+    const nativeDetector = 'BarcodeDetector' in window
       ? new (window as any).BarcodeDetector({ formats: ['qr_code'] })
       : null
 
-    async function scan() {
-      if (!videoRef.current || !detector || detectedRef.current) return
+    async function scanNative() {
+      if (!videoRef.current || !nativeDetector || detectedRef.current) return
       try {
-        const barcodes = await detector.detect(videoRef.current)
+        const barcodes = await nativeDetector.detect(videoRef.current)
         if (barcodes.length > 0 && !detectedRef.current) {
-          detectedRef.current = true
-          setDetected(true)
-          const rawValue: string = barcodes[0].rawValue
-          if (tokenInputRef.current) tokenInputRef.current.value = rawValue
-          formRef.current?.requestSubmit()
+          handleDetected(barcodes[0].rawValue)
           return
         }
       } catch { /* frame not ready */ }
-      animFrame = requestAnimationFrame(scan)
+      animFrame = requestAnimationFrame(scanNative)
+    }
+
+    function scanCanvas() {
+      if (!videoRef.current || !canvasRef.current || !jsQR || detectedRef.current) return
+      const video = videoRef.current
+      const canvas = canvasRef.current
+      if (video.readyState !== video.HAVE_ENOUGH_DATA) {
+        animFrame = requestAnimationFrame(scanCanvas)
+        return
+      }
+      canvas.width = video.videoWidth
+      canvas.height = video.videoHeight
+      const ctx = canvas.getContext('2d')
+      if (!ctx) return
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+      const result = jsQR(imageData.data, canvas.width, canvas.height)
+      if (result && !detectedRef.current) {
+        handleDetected(result.data)
+        return
+      }
+      animFrame = requestAnimationFrame(scanCanvas)
+    }
+
+    function handleDetected(rawValue: string) {
+      detectedRef.current = true
+      setDetected(true)
+      if (tokenInputRef.current) tokenInputRef.current.value = rawValue
+      formRef.current?.requestSubmit()
     }
 
     startCamera()
@@ -90,7 +119,9 @@ export function KioskScanClient({ error }: { error?: string }) {
                 muted
                 playsInline
               />
-              {/* Scan frame overlay */}
+              {/* Off-screen canvas for jsQR fallback */}
+              <canvas ref={canvasRef} className="hidden" />
+
               {scanning && !detected && (
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                   <div className="w-48 h-48 border-2 border-accent-primary rounded-lg opacity-80" />
@@ -114,13 +145,12 @@ export function KioskScanClient({ error }: { error?: string }) {
               Open the AO app on your phone and show your QR code.
             </p>
 
-            {(error || cameraError) && (
+            {error && (
               <div className="rounded-lg border border-critical/40 bg-critical/10 px-4 py-3 mb-4">
-                <p className="text-critical text-xs text-center">{error ?? cameraError}</p>
+                <p className="text-critical text-xs text-center">{error}</p>
               </div>
             )}
 
-            {/* Hidden form — submitted programmatically when QR detected */}
             <form ref={formRef} action={resolveQrAction}>
               <input ref={tokenInputRef} type="hidden" name="token" />
             </form>

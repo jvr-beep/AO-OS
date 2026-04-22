@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common'
+import { Injectable, BadRequestException } from '@nestjs/common'
 import * as crypto from 'crypto'
 
 const TTL_SECONDS = 5 * 60 // 5 minutes
@@ -32,18 +32,18 @@ export class QrTokenService {
 
   verify(token: string): QrTokenPayload {
     const parts = token.split('.')
-    if (parts.length !== 2) throw new UnauthorizedException('Invalid QR token format')
+    if (parts.length !== 2) throw new BadRequestException('QR code not recognised — please try again')
     const [b64, sig] = parts
     const expected = crypto.createHmac('sha256', this.secret).update(b64).digest('base64url')
-    if (sig !== expected) throw new UnauthorizedException('Invalid QR token signature')
+    if (sig !== expected) throw new BadRequestException('QR code not recognised — please try again')
     let payload: QrTokenPayload
     try {
       payload = JSON.parse(Buffer.from(b64, 'base64url').toString())
     } catch {
-      throw new UnauthorizedException('Malformed QR token payload')
+      throw new BadRequestException('QR code not recognised — please try again')
     }
     if (payload.exp < Math.floor(Date.now() / 1000)) {
-      throw new UnauthorizedException('QR token expired')
+      throw new BadRequestException('QR code expired — please refresh the AO app and try again')
     }
     return payload
   }

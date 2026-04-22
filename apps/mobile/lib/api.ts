@@ -1,5 +1,11 @@
 import { API_BASE } from './config'
-import { getSession } from './storage'
+import { getSession, clearSession } from './storage'
+
+let _onUnauthorized: (() => void) | null = null
+
+export function setUnauthorizedHandler(fn: () => void) {
+  _onUnauthorized = fn
+}
 
 async function memberFetch<T>(
   path: string,
@@ -14,6 +20,11 @@ async function memberFetch<T>(
       ...(options?.headers ?? {}),
     },
   })
+  if (res.status === 401) {
+    await clearSession()
+    _onUnauthorized?.()
+    throw new Error('Session expired. Please sign in again.')
+  }
   if (!res.ok) {
     const text = await res.text().catch(() => '')
     throw new Error(`API ${path}: ${res.status} ${text}`)
