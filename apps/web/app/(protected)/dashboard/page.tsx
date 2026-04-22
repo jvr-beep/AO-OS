@@ -3,6 +3,28 @@ import { getSession } from '@/lib/session'
 import { MemberLookup } from '@/components/member-lookup'
 import { ApiHealthWidget } from './ApiHealthWidget'
 
+const API_BASE = process.env.API_BASE_URL ?? 'http://localhost:4000/v1'
+
+interface OpsSnapshot {
+  open_exceptions: number
+  active_visits: number
+  held_resources: number
+  occupied_resources: number
+  generated_at: string
+}
+
+async function getOpsSnapshot(token: string): Promise<OpsSnapshot | null> {
+  try {
+    const res = await fetch(`${API_BASE}/ops/snapshot`, {
+      cache: 'no-store',
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    if (!res.ok) return null
+    return res.json()
+  } catch {
+    return null
+  }
+}
 
 const QUICK_LINKS = [
   { href: '/check-in', label: 'Check-In Console' },
@@ -21,11 +43,24 @@ const QUICK_LINKS = [
 
 export default async function DashboardPage() {
   const session = await getSession()
+  const snapshot = session.accessToken ? await getOpsSnapshot(session.accessToken) : null
 
   return (
     <div className="max-w-4xl mx-auto py-8 px-4">
       <h1 className="text-3xl font-bold mb-2 tracking-tight">AO OS Staff Dashboard</h1>
       <p className="text-text-muted mb-8">Instant operating picture: occupancy, arrivals, cleaning, and alerts.</p>
+
+      {/* Ops snapshot widgets */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <StatWidget label="Active Visits" value={snapshot?.active_visits} />
+        <StatWidget label="Occupied Resources" value={snapshot?.occupied_resources} />
+        <StatWidget label="Held Resources" value={snapshot?.held_resources} />
+        <StatWidget
+          label="Open Exceptions"
+          value={snapshot?.open_exceptions}
+          accent={snapshot != null && snapshot.open_exceptions > 0 ? 'critical' : undefined}
+        />
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         <ApiHealthWidget />
@@ -60,6 +95,26 @@ export default async function DashboardPage() {
         <p className="text-xs text-text-muted mb-3">Search by member UUID, name, email, or member number.</p>
         <MemberLookup />
       </div>
+    </div>
+  )
+}
+
+function StatWidget({
+  label,
+  value,
+  accent,
+}: {
+  label: string
+  value: number | undefined
+  accent?: 'critical'
+}) {
+  const valueClass = accent === 'critical' ? 'text-critical' : 'text-text-primary'
+  return (
+    <div className="rounded-lg bg-surface-1 border border-border-subtle p-4 shadow-sm">
+      <p className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-2">{label}</p>
+      <p className={`text-3xl font-bold ${valueClass}`}>
+        {value == null ? <span className="text-text-muted text-lg">—</span> : value}
+      </p>
     </div>
   )
 }

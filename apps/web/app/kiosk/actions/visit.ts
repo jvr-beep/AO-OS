@@ -100,14 +100,29 @@ export async function acceptWaiverAction(formData: FormData): Promise<void> {
     redirect(`/kiosk/waiver?error=${encodeURIComponent(err.message ?? 'Waiver submission failed')}`)
   }
 
+  redirect('/kiosk/product')
+}
+
+// ── Step 3: Choose product type (Locker vs Room) ──────────────────────────
+
+export async function selectProductTypeAction(formData: FormData): Promise<void> {
+  const session = await getKioskSession()
+  if (!session.guestId || !session.waiverCompleted) redirect('/kiosk')
+
+  const productType = formData.get('productType')?.toString()
+  if (productType !== 'locker' && productType !== 'room') redirect('/kiosk/product')
+
+  session.productType = productType
+  await session.save()
   redirect('/kiosk/select')
 }
 
-// ── Step 3: Select tier + initiate visit ─────────────────────────────────
+// ── Step 4: Select tier + initiate visit ─────────────────────────────────
 
 export async function selectTierAction(formData: FormData): Promise<void> {
   const session = await getKioskSession()
   if (!session.guestId || !session.waiverCompleted) redirect('/kiosk')
+  if (!session.productType) redirect('/kiosk/product')
 
   const tierCode = formData.get('tierCode')?.toString()
   const tierName = formData.get('tierName')?.toString()
@@ -126,7 +141,7 @@ export async function selectTierAction(formData: FormData): Promise<void> {
       body: JSON.stringify({
         guest_id: session.guestId,
         source_type: 'walk_in',
-        product_type: 'locker',
+        product_type: session.productType,
         tier_id: tierId,
         duration_minutes: durationMinutes,
         waiver_required: false, // already completed

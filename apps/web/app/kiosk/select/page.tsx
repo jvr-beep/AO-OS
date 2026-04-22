@@ -58,6 +58,7 @@ export default async function SelectPage({
 }) {
   const session = await getKioskSession()
   if (!session.guestId || !session.waiverCompleted) redirect('/kiosk')
+  if (!session.productType) redirect('/kiosk/product')
 
   const tiers = await getTiers()
 

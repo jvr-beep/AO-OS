@@ -10,6 +10,7 @@ export interface KioskSessionData {
   guestId?: string
   visitId?: string
   folioId?: string
+  productType?: 'locker' | 'room'
   tierCode?: string
   tierName?: string
   visitMode?: 'restore' | 'release' | 'retreat'
