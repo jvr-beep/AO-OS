@@ -6,6 +6,8 @@ import { VoiceService, VisitMode, RitualPhase } from '../voice/voice.service'
 import { CreateVisitPaymentIntentDto } from '../stripe/dto/create-visit-payment-intent.dto'
 import { KioskBookingService } from './kiosk-booking.service'
 import { InventoryService } from '../inventory/services/inventory.service'
+import { QrTokenService } from './qr-token.service'
+import { PrismaService } from '../prisma/prisma.service'
 
 class RitualGuidanceDto {
   @IsString()
@@ -69,6 +71,11 @@ class InventoryFinalizeDto {
  * POST /v1/kiosk/inventory-hold       — reserve a resource during payment window
  * POST /v1/kiosk/inventory-finalize   — convert hold to assignment after payment
  */
+class ResolveQrDto {
+  @IsString()
+  token!: string
+}
+
 @Controller('kiosk')
 @UseGuards(KioskApiKeyGuard)
 export class KioskController {
@@ -77,6 +84,8 @@ export class KioskController {
     private readonly voiceService: VoiceService,
     private readonly kioskBookingService: KioskBookingService,
     private readonly inventoryService: InventoryService,
+    private readonly qrTokenService: QrTokenService,
+    private readonly prisma: PrismaService,
   ) {}
 
   @Post('visit-payment')
@@ -152,5 +161,63 @@ export class KioskController {
       visit_id: dto.visit_id,
       hold_id: dto.hold_id,
     })
+  }
+
+  /**
+   * Resolves a member QR token to a guest identity.
+   * Decodes + verifies the HMAC token, looks up the Member, finds or creates
+   * the matching Guest record, and returns guest info + waiver status.
+   */
+  @Post('resolve-qr')
+  @HttpCode(200)
+  async resolveQr(@Body() dto: ResolveQrDto) {
+    const { memberId } = this.qrTokenService.verify(dto.token)
+
+    const member = await this.prisma.member.findUnique({ where: { id: memberId } })
+    if (!member) throw new Error('Member not found')
+
+    // Find existing guest by email or phone
+    let guest = member.email
+      ? await this.prisma.guest.findFirst({ where: { email: member.email } })
+      : null
+
+    if (!guest && member.phone) {
+      guest = await this.prisma.guest.findFirst({ where: { phone: member.phone } })
+    }
+
+    // Auto-create guest from member profile if none found
+    if (!guest) {
+      guest = await this.prisma.guest.create({
+        data: {
+          firstName: member.firstName ?? 'Member',
+          lastName: member.lastName ?? null,
+          email: member.email ?? null,
+          phone: member.phone ?? null,
+        },
+      })
+    }
+
+    // Check current waiver
+    const latestWaiver = await this.prisma.guestWaiver.findFirst({
+      where: { guestId: guest.id },
+      orderBy: { acceptedAt: 'desc' },
+    })
+
+    const currentWaiverDoc = await this.prisma.waiverDocument.findFirst({
+      where: { status: 'published' },
+      orderBy: { publishedAt: 'desc' },
+    })
+
+    const waiverCurrent =
+      latestWaiver != null &&
+      latestWaiver.isCurrent &&
+      (currentWaiverDoc == null || latestWaiver.waiverVersion === currentWaiverDoc.version)
+
+    return {
+      guest_id: guest.id,
+      display_name: `${guest.firstName}${guest.lastName ? ' ' + guest.lastName : ''}`,
+      waiver_current: waiverCurrent,
+      member_id: memberId,
+    }
   }
 }

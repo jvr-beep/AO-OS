@@ -389,6 +389,40 @@ export async function completeKioskAction(): Promise<void> {
   redirect('/kiosk/active')
 }
 
+// ── QR code scan path ─────────────────────────────────────────────────────
+
+export async function resolveQrAction(formData: FormData): Promise<void> {
+  const token = formData.get('token')?.toString()
+  if (!token) redirect('/kiosk/scan?error=No+QR+code+detected')
+
+  try {
+    const res = await fetch(`${API_BASE}/kiosk/resolve-qr`, {
+      method: 'POST',
+      headers: { ...LOCATION_HEADERS, 'x-ao-kiosk-secret': process.env.KIOSK_API_SECRET ?? '' },
+      body: JSON.stringify({ token }),
+    })
+
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}))
+      redirect(`/kiosk/scan?error=${encodeURIComponent(body?.message ?? 'QR code not recognised')}`)
+    }
+
+    const data = await res.json()
+    const session = await getKioskSession()
+    session.guestId = data.guest_id
+    session.waiverCompleted = data.waiver_current === true
+    session.bookingSource = 'walk_in'
+    await session.save()
+  } catch (err: any) {
+    if (err?.digest?.startsWith('NEXT_REDIRECT')) throw err
+    redirect(`/kiosk/scan?error=${encodeURIComponent(err?.message ?? 'QR scan failed')}`)
+  }
+
+  // Member QR skips identity; go to waiver if needed, else product selection
+  const session = await getKioskSession()
+  redirect(session.waiverCompleted ? '/kiosk/product' : '/kiosk/waiver')
+}
+
 // ── Reset kiosk session ───────────────────────────────────────────────────
 
 export async function resetKioskAction(): Promise<void> {

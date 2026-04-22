@@ -12,12 +12,24 @@ export default function KioskWelcomePage() {
           All May Enter Who Honor the House.
         </p>
 
+        {/* Member QR scan — primary path for returning members */}
+        <a
+          href="/kiosk/scan"
+          className="block rounded-lg bg-accent-primary/10 border border-accent-primary/40 hover:border-accent-primary transition-colors p-6 flex items-center gap-5 text-left mb-4"
+        >
+          <span className="text-3xl text-accent-primary flex-shrink-0">◉</span>
+          <div>
+            <p className="text-sm font-medium text-text-primary uppercase tracking-wider">Scan Member QR</p>
+            <p className="text-xs text-text-muted mt-1">Open the AO app and scan your code — fastest entry</p>
+          </div>
+        </a>
+
         <div className="grid grid-cols-2 gap-4 mb-10">
           <a
             href="/kiosk/booking"
-            className="rounded-lg bg-surface-1 border border-border-subtle hover:border-accent-primary transition-colors p-8 flex flex-col items-center gap-4 text-center"
+            className="rounded-lg bg-surface-1 border border-border-subtle hover:border-accent-primary transition-colors p-6 flex flex-col items-center gap-3 text-center"
           >
-            <span className="text-4xl text-accent-primary">◈</span>
+            <span className="text-3xl text-accent-primary">◈</span>
             <div>
               <p className="text-sm font-medium text-text-primary uppercase tracking-wider">I Have a Booking</p>
               <p className="text-xs text-text-muted mt-1">Check in with your booking code or phone number</p>
@@ -26,9 +38,9 @@ export default function KioskWelcomePage() {
 
           <a
             href="/kiosk/identity"
-            className="rounded-lg bg-surface-1 border border-border-subtle hover:border-accent-primary transition-colors p-8 flex flex-col items-center gap-4 text-center"
+            className="rounded-lg bg-surface-1 border border-border-subtle hover:border-accent-primary transition-colors p-6 flex flex-col items-center gap-3 text-center"
           >
-            <span className="text-4xl text-accent-primary">◇</span>
+            <span className="text-3xl text-accent-primary">◇</span>
             <div>
               <p className="text-sm font-medium text-text-primary uppercase tracking-wider">Walk In Now</p>
               <p className="text-xs text-text-muted mt-1">No reservation — purchase your pass today</p>
@@ -37,9 +49,9 @@ export default function KioskWelcomePage() {
         </div>
 
         <p className="text-center text-xs text-text-muted">
-          Already a member?{' '}
+          Not yet a member?{' '}
           <a href="/member/login" className="text-accent-primary">
-            Sign in here
+            Join AO
           </a>
         </p>
       </div>
