@@ -12,6 +12,7 @@ const MAX_USERS = 8
 type Props = {
   resetState: 'sent' | 'error' | 'expired' | 'confirmed' | null
   resetToken: string | null
+  sessionExpired?: boolean
 }
 
 function SubmitButton({ pending }: { pending: boolean }) {
@@ -23,7 +24,7 @@ function SubmitButton({ pending }: { pending: boolean }) {
   )
 }
 
-export default function LoginClient({ resetState, resetToken }: Props) {
+export default function LoginClient({ resetState, resetToken, sessionExpired }: Props) {
   const [email, setEmail] = useState('')
   const [savedUsers, setSavedUsers] = useState<string[]>([])
   const [showReset, setShowReset] = useState(false)
@@ -70,6 +71,12 @@ export default function LoginClient({ resetState, resetToken }: Props) {
           <p className="font-heading text-xs text-text-primary uppercase tracking-[0.3em]">Staff Portal</p>
           <p className="font-sans text-xs text-text-muted mt-2">Honor the body. Honor the man.</p>
         </div>
+
+        {sessionExpired && (
+          <div className="mb-4 rounded border border-warning/40 bg-warning/10 px-4 py-3 text-sm text-text-primary font-sans">
+            Your session has expired. Please sign in again.
+          </div>
+        )}
 
         {loginError && (
           <div className="mb-4 rounded border border-critical/40 bg-critical/10 px-4 py-3 text-sm text-text-primary font-sans">

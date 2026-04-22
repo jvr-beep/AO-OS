@@ -8,10 +8,18 @@ function parseError(body: unknown, fallback: string): string {
   return fallback
 }
 
+function handleUnauthorized(): never {
+  // Clear the server session then send to login
+  fetch('/api/auth/session', { method: 'DELETE' }).catch(() => {})
+  window.location.href = '/login?expired=1'
+  throw new Error('Session expired')
+}
+
 export async function apiGet<T>(path: string, token: string): Promise<T> {
   const res = await fetch(`${API}${path}`, {
     headers: { Authorization: `Bearer ${token}` },
   })
+  if (res.status === 401) handleUnauthorized()
   if (!res.ok) {
     const body = await res.json().catch(() => ({}))
     throw new Error(parseError(body, `HTTP ${res.status}`))
@@ -25,6 +33,7 @@ export async function apiPost<T = unknown>(path: string, body: unknown, token: s
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
     body: JSON.stringify(body),
   })
+  if (res.status === 401) handleUnauthorized()
   if (!res.ok) {
     const b = await res.json().catch(() => ({}))
     throw new Error(parseError(b, `HTTP ${res.status}`))
@@ -38,6 +47,20 @@ export async function apiPatch<T = unknown>(path: string, body: unknown, token: 
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
     body: JSON.stringify(body),
   })
+  if (res.status === 401) handleUnauthorized()
+  if (!res.ok) {
+    const b = await res.json().catch(() => ({}))
+    throw new Error(parseError(b, `HTTP ${res.status}`))
+  }
+  return res.json()
+}
+
+export async function apiDelete<T = unknown>(path: string, token: string): Promise<T> {
+  const res = await fetch(`${API}${path}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  if (res.status === 401) handleUnauthorized()
   if (!res.ok) {
     const b = await res.json().catch(() => ({}))
     throw new Error(parseError(b, `HTTP ${res.status}`))
