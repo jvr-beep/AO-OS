@@ -195,6 +195,94 @@ export async function selectTierAction(formData: FormData): Promise<void> {
   redirect('/kiosk/payment')
 }
 
+// ── Booking path: look up booking by code or phone ───────────────────────
+
+export async function lookupBookingAction(formData: FormData): Promise<void> {
+  const lookupType = formData.get('lookup_type')?.toString()
+  const value = formData.get('value')?.toString().trim()
+
+  if (!value || (lookupType !== 'code' && lookupType !== 'phone')) {
+    redirect('/kiosk/booking?error=Invalid+lookup')
+  }
+
+  try {
+    const res = await fetch(`${API_BASE}/kiosk/booking-lookup`, {
+      method: 'POST',
+      headers: { ...LOCATION_HEADERS, 'x-ao-kiosk-secret': process.env.KIOSK_API_SECRET ?? '' },
+      body: JSON.stringify({ lookup_type: lookupType, value }),
+    })
+
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}))
+      redirect(`/kiosk/booking?tab=${lookupType}&error=${encodeURIComponent(body?.message ?? 'Booking not found')}`)
+    }
+
+    const data = await res.json()
+    const { booking, guest } = data
+
+    const session = await getKioskSession()
+    session.bookingSource = 'booking'
+    session.bookingId = booking.id
+    session.guestId = guest.id
+    session.bookingData = {
+      bookingCode: booking.booking_code,
+      guestFirstName: guest.first_name ?? 'Guest',
+      tierName: booking.tier_name,
+      productType: booking.product_type,
+      arrivalWindowStart: booking.arrival_window_start,
+      arrivalWindowEnd: booking.arrival_window_end,
+      durationMinutes: booking.duration_minutes,
+      balanceDueCents: booking.balance_due_cents,
+    }
+    await session.save()
+  } catch (err: any) {
+    if (err?.digest?.startsWith('NEXT_REDIRECT')) throw err
+    redirect(`/kiosk/booking?tab=${lookupType}&error=${encodeURIComponent(err?.message ?? 'Lookup failed')}`)
+  }
+
+  redirect('/kiosk/booking/confirm')
+}
+
+// ── Booking path: confirm check-in + create visit ────────────────────────
+
+export async function confirmBookingCheckinAction(): Promise<void> {
+  const session = await getKioskSession()
+  if (!session.bookingId || !session.guestId) redirect('/kiosk/booking')
+
+  try {
+    const res = await fetch(`${API_BASE}/kiosk/booking-checkin`, {
+      method: 'POST',
+      headers: { ...LOCATION_HEADERS, 'x-ao-kiosk-secret': process.env.KIOSK_API_SECRET ?? '' },
+      body: JSON.stringify({ booking_id: session.bookingId }),
+    })
+
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}))
+      redirect(`/kiosk/booking/confirm?error=${encodeURIComponent(body?.message ?? 'Check-in failed')}`)
+    }
+
+    const data = await res.json()
+    session.visitId = data.visit_id
+    session.waiverCompleted = true // booking guests are pre-verified
+    session.productType = (session.bookingData?.productType ?? 'locker') as 'locker' | 'room'
+
+    if (data.client_secret) {
+      session.amountCents = data.balance_due_cents
+      session.paymentIntentId = data.payment_intent_id
+      session.clientSecret = data.client_secret
+    }
+
+    await session.save()
+  } catch (err: any) {
+    if (err?.digest?.startsWith('NEXT_REDIRECT')) throw err
+    redirect(`/kiosk/booking/confirm?error=${encodeURIComponent(err?.message ?? 'Check-in failed')}`)
+  }
+
+  // Skip waiver for booked guests — go to payment if balance due, else assign
+  const hasBalance = (session.clientSecret != null)
+  redirect(hasBalance ? '/kiosk/payment' : '/kiosk/assign')
+}
+
 // ── Step 5: Complete visit after wristband assigned ───────────────────────
 
 export async function completeKioskAction(): Promise<void> {

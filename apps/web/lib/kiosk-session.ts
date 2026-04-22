@@ -6,10 +6,24 @@ import type { IronSession } from 'iron-session'
  * Ephemeral kiosk session — tracks the in-progress guest visit across kiosk steps.
  * Short-lived: expires after 30 minutes if not completed.
  */
+export interface KioskBookingData {
+  bookingCode: string
+  guestFirstName: string
+  tierName: string | null
+  productType: string
+  arrivalWindowStart: string
+  arrivalWindowEnd: string
+  durationMinutes: number
+  balanceDueCents: number
+}
+
 export interface KioskSessionData {
   guestId?: string
   visitId?: string
   folioId?: string
+  bookingSource?: 'walk_in' | 'booking'
+  bookingId?: string
+  bookingData?: KioskBookingData
   productType?: 'locker' | 'room'
   tierCode?: string
   tierName?: string
