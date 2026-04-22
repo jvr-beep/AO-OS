@@ -493,6 +493,56 @@ export class AuthService {
     };
   }
 
+  // ── DEV / TEST SEEDING ─────────────────────────────────────────────
+
+  async devSeedMember(email: string, password: string): Promise<{ memberId: string; email: string }> {
+    const existing = await this.prisma.member.findUnique({ where: { email } });
+
+    if (existing) {
+      // Reset password so tests always know the credential
+      const passwordHash = await argon2.hash(password);
+      const existingAccount = await (this.prisma as any).authAccount.findUnique({ where: { memberId: existing.id } });
+      if (existingAccount) {
+        await (this.prisma as any).authAccount.update({
+          where: { memberId: existing.id },
+          data: { passwordHash, failedAttempts: 0, lockedUntil: null },
+        });
+      } else {
+        await (this.prisma as any).authAccount.create({
+          data: { id: crypto.randomUUID(), memberId: existing.id, passwordHash },
+        });
+      }
+      await this.prisma.member.update({
+        where: { id: existing.id },
+        data: { status: 'active', emailVerifiedAt: existing.emailVerifiedAt ?? new Date() },
+      });
+      return { memberId: existing.id, email: existing.email ?? email };
+    }
+
+    const passwordHash = await argon2.hash(password);
+    const memberNumber = `AO-E2E-${Date.now()}`;
+
+    const member = await this.prisma.member.create({
+      data: {
+        publicMemberNumber: memberNumber,
+        type: 'registered',
+        email,
+        status: 'active',
+        emailVerifiedAt: new Date(),
+      },
+    });
+
+    await (this.prisma as any).authAccount.create({
+      data: { id: crypto.randomUUID(), memberId: member.id, passwordHash },
+    });
+
+    // Issue wristband so member portal is fully functional
+    const wristbandUid = `WB-${member.id.substring(0, 8)}-E2E`;
+    await this.wristbandsService.issueCredential({ uid: wristbandUid, memberId: member.id, globalAccessFlag: false });
+
+    return { memberId: member.id, email };
+  }
+
   private async _createAuthToken(
     memberId: string,
     type: "password_reset" | "email_verify" | "invite_set_password",

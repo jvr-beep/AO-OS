@@ -78,6 +78,10 @@ export class KioskController {
   @Post('visit-payment')
   @HttpCode(201)
   async createVisitPayment(@Body() dto: CreateVisitPaymentIntentDto) {
+    // Zero-price visits (e.g. E2E tests, comp passes) skip Stripe entirely.
+    if (dto.amountCents === 0) {
+      return { paymentIntentId: null, clientSecret: null }
+    }
     return this.billingService.createVisitPaymentIntent({
       visitId: dto.visitId,
       guestId: dto.guestId,

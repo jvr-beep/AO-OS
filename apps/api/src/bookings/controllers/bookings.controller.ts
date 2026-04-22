@@ -63,4 +63,13 @@ export class BookingsController {
   ) {
     return this.bookingsService.updateBookingStatus(bookingId, dto);
   }
+
+  @Post(':bookingId/cancel')
+  @Roles('front_desk', 'operations', 'admin')
+  cancelBooking(
+    @Param('bookingId', ParseUUIDPipe) bookingId: string,
+    @Body() body: { reason?: string },
+  ) {
+    return this.bookingsService.cancelBooking(bookingId, body.reason);
+  }
 }

@@ -54,8 +54,10 @@ export class GuestsService {
     return this.toGuestResponse(guest);
   }
 
-  async update(guestId: string, dto: UpdateGuestDto): Promise<GuestResponseDto> {
+  async update(guestId: string, dto: UpdateGuestDto, staffUserId?: string): Promise<GuestResponseDto> {
     await this.findOne(guestId);
+
+    const riskFlagChange = dto.riskFlagStatus !== undefined;
 
     try {
       const updated = await this.prisma.guest.update({
@@ -68,8 +70,12 @@ export class GuestsService {
           ...(dto.dateOfBirth !== undefined ? { dateOfBirth: dto.dateOfBirth ? new Date(dto.dateOfBirth) : null } : {}),
           ...(dto.preferredLanguage !== undefined ? { preferredLanguage: dto.preferredLanguage?.trim() || "en" } : {}),
           ...(dto.marketingOptIn !== undefined ? { marketingOptIn: dto.marketingOptIn } : {}),
-          version: { increment: 1 }
-        }
+          ...(riskFlagChange ? { riskFlagStatus: dto.riskFlagStatus } : {}),
+          ...(riskFlagChange ? { riskFlagReason: dto.riskFlagReason ?? null } : {}),
+          ...(riskFlagChange ? { riskFlaggedAt: new Date() } : {}),
+          ...(riskFlagChange ? { riskFlaggedBy: staffUserId ?? null } : {}),
+          version: { increment: 1 },
+        },
       });
 
       return this.toGuestResponse(updated);
@@ -206,6 +212,9 @@ export class GuestsService {
     preferredLanguage: string;
     membershipStatus: string;
     riskFlagStatus: string;
+    riskFlagReason?: string | null;
+    riskFlaggedAt?: Date | null;
+    riskFlaggedBy?: string | null;
     marketingOptIn: boolean;
     createdAt: Date;
     updatedAt: Date;
@@ -221,10 +230,13 @@ export class GuestsService {
       preferredLanguage: guest.preferredLanguage,
       membershipStatus: guest.membershipStatus,
       riskFlagStatus: guest.riskFlagStatus,
+      riskFlagReason: guest.riskFlagReason ?? null,
+      riskFlaggedAt: guest.riskFlaggedAt?.toISOString() ?? null,
+      riskFlaggedBy: guest.riskFlaggedBy ?? null,
       marketingOptIn: guest.marketingOptIn,
       createdAt: guest.createdAt.toISOString(),
       updatedAt: guest.updatedAt.toISOString(),
-      version: guest.version
+      version: guest.version,
     };
   }
 }

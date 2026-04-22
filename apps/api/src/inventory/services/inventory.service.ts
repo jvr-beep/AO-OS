@@ -201,6 +201,59 @@ export class InventoryService {
     };
   }
 
+  async listResources(productType?: string) {
+    const resources = await this.prisma.resource.findMany({
+      where: productType ? { resourceType: productType as any } : {},
+      include: { tier: { select: { name: true, code: true } } },
+      orderBy: [{ resourceType: 'asc' }, { zoneCode: 'asc' }, { displayLabel: 'asc' }],
+    });
+
+    return resources.map((r) => ({
+      id: r.id,
+      displayLabel: r.displayLabel,
+      resourceType: r.resourceType,
+      zoneCode: r.zoneCode,
+      status: r.status,
+      tierId: r.tierId,
+      tierName: r.tier.name,
+      tierCode: r.tier.code,
+    }));
+  }
+
+  async setResourceStatus(resourceId: string, status: ResourceAvailabilityStatus, reason?: string, staffUserId?: string) {
+    const resource = await this.prisma.resource.findUnique({ where: { id: resourceId } });
+    if (!resource) throw new NotFoundException("Resource not found");
+
+    if (resource.status === "occupied" && status !== "occupied") {
+      throw new ConflictException("Cannot change status of an occupied resource. Check out the active visit first.");
+    }
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const r = await tx.resource.update({
+        where: { id: resourceId },
+        data: { status, version: { increment: 1 } },
+      });
+      await tx.resourceStateHistory.create({
+        data: {
+          resourceId,
+          previousStatus: resource.status,
+          newStatus: status,
+          reasonText: reason ?? null,
+          changedByUserId: staffUserId ?? null,
+        },
+      });
+      return r;
+    });
+
+    return {
+      id: updated.id,
+      displayLabel: updated.displayLabel,
+      resourceType: updated.resourceType,
+      status: updated.status,
+      zoneCode: updated.zoneCode,
+    };
+  }
+
   private toHoldResponse(hold: {
     id: string;
     visitId: string | null;

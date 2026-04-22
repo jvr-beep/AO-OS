@@ -1,4 +1,4 @@
-import { Body, Controller, Post } from "@nestjs/common";
+import { Body, Controller, ForbiddenException, Post } from "@nestjs/common";
 import { SkipThrottle, Throttle } from "@nestjs/throttler";
 import { AuthService, MemberAuthResponse } from "../auth.service";
 import { LoginDto } from "../dto/login.dto";
@@ -64,5 +64,17 @@ export class AuthController {
   @Post("staff-password-reset/confirm")
   staffPasswordResetConfirm(@Body() body: PasswordResetConfirmDto): Promise<{ email: string }> {
     return this.authService.staffPasswordResetConfirm(body);
+  }
+
+  // ── DEV / E2E SEED ────────────────────────────────────────────────
+  // Only callable outside production. Seeds a verified member with a known password.
+
+  @SkipThrottle({ auth: true })
+  @Post("dev/seed-member")
+  devSeedMember(@Body() body: { email: string; password: string }): Promise<{ memberId: string; email: string }> {
+    if (process.env.NODE_ENV === "production") {
+      throw new ForbiddenException("Not available in production");
+    }
+    return this.authService.devSeedMember(body.email, body.password);
   }
 }

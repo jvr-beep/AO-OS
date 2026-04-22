@@ -264,6 +264,9 @@ export interface Guest {
   preferredLanguage: string
   membershipStatus: string
   riskFlagStatus: string
+  riskFlagReason?: string | null
+  riskFlaggedAt?: string | null
+  riskFlaggedBy?: string | null
   marketingOptIn: boolean
   createdAt: string
   updatedAt: string

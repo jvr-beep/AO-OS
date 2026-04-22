@@ -134,6 +134,23 @@ export class BookingsService {
     return this.toResponse(updated as any);
   }
 
+  async cancelBooking(bookingId: string, reason?: string) {
+    const booking = await this.prisma.guestBooking.findUnique({ where: { id: bookingId } });
+    if (!booking) throw new NotFoundException('Booking not found');
+
+    const cancellable: GuestBookingStatus[] = ['reserved', 'confirmed'];
+    if (!cancellable.includes(booking.status as GuestBookingStatus)) {
+      throw new ConflictException(`Cannot cancel a booking with status '${booking.status}'`);
+    }
+
+    const updated = await this.prisma.guestBooking.update({
+      where: { id: bookingId },
+      data: { status: 'cancelled', version: { increment: 1 } },
+      include: { tier: true, addOns: true },
+    });
+    return this.toResponse(updated as any);
+  }
+
   private toResponse(booking: any) {
     return {
       id: booking.id,

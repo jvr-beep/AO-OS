@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from "@nestjs/common";
+import { BadRequestException, Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from "@nestjs/common";
 import { JwtAuthGuard } from "../../auth/guards/jwt-auth.guard";
 import { RolesGuard } from "../../auth/guards/roles.guard";
 import { Roles } from "../../auth/decorators/roles.decorator";
@@ -35,6 +35,21 @@ export class CatalogController {
   @Roles("operations", "admin")
   adminListTiers() {
     return this.catalogService.adminListTiers();
+  }
+
+  @Post("admin/tiers")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("operations", "admin")
+  adminCreateTier(
+    @Body() body: { code: string; productType: string; name: string; publicDescription?: string; basePriceCents: number; upgradeRank?: number },
+  ) {
+    if (!body.code?.trim() || !body.productType || !body.name?.trim()) {
+      throw new BadRequestException("code, productType, and name are required");
+    }
+    if (!['locker', 'room'].includes(body.productType)) {
+      throw new BadRequestException("productType must be 'locker' or 'room'");
+    }
+    return this.catalogService.adminCreateTier(body);
   }
 
   @Patch("admin/tiers/:tierId")

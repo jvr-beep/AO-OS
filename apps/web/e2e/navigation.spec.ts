@@ -11,6 +11,9 @@ const ROUTES = [
   '/wristbands',
   '/lockers',
   '/staff',
+  '/staff/audit',
+  '/settings',
+  '/rooms',
 ]
 
 for (const route of ROUTES) {

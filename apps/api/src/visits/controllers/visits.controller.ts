@@ -6,6 +6,7 @@ import {
   Body,
   Param,
   Query,
+  Req,
   UseGuards,
   ParseUUIDPipe,
 } from '@nestjs/common';
@@ -62,5 +63,31 @@ export class VisitsController {
     @Body() dto: TransitionVisitStatusDto,
   ) {
     return this.visitsService.transitionVisitStatus(visitId, dto);
+  }
+
+  @Get('visits/:visitId/notes')
+  @Roles('front_desk', 'operations', 'admin')
+  listVisitNotes(@Param('visitId', ParseUUIDPipe) visitId: string) {
+    return this.visitsService.listVisitNotes(visitId);
+  }
+
+  @Post('visits/:visitId/notes')
+  @Roles('front_desk', 'operations', 'admin')
+  addVisitNote(
+    @Param('visitId', ParseUUIDPipe) visitId: string,
+    @Body() body: { body: string },
+    @Req() req: any,
+  ) {
+    return this.visitsService.addVisitNote(visitId, body.body, req.user?.id);
+  }
+
+  @Patch('visits/:visitId/notes/:noteId')
+  @Roles('front_desk', 'operations', 'admin')
+  updateVisitNote(
+    @Param('visitId', ParseUUIDPipe) visitId: string,
+    @Param('noteId', ParseUUIDPipe) noteId: string,
+    @Body() body: { body: string },
+  ) {
+    return this.visitsService.updateVisitNote(visitId, noteId, body.body);
   }
 }

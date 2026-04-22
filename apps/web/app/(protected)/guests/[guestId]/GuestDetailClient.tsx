@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { apiGet, apiPost } from '@/lib/browser-api'
+import { apiGet, apiPost, apiPatch } from '@/lib/browser-api'
 import { StatusBadge } from '@/components/status-badge'
 import type { Guest, GuestBooking, GuestVisit } from '@/types/api'
 
@@ -25,6 +25,218 @@ interface WristbandLink {
   linkStatus: string
   reasonCode: string | null
   createdAt: string
+}
+
+const RISK_FLAG_OPTIONS = [
+  { value: 'clear', label: 'Clear' },
+  { value: 'flagged', label: 'Flagged' },
+  { value: 'banned', label: 'Banned' },
+]
+
+function EditGuestPanel({ guest, token, onSaved }: { guest: Guest; token: string; onSaved: (g: Guest) => void }) {
+  const [email, setEmail] = useState(guest.email ?? '')
+  const [phone, setPhone] = useState(guest.phone ?? '')
+  const [firstName, setFirstName] = useState(guest.firstName ?? '')
+  const [saving, setSaving] = useState(false)
+  const [err, setErr] = useState<string | null>(null)
+  const [ok, setOk] = useState(false)
+
+  async function handleSave(e: React.FormEvent) {
+    e.preventDefault()
+    setSaving(true)
+    setErr(null)
+    setOk(false)
+    try {
+      const updated = await apiPatch<Guest>(`/guests/${guest.id}`, {
+        email: email.trim() || undefined,
+        phone: phone.trim() || undefined,
+        firstName: firstName.trim() || undefined,
+      }, token)
+      onSaved(updated)
+      setOk(true)
+    } catch (e: any) {
+      setErr(e.message ?? 'Save failed')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="card p-4">
+      <h2 className="text-xs font-semibold text-accent-primary uppercase tracking-wide mb-3">Edit Contact</h2>
+      <form onSubmit={handleSave} className="space-y-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">First Name</label>
+            <input
+              type="text"
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              className="w-full bg-surface-0 border border-gray-600 text-white rounded px-3 py-2 text-xs focus:outline-none focus:border-accent-primary"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">Email</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full bg-surface-0 border border-gray-600 text-white rounded px-3 py-2 text-xs focus:outline-none focus:border-accent-primary"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">Phone</label>
+            <input
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              className="w-full bg-surface-0 border border-gray-600 text-white rounded px-3 py-2 text-xs focus:outline-none focus:border-accent-primary"
+            />
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <button type="submit" disabled={saving} className="btn-primary text-xs py-1.5 px-4 disabled:opacity-50">
+            {saving ? 'Saving…' : 'Save Changes'}
+          </button>
+          {ok && <span className="text-green-400 text-xs">Saved.</span>}
+          {err && <span className="text-red-400 text-xs">{err}</span>}
+        </div>
+      </form>
+    </div>
+  )
+}
+
+function RiskFlagPanel({ guest, token, onSaved }: { guest: Guest; token: string; onSaved: (g: Guest) => void }) {
+  const [status, setStatus] = useState(guest.riskFlagStatus ?? 'clear')
+  const [reason, setReason] = useState(guest.riskFlagReason ?? '')
+  const [saving, setSaving] = useState(false)
+  const [err, setErr] = useState<string | null>(null)
+  const [ok, setOk] = useState(false)
+
+  async function handleSave(e: React.FormEvent) {
+    e.preventDefault()
+    setSaving(true)
+    setErr(null)
+    setOk(false)
+    try {
+      const updated = await apiPatch<Guest>(`/guests/${guest.id}`, {
+        riskFlagStatus: status,
+        riskFlagReason: reason.trim() || null,
+      }, token)
+      onSaved(updated)
+      setOk(true)
+    } catch (e: any) {
+      setErr(e.message ?? 'Save failed')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="card p-4">
+      <h2 className="text-xs font-semibold text-accent-primary uppercase tracking-wide mb-3">Risk Flag</h2>
+      <form onSubmit={handleSave} className="space-y-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">Status</label>
+            <select
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+              className="w-full bg-surface-0 border border-gray-600 text-white rounded px-3 py-2 text-xs focus:outline-none focus:border-accent-primary"
+            >
+              {RISK_FLAG_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">Reason (staff note)</label>
+            <input
+              type="text"
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder="e.g. aggressive behaviour 2026-04-20"
+              className="w-full bg-surface-0 border border-gray-600 text-white rounded px-3 py-2 text-xs focus:outline-none focus:border-accent-primary"
+            />
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <button type="submit" disabled={saving} className="btn-primary text-xs py-1.5 px-4 disabled:opacity-50">
+            {saving ? 'Saving…' : 'Update Flag'}
+          </button>
+          {ok && <span className="text-green-400 text-xs">Saved.</span>}
+          {err && <span className="text-red-400 text-xs">{err}</span>}
+        </div>
+      </form>
+    </div>
+  )
+}
+
+function CancelBookingButton({ booking, token, onCancelled }: {
+  booking: GuestBooking
+  token: string
+  onCancelled: (id: string) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const [reason, setReason] = useState('')
+  const [cancelling, setCancelling] = useState(false)
+  const [err, setErr] = useState<string | null>(null)
+
+  if (!['reserved', 'confirmed'].includes(booking.status)) return null
+
+  async function handleCancel(e: React.FormEvent) {
+    e.preventDefault()
+    setCancelling(true)
+    setErr(null)
+    try {
+      await apiPost(`/guest-bookings/${booking.id}/cancel`, { reason: reason.trim() || undefined }, token)
+      onCancelled(booking.id)
+    } catch (e: any) {
+      setErr(e.message ?? 'Cancel failed')
+      setCancelling(false)
+    }
+  }
+
+  if (!open) {
+    return (
+      <button
+        onClick={() => setOpen(true)}
+        className="text-xs text-red-400 hover:text-red-300 hover:underline"
+      >
+        Cancel
+      </button>
+    )
+  }
+
+  return (
+    <form onSubmit={handleCancel} className="flex flex-col gap-1 items-end">
+      <input
+        type="text"
+        value={reason}
+        onChange={(e) => setReason(e.target.value)}
+        placeholder="Reason (optional)"
+        autoFocus
+        className="bg-surface-0 border border-gray-600 text-white rounded px-2 py-1 text-xs focus:outline-none focus:border-red-500 w-40"
+      />
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={() => { setOpen(false); setErr(null) }}
+          className="text-xs text-gray-400 hover:text-white"
+        >
+          Keep
+        </button>
+        <button
+          type="submit"
+          disabled={cancelling}
+          className="text-xs text-red-400 hover:text-red-300 disabled:opacity-50"
+        >
+          {cancelling ? 'Cancelling…' : 'Confirm Cancel'}
+        </button>
+      </div>
+      {err && <p className="text-red-400 text-xs">{err}</p>}
+    </form>
+  )
 }
 
 export function GuestDetailClient({
@@ -85,6 +297,8 @@ export function GuestDetailClient({
   if (error || !guest) return <div className="max-w-5xl"><p className="text-red-400">{error ?? 'Guest not found'}</p></div>
 
   const displayIdentifier = guest.email ?? guest.phone ?? `Guest …${guest.id.slice(-8)}`
+  const isBanned = guest.riskFlagStatus === 'banned'
+  const isFlagged = guest.riskFlagStatus === 'flagged'
 
   return (
     <div className="max-w-5xl space-y-6">
@@ -99,6 +313,22 @@ export function GuestDetailClient({
         </div>
       </div>
 
+      {(isBanned || isFlagged) && (
+        <div className={`rounded-md border px-4 py-3 text-sm flex items-start gap-3 ${isBanned ? 'border-red-700 bg-red-950 text-red-200' : 'border-yellow-700 bg-yellow-950 text-yellow-200'}`}>
+          <span className="text-lg">{isBanned ? '🚫' : '⚠️'}</span>
+          <div>
+            <p className="font-semibold">{isBanned ? 'Guest is banned' : 'Guest is flagged'}</p>
+            {guest.riskFlagReason && <p className="text-xs mt-0.5 opacity-80">{guest.riskFlagReason}</p>}
+            {guest.riskFlaggedAt && (
+              <p className="text-xs opacity-60 mt-0.5">
+                Flagged {new Date(guest.riskFlaggedAt).toLocaleDateString()}
+                {guest.riskFlaggedBy && ` by ${guest.riskFlaggedBy}`}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
       {(okMessage || errorMessage) && (
         <div className={`rounded-md border px-3 py-2 text-sm ${errorMessage ? 'border-red-700 bg-red-900 text-red-200' : 'border-green-700 bg-green-900 text-green-200'}`}>
           {errorMessage ?? okMessage}
@@ -110,6 +340,7 @@ export function GuestDetailClient({
         <div className="card p-4">
           <h2 className="text-xs font-semibold text-accent-primary uppercase tracking-wide mb-3">Contact</h2>
           <dl className="space-y-2 text-sm">
+            <div className="flex justify-between"><dt className="text-gray-400">Name</dt><dd className="text-white">{[guest.firstName, guest.lastName].filter(Boolean).join(' ') || '—'}</dd></div>
             <div className="flex justify-between"><dt className="text-gray-400">Email</dt><dd className="text-white">{guest.email ?? '—'}</dd></div>
             <div className="flex justify-between"><dt className="text-gray-400">Phone</dt><dd className="text-white">{guest.phone ?? '—'}</dd></div>
             <div className="flex justify-between"><dt className="text-gray-400">Language</dt><dd className="text-white">{guest.preferredLanguage}</dd></div>
@@ -125,6 +356,12 @@ export function GuestDetailClient({
           </dl>
         </div>
       </div>
+
+      {/* Edit Contact */}
+      <EditGuestPanel guest={guest} token={token} onSaved={setGuest} />
+
+      {/* Risk Flag */}
+      <RiskFlagPanel guest={guest} token={token} onSaved={setGuest} />
 
       {/* Visits */}
       <div className="card overflow-hidden">
@@ -166,11 +403,12 @@ export function GuestDetailClient({
               <th className="text-left px-4 py-3 text-xs font-semibold text-accent-primary uppercase tracking-wide">Channel</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-accent-primary uppercase tracking-wide">Balance</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-accent-primary uppercase tracking-wide">Created</th>
+              <th className="px-4 py-3" />
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-700">
             {bookings.length === 0 ? (
-              <tr><td colSpan={5} className="px-4 py-6 text-center text-sm text-gray-500">No bookings yet.</td></tr>
+              <tr><td colSpan={6} className="px-4 py-6 text-center text-sm text-gray-500">No bookings yet.</td></tr>
             ) : bookings.map((booking) => (
               <tr key={booking.id} className="hover:bg-gray-700/40">
                 <td className="px-4 py-3 text-xs font-mono text-gray-300">{booking.booking_code}</td>
@@ -178,6 +416,13 @@ export function GuestDetailClient({
                 <td className="px-4 py-3 text-xs text-gray-400">{booking.booking_channel}</td>
                 <td className="px-4 py-3 text-xs text-gray-300">{booking.balance_due_cents > 0 ? `$${(booking.balance_due_cents / 100).toFixed(2)}` : '—'}</td>
                 <td className="px-4 py-3 text-xs text-gray-400">{new Date(booking.created_at).toLocaleDateString()}</td>
+                <td className="px-4 py-3 text-right">
+                  <CancelBookingButton
+                    booking={booking}
+                    token={token}
+                    onCancelled={(id) => setBookings((prev) => prev.map((b) => b.id === id ? { ...b, status: 'cancelled' } : b))}
+                  />
+                </td>
               </tr>
             ))}
           </tbody>

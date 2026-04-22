@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Post, Query, UseGuards } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, UseGuards } from "@nestjs/common";
 import { Roles } from "../../auth/decorators/roles.decorator";
 import { JwtAuthGuard } from "../../auth/guards/jwt-auth.guard";
 import { RolesGuard } from "../../auth/guards/roles.guard";
@@ -38,5 +38,23 @@ export class InventoryController {
   @Roles("front_desk", "operations", "admin")
   finalizeAssignment(@Body() body: FinalizeAssignmentDto): Promise<FinalizeAssignmentResponseDto> {
     return this.inventoryService.finalizeAssignment(body);
+  }
+
+  @Get("resources")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("front_desk", "operations", "admin")
+  listResources(@Query("product_type") productType?: string) {
+    return this.inventoryService.listResources(productType as any);
+  }
+
+  @Patch("resources/:resourceId/status")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("front_desk", "operations", "admin")
+  setResourceStatus(
+    @Param("resourceId") resourceId: string,
+    @Body() body: { status: string; reason?: string },
+    @Req() req: any,
+  ) {
+    return this.inventoryService.setResourceStatus(resourceId, body.status as any, body.reason, req.user?.id);
   }
 }

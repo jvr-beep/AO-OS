@@ -1,3 +1,5 @@
+import { GuestRiskFlagStatus } from '@prisma/client';
+
 export class UpdateGuestDto {
   firstName?: string;
   lastName?: string;
@@ -6,4 +8,6 @@ export class UpdateGuestDto {
   dateOfBirth?: string;
   preferredLanguage?: string;
   marketingOptIn?: boolean;
+  riskFlagStatus?: GuestRiskFlagStatus;
+  riskFlagReason?: string | null;
 }

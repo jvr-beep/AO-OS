@@ -87,6 +87,43 @@ export class CatalogService {
 
   // ── Admin tier management ─────────────────────────────────────────────────
 
+  async adminCreateTier(dto: {
+    code: string;
+    productType: string;
+    name: string;
+    publicDescription?: string | null;
+    basePriceCents: number;
+    upgradeRank?: number;
+  }) {
+    const existing = await this.prisma.tier.findUnique({ where: { code: dto.code } });
+    if (existing) throw new Error(`Tier code '${dto.code}' already exists`);
+
+    const created = await this.prisma.tier.create({
+      data: {
+        code: dto.code.trim().toUpperCase(),
+        productType: dto.productType as any,
+        name: dto.name.trim(),
+        publicDescription: dto.publicDescription?.trim() || null,
+        basePriceCents: dto.basePriceCents,
+        upgradeRank: dto.upgradeRank ?? 0,
+        active: true,
+      },
+      include: { durationOptions: { orderBy: { durationMinutes: 'asc' } } },
+    });
+
+    return {
+      id: created.id,
+      code: created.code,
+      productType: created.productType,
+      name: created.name,
+      publicDescription: created.publicDescription,
+      upgradeRank: created.upgradeRank,
+      basePriceCents: created.basePriceCents,
+      active: created.active,
+      durationOptions: [],
+    };
+  }
+
   async adminListTiers() {
     const tiers = await this.prisma.tier.findMany({
       orderBy: [{ productType: "asc" }, { upgradeRank: "asc" }, { name: "asc" }],

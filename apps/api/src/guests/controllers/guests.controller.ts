@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Param, Patch, Post, Req, UseGuards } from "@nestjs/common";
 import { Roles } from "../../auth/decorators/roles.decorator";
 import { JwtAuthGuard } from "../../auth/guards/jwt-auth.guard";
 import { RolesGuard } from "../../auth/guards/roles.guard";
@@ -33,8 +33,8 @@ export class GuestsController {
   @Patch(":guestId")
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles("front_desk", "operations", "admin")
-  updateGuest(@Param("guestId") guestId: string, @Body() body: UpdateGuestDto): Promise<GuestResponseDto> {
-    return this.guestsService.update(guestId, body);
+  updateGuest(@Param("guestId") guestId: string, @Body() body: UpdateGuestDto, @Req() req: any): Promise<GuestResponseDto> {
+    return this.guestsService.update(guestId, body, req.user?.id);
   }
 
   @Get(":guestId/wristband-links")

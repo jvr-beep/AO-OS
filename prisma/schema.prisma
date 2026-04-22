@@ -1006,6 +1006,12 @@ enum GuestRiskFlagStatus {
   banned
 }
 
+enum WaiverDocumentStatus {
+  draft
+  published
+  archived
+}
+
 enum VisitSourceType {
   booking
   walk_in
@@ -1140,6 +1146,9 @@ model Guest {
   preferredLanguage String                @default("en") @map("preferred_language")
   membershipStatus  GuestMembershipStatus @default(none) @map("membership_status")
   riskFlagStatus    GuestRiskFlagStatus   @default(clear) @map("risk_flag_status")
+  riskFlagReason    String?               @map("risk_flag_reason")
+  riskFlaggedAt     DateTime?             @map("risk_flagged_at") @db.Timestamptz(6)
+  riskFlaggedBy     String?               @map("risk_flagged_by")
   marketingOptIn    Boolean               @default(false) @map("marketing_opt_in")
   locationId        String?               @map("location_id")
   version           Int                   @default(1)
@@ -1153,6 +1162,21 @@ model Guest {
   wristbandLinks    WristbandLink[]
 
   @@map("guests")
+}
+
+model WaiverDocument {
+  id          String               @id @default(uuid()) @db.Uuid
+  version     String               @unique
+  title       String
+  body        String               @db.Text
+  status      WaiverDocumentStatus @default(draft)
+  publishedAt DateTime?            @map("published_at") @db.Timestamptz(6)
+  effectiveAt DateTime?            @map("effective_at") @db.Timestamptz(6)
+  createdBy   String?              @map("created_by")
+  createdAt   DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime             @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("waiver_documents")
 }
 
 model GuestWaiver {
@@ -1344,6 +1368,7 @@ model Visit {
   tier               Tier               @relation(fields: [tierId], references: [id])
   assignedResource   Resource?          @relation("VisitAssignedResource", fields: [assignedResourceId], references: [id])
   statusHistory      VisitStatusHistory[]
+  notes              VisitNote[]
   wristbandLinks     WristbandLink[]
   holds              ResourceHold[]
   folio              Folio?
@@ -1371,6 +1396,20 @@ model VisitStatusHistory {
 
   @@index([visitId, changedAt(sort: Desc)], map: "idx_visit_status_history_visit_time")
   @@map("visit_status_history")
+}
+
+model VisitNote {
+  id            String   @id @default(uuid()) @db.Uuid
+  visitId       String   @map("visit_id") @db.Uuid
+  staffUserId   String?  @map("staff_user_id")
+  body          String   @db.Text
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  visit         Visit    @relation(fields: [visitId], references: [id])
+
+  @@index([visitId, createdAt(sort: Desc)], map: "idx_visit_notes_visit_time")
+  @@map("visit_notes")
 }
 
 model WristbandLink {

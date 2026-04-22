@@ -5,31 +5,17 @@ import { KioskErrorBanner } from '../components/KioskErrorBanner'
 
 const API_BASE = process.env.API_BASE_URL ?? 'http://localhost:4000/v1'
 
-const WAIVER_TEXT = `
-ALPHA OMEGA (ΑΩ) SANCTUARY — HOUSE RULES & WAIVER OF LIABILITY
-
-By entering AO Sanctuary, you acknowledge and agree to the following:
-
-1. CONDUCT
-All guests are expected to conduct themselves with respect for the house, its members, and their boundaries. Consent is non-negotiable. Any conduct that violates the dignity of another person will result in immediate removal and permanent ban.
-
-2. HEALTH & SAFETY
-You confirm that you are in good health and not aware of any condition that would put yourself or others at risk. AO Sanctuary is an adult wellness environment. You accept responsibility for your own physical safety and wellbeing during your visit.
-
-3. PREMISES & PERSONAL PROPERTY
-AO Sanctuary is not responsible for loss, theft, or damage to personal property. Lockers are provided as a courtesy and do not constitute a bailment.
-
-4. PHOTOGRAPHY
-No photography or recording of any kind is permitted inside AO Sanctuary premises. Violation of this policy will result in immediate removal and permanent ban.
-
-5. DISCRETION
-What occurs within AO Sanctuary is private. Members and guests are expected to maintain discretion regarding the identity and activities of others they may encounter on premises.
-
-6. LIMITATION OF LIABILITY
-You release AO Sanctuary, its employees, agents, and affiliates from any and all claims arising from your visit, including but not limited to personal injury, property damage, or any other harm.
-
-By signing below, you confirm that you have read, understood, and agree to these terms.
-`.trim()
+async function fetchWaiverBody(): Promise<{ version: string; title: string; body: string }> {
+  try {
+    const res = await fetch(`${API_BASE}/waivers/current/body`, { cache: 'no-store' })
+    if (res.ok) return res.json()
+  } catch { /* fallthrough to default */ }
+  return {
+    version: 'AO-WAIVER-v1',
+    title: 'AO Sanctuary — House Rules & Waiver of Liability',
+    body: 'Waiver text unavailable. Please ask staff for assistance.',
+  }
+}
 
 async function checkWaiverStatus(guestId: string): Promise<boolean> {
   try {
@@ -52,7 +38,10 @@ export default async function WaiverPage({
   const session = await getKioskSession()
   if (!session.guestId) redirect('/kiosk')
 
-  const waiverCurrent = searchParams.forceNew !== '1' && await checkWaiverStatus(session.guestId)
+  const [waiverCurrent, waiver] = await Promise.all([
+    searchParams.forceNew !== '1' ? checkWaiverStatus(session.guestId) : Promise.resolve(false),
+    fetchWaiverBody(),
+  ])
 
   if (waiverCurrent) {
     return (
@@ -107,7 +96,7 @@ export default async function WaiverPage({
         {/* Waiver text */}
         <div className="rounded-lg bg-surface-1 border border-border-subtle p-5 mb-6 max-h-64 overflow-y-auto">
           <pre className="text-xs text-text-secondary leading-relaxed whitespace-pre-wrap font-sans">
-            {WAIVER_TEXT}
+            {waiver.body}
           </pre>
         </div>
 

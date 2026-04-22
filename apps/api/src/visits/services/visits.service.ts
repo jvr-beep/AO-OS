@@ -242,4 +242,66 @@ export class VisitsService {
       updated_at: visit.updatedAt.toISOString(),
     };
   }
+
+  // ── Visit notes ────────────────────────────────────────────────────────────
+
+  async listVisitNotes(visitId: string) {
+    const visit = await this.prisma.visit.findUnique({ where: { id: visitId } });
+    if (!visit) throw new NotFoundException('Visit not found');
+
+    const notes = await (this.prisma as any).visitNote.findMany({
+      where: { visitId },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return notes.map((n: any) => ({
+      id: n.id,
+      visitId: n.visitId,
+      staffUserId: n.staffUserId ?? null,
+      body: n.body,
+      createdAt: n.createdAt.toISOString(),
+      updatedAt: n.updatedAt.toISOString(),
+    }));
+  }
+
+  async addVisitNote(visitId: string, body: string, staffUserId?: string) {
+    if (!body?.trim()) throw new BadRequestException('Note body is required');
+
+    const visit = await this.prisma.visit.findUnique({ where: { id: visitId } });
+    if (!visit) throw new NotFoundException('Visit not found');
+
+    const note = await (this.prisma as any).visitNote.create({
+      data: { visitId, body: body.trim(), staffUserId: staffUserId ?? null },
+    });
+
+    return {
+      id: note.id,
+      visitId: note.visitId,
+      staffUserId: note.staffUserId ?? null,
+      body: note.body,
+      createdAt: note.createdAt.toISOString(),
+      updatedAt: note.updatedAt.toISOString(),
+    };
+  }
+
+  async updateVisitNote(visitId: string, noteId: string, body: string) {
+    if (!body?.trim()) throw new BadRequestException('Note body is required');
+
+    const note = await (this.prisma as any).visitNote.findFirst({ where: { id: noteId, visitId } });
+    if (!note) throw new NotFoundException('Note not found');
+
+    const updated = await (this.prisma as any).visitNote.update({
+      where: { id: noteId },
+      data: { body: body.trim() },
+    });
+
+    return {
+      id: updated.id,
+      visitId: updated.visitId,
+      staffUserId: updated.staffUserId ?? null,
+      body: updated.body,
+      createdAt: updated.createdAt.toISOString(),
+      updatedAt: updated.updatedAt.toISOString(),
+    };
+  }
 }

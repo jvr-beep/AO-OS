@@ -2,15 +2,23 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { apiGet, apiPost } from '@/lib/browser-api'
+import { apiGet, apiPost, apiPatch } from '@/lib/browser-api'
 import { StatusBadge } from '@/components/status-badge'
 import type { GuestVisit, Folio } from '@/types/api'
 
+interface VisitNote {
+  id: string
+  visitId: string
+  staffUserId: string | null
+  body: string
+  createdAt: string
+  updatedAt: string
+}
+
 export function VisitDetailClient({ token, visitId, staffUserId, okMessage, errorMessage }: { token: string; visitId: string; staffUserId?: string; okMessage?: string; errorMessage?: string }) {
-  const router = useRouter()
   const [visit, setVisit] = useState<GuestVisit | null>(null)
   const [folio, setFolio] = useState<Folio | null>(null)
+  const [notes, setNotes] = useState<VisitNote[]>([])
   const [loading, setLoading] = useState(true)
   const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(
     okMessage ? { text: okMessage, ok: true } : errorMessage ? { text: errorMessage, ok: false } : null
@@ -18,14 +26,21 @@ export function VisitDetailClient({ token, visitId, staffUserId, okMessage, erro
   const [checkingOut, setCheckingOut] = useState(false)
   const [addingItem, setAddingItem] = useState(false)
   const [recordingPayment, setRecordingPayment] = useState(false)
+  const [noteBody, setNoteBody] = useState('')
+  const [addingNote, setAddingNote] = useState(false)
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null)
+  const [editingNoteBody, setEditingNoteBody] = useState('')
+  const [savingNote, setSavingNote] = useState(false)
 
   const load = () => {
     Promise.all([
       apiGet<GuestVisit>(`/visits/${visitId}`, token),
       apiGet<Folio>(`/visits/${visitId}/folio`, token).catch(() => null),
-    ]).then(([v, f]) => {
+      apiGet<VisitNote[]>(`/visits/${visitId}/notes`, token).catch(() => [] as VisitNote[]),
+    ]).then(([v, f, n]) => {
       setVisit(v)
       setFolio(f)
+      setNotes(n)
     }).catch(() => {}).finally(() => setLoading(false))
   }
 
@@ -85,6 +100,35 @@ export function VisitDetailClient({ token, visitId, staffUserId, okMessage, erro
       setMessage({ text: e2 instanceof Error ? e2.message : 'Record payment failed', ok: false })
     } finally {
       setRecordingPayment(false)
+    }
+  }
+
+  const handleAddNote = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!noteBody.trim()) return
+    setAddingNote(true)
+    try {
+      const note = await apiPost<VisitNote>(`/visits/${visitId}/notes`, { body: noteBody.trim() }, token)
+      setNotes((prev) => [note, ...prev])
+      setNoteBody('')
+    } catch {
+      // note add failed silently — user can retry
+    } finally {
+      setAddingNote(false)
+    }
+  }
+
+  const handleSaveNoteEdit = async (noteId: string) => {
+    if (!editingNoteBody.trim()) return
+    setSavingNote(true)
+    try {
+      const updated = await apiPatch<VisitNote>(`/visits/${visitId}/notes/${noteId}`, { body: editingNoteBody.trim() }, token)
+      setNotes((prev) => prev.map((n) => n.id === noteId ? updated : n))
+      setEditingNoteId(null)
+    } catch {
+      // edit failed silently
+    } finally {
+      setSavingNote(false)
     }
   }
 
@@ -219,6 +263,83 @@ export function VisitDetailClient({ token, visitId, staffUserId, okMessage, erro
           </div>
         </div>
       )}
+
+      {/* Notes */}
+      <div className="card overflow-hidden">
+        <div className="px-4 py-3 border-b border-gray-700">
+          <h2 className="text-sm font-semibold text-gray-200">Staff Notes ({notes.length})</h2>
+        </div>
+
+        <div className="p-4 border-b border-gray-700">
+          <form onSubmit={handleAddNote} className="flex gap-2 items-end">
+            <textarea
+              value={noteBody}
+              onChange={(e) => setNoteBody(e.target.value)}
+              placeholder="Add a note…"
+              rows={2}
+              className="flex-1 bg-surface-0 border border-gray-600 text-white rounded px-3 py-2 text-xs focus:outline-none focus:border-accent-primary resize-none"
+            />
+            <button
+              type="submit"
+              disabled={addingNote || !noteBody.trim()}
+              className="btn-primary text-xs py-2 px-4 disabled:opacity-50 self-end"
+            >
+              {addingNote ? '…' : 'Add'}
+            </button>
+          </form>
+        </div>
+
+        <div className="divide-y divide-gray-700">
+          {notes.length === 0 ? (
+            <p className="px-4 py-6 text-center text-sm text-gray-500">No notes yet.</p>
+          ) : notes.map((note) => (
+            <div key={note.id} className="px-4 py-3">
+              {editingNoteId === note.id ? (
+                <div className="space-y-2">
+                  <textarea
+                    value={editingNoteBody}
+                    onChange={(e) => setEditingNoteBody(e.target.value)}
+                    rows={3}
+                    autoFocus
+                    className="w-full bg-surface-0 border border-gray-600 text-white rounded px-3 py-2 text-xs focus:outline-none focus:border-accent-primary resize-none"
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleSaveNoteEdit(note.id)}
+                      disabled={savingNote || !editingNoteBody.trim()}
+                      className="btn-primary text-xs py-1 px-3 disabled:opacity-50"
+                    >
+                      {savingNote ? '…' : 'Save'}
+                    </button>
+                    <button
+                      onClick={() => setEditingNoteId(null)}
+                      className="btn-secondary text-xs py-1 px-3"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs text-white whitespace-pre-wrap">{note.body}</p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {new Date(note.createdAt).toLocaleString()}
+                      {note.staffUserId && ` · ${note.staffUserId.slice(0, 8)}…`}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => { setEditingNoteId(note.id); setEditingNoteBody(note.body) }}
+                    className="text-xs text-gray-400 hover:text-white shrink-0"
+                  >
+                    Edit
+                  </button>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   )
 }

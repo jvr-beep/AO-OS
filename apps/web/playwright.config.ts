@@ -24,13 +24,17 @@ export default defineConfig({
       testMatch: /auth\.setup\.ts/,
     },
     {
+      name: 'member-setup',
+      testMatch: /member\.setup\.ts/,
+    },
+    {
       name: 'staff',
       use: {
         ...devices['Desktop Chrome'],
         storageState: 'e2e/.auth/staff.json',
       },
       dependencies: ['setup'],
-      testIgnore: /kiosk\.spec\.ts|auth\.spec\.ts/,
+      testIgnore: /kiosk.*\.spec\.ts|auth\.spec\.ts|member\.spec\.ts/,
     },
     {
       name: 'auth-flows',
@@ -46,7 +50,16 @@ export default defineConfig({
         ...devices['Desktop Chrome'],
         storageState: { cookies: [], origins: [] },
       },
-      testMatch: /kiosk\.spec\.ts/,
+      testMatch: /kiosk.*\.spec\.ts/,
+    },
+    {
+      name: 'member',
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: 'e2e/.auth/member.json',
+      },
+      dependencies: ['member-setup'],
+      testMatch: /member\.spec\.ts/,
     },
   ],
   globalSetup: './e2e/global-setup.ts',
