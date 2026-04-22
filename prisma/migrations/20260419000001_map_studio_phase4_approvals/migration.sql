@@ -3,7 +3,7 @@ CREATE TYPE "MapApprovalStatus" AS ENUM ('pending', 'approved', 'rejected');
 
 CREATE TABLE "map_version_approvals" (
   "id"           UUID         NOT NULL DEFAULT gen_random_uuid(),
-  "version_id"   UUID         NOT NULL,
+  "version_id"   TEXT         NOT NULL,
   "requested_by" TEXT         NOT NULL,
   "status"       "MapApprovalStatus" NOT NULL DEFAULT 'pending',
   "reviewed_by"  TEXT,
