@@ -30,6 +30,7 @@ export default async function BookingConfirmPage({
   if (!session.bookingId || !session.bookingData) redirect('/kiosk/booking')
 
   const b = session.bookingData
+  const needsWaiver = !session.waiverCompleted
 
   return (
     <div className="min-h-screen bg-surface-0 flex flex-col items-center justify-center px-6 py-10">
@@ -74,16 +75,32 @@ export default async function BookingConfirmPage({
           )}
         </div>
 
+        {needsWaiver && (
+          <div className="rounded-lg border border-yellow-600 bg-yellow-950 px-4 py-3 mb-4 text-sm text-yellow-200">
+            <p className="font-semibold mb-0.5">Waiver required</p>
+            <p className="text-xs opacity-80">Please review and sign the house rules before checking in.</p>
+          </div>
+        )}
+
         {searchParams.error && <KioskErrorBanner message={searchParams.error} />}
 
-        <form action={confirmBookingCheckinAction}>
-          <button
-            type="submit"
-            className="w-full btn-primary py-4 text-sm uppercase tracking-widest"
+        {needsWaiver ? (
+          <a
+            href="/kiosk/waiver"
+            className="block w-full btn-primary py-4 text-sm uppercase tracking-widest text-center"
           >
-            {b.balanceDueCents > 0 ? 'Continue to Payment' : 'Check In'}
-          </button>
-        </form>
+            Review &amp; Sign Waiver
+          </a>
+        ) : (
+          <form action={confirmBookingCheckinAction}>
+            <button
+              type="submit"
+              className="w-full btn-primary py-4 text-sm uppercase tracking-widest"
+            >
+              {b.balanceDueCents > 0 ? 'Continue to Payment' : 'Check In'}
+            </button>
+          </form>
+        )}
 
         <a
           href="/kiosk/booking"

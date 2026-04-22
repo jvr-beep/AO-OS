@@ -38,6 +38,8 @@ export default async function WaiverPage({
   const session = await getKioskSession()
   if (!session.guestId) redirect('/kiosk')
 
+  const isBookingFlow = !!session.bookingId
+
   const [waiverCurrent, waiver] = await Promise.all([
     searchParams.forceNew !== '1' ? checkWaiverStatus(session.guestId) : Promise.resolve(false),
     fetchWaiverBody(),
@@ -50,7 +52,7 @@ export default async function WaiverPage({
 
           <div className="text-center mb-8">
             <h1 className="text-4xl font-heading tracking-[0.3em] text-text-primary mb-1">ΑΩ</h1>
-            <p className="text-xs text-text-muted uppercase tracking-widest">Welcome Back</p>
+            <p className="text-xs text-text-muted uppercase tracking-widest">{isBookingFlow ? 'Booking Check-In' : 'Welcome Back'}</p>
           </div>
 
           <div className="rounded-lg bg-surface-1 border border-border-subtle p-6 mb-6 text-center space-y-3">
@@ -90,7 +92,7 @@ export default async function WaiverPage({
 
         <div className="text-center mb-8">
           <h1 className="text-4xl font-heading tracking-[0.3em] text-text-primary mb-1">ΑΩ</h1>
-          <p className="text-xs text-text-muted uppercase tracking-widest">House Rules &amp; Waiver</p>
+          <p className="text-xs text-text-muted uppercase tracking-widest">{isBookingFlow ? 'Booking Check-In — Waiver' : 'House Rules & Waiver'}</p>
         </div>
 
         {/* Waiver text */}

@@ -58,11 +58,49 @@ export class OpsService {
   }
 
   async getOpsSnapshot() {
-    const [openExceptions, activeVisits, heldResources, occupiedResources] = await Promise.all([
+    const todayStart = new Date()
+    todayStart.setHours(0, 0, 0, 0)
+
+    const twoHoursFromNow = new Date(Date.now() + 2 * 60 * 60 * 1000)
+
+    const [
+      openExceptions,
+      activeVisits,
+      heldResources,
+      occupiedResources,
+      availableResources,
+      checkinsToday,
+      revenueToday,
+      upcomingArrivals,
+    ] = await Promise.all([
       this.prisma.systemException.count({ where: { status: "open" } }),
       this.prisma.visit.count({ where: { status: { in: ["checked_in", "active", "extended"] } } }),
       this.prisma.resource.count({ where: { status: "held" } }),
-      this.prisma.resource.count({ where: { status: "occupied" } })
+      this.prisma.resource.count({ where: { status: "occupied" } }),
+      this.prisma.resource.count({ where: { status: "available" } }),
+      this.prisma.visit.count({
+        where: {
+          createdAt: { gte: todayStart },
+          status: { in: ["checked_in", "active", "extended", "checked_out"] },
+        },
+      }),
+      this.prisma.paymentTransaction.aggregate({
+        _sum: { amountCents: true },
+        where: {
+          status: "succeeded",
+          createdAt: { gte: todayStart },
+        },
+      }),
+      this.prisma.guestBooking.findMany({
+        where: {
+          status: { in: ["reserved", "confirmed"] },
+          arrivalWindowStart: { lte: twoHoursFromNow },
+          arrivalWindowEnd: { gte: new Date() },
+        },
+        include: { guest: { select: { email: true, phone: true } } },
+        orderBy: { arrivalWindowStart: "asc" },
+        take: 20,
+      }),
     ]);
 
     return {
@@ -70,7 +108,18 @@ export class OpsService {
       active_visits: activeVisits,
       held_resources: heldResources,
       occupied_resources: occupiedResources,
-      generated_at: new Date().toISOString()
+      available_resources: availableResources,
+      checkins_today: checkinsToday,
+      revenue_today_cents: revenueToday._sum.amountCents ?? 0,
+      upcoming_arrivals: upcomingArrivals.map((b) => ({
+        id: b.id,
+        booking_code: b.bookingCode,
+        arrival_window_start: b.arrivalWindowStart.toISOString(),
+        arrival_window_end: b.arrivalWindowEnd.toISOString(),
+        guest_identifier: b.guest?.email ?? b.guest?.phone ?? b.guestId.slice(0, 8) + "…",
+        status: b.status,
+      })),
+      generated_at: new Date().toISOString(),
     };
   }
 

@@ -76,7 +76,7 @@ export async function acceptWaiverAction(formData: FormData): Promise<void> {
   if (formData.get('reconfirm') === 'true') {
     session.waiverCompleted = true
     await session.save()
-    redirect('/kiosk/product')
+    redirect(session.bookingId ? '/kiosk/booking/confirm' : '/kiosk/product')
   }
 
   const signature = formData.get('signature')?.toString().trim()
@@ -106,7 +106,8 @@ export async function acceptWaiverAction(formData: FormData): Promise<void> {
     redirect(`/kiosk/waiver?error=${encodeURIComponent(err.message ?? 'Waiver submission failed')}`)
   }
 
-  redirect('/kiosk/product')
+  // Booking guests return to confirm page; walk-in guests continue to product selection
+  redirect(session.bookingId ? '/kiosk/booking/confirm' : '/kiosk/product')
 }
 
 // ── Step 3: Choose product type (Locker vs Room) ──────────────────────────
@@ -227,6 +228,17 @@ export async function selectTierAction(formData: FormData): Promise<void> {
 
 // ── Booking path: look up booking by code or phone ───────────────────────
 
+async function checkGuestWaiverCurrent(guestId: string): Promise<boolean> {
+  try {
+    const res = await fetch(`${API_BASE}/guests/${guestId}/waivers/latest`, { cache: 'no-store' })
+    if (!res.ok) return false
+    const data = await res.json()
+    return data.isValid === true
+  } catch {
+    return false
+  }
+}
+
 export async function lookupBookingAction(formData: FormData): Promise<void> {
   const lookupType = formData.get('lookup_type')?.toString()
   const value = formData.get('value')?.toString().trim()
@@ -250,10 +262,13 @@ export async function lookupBookingAction(formData: FormData): Promise<void> {
     const data = await res.json()
     const { booking, guest } = data
 
+    const waiverCurrent = await checkGuestWaiverCurrent(guest.id)
+
     const session = await getKioskSession()
     session.bookingSource = 'booking'
     session.bookingId = booking.id
     session.guestId = guest.id
+    session.waiverCompleted = waiverCurrent
     session.bookingData = {
       bookingCode: booking.booking_code,
       tierName: booking.tier_name,
@@ -277,6 +292,11 @@ export async function lookupBookingAction(formData: FormData): Promise<void> {
 export async function confirmBookingCheckinAction(): Promise<void> {
   const session = await getKioskSession()
   if (!session.bookingId || !session.guestId) redirect('/kiosk/booking')
+
+  // Waiver gate — booking guests must sign before proceeding to check-in
+  if (!session.waiverCompleted) {
+    redirect('/kiosk/waiver')
+  }
 
   try {
     const res = await fetch(`${API_BASE}/kiosk/booking-checkin`, {
