@@ -102,6 +102,32 @@ export function getMemberSubscription(sessionId: string) {
   return memberFetch<MemberSubscription | null>('/me/subscription', sessionId)
 }
 
+export interface MemberBooking {
+  id: string
+  guest_id: string
+  tier_id: string
+  tier_name: string | null
+  product_type: string
+  booking_channel: string
+  booking_date: string
+  arrival_window_start: string
+  arrival_window_end: string
+  duration_minutes: number
+  status: string
+  quoted_price_cents: number
+  paid_amount_cents: number
+  balance_due_cents: number
+  booking_code: string
+  qr_token: string | null
+  version: number
+  created_at: string
+  updated_at: string
+}
+
+export function getMemberBookings(sessionId: string) {
+  return memberFetch<MemberBooking[]>('/members/me/bookings', sessionId)
+}
+
 export async function memberLogin(email: string, password: string): Promise<{
   memberId: string
   session: { sessionId: string; expiresAt: string }

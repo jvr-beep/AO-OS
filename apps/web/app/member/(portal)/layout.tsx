@@ -5,8 +5,9 @@ import { memberLogoutAction } from '../actions/auth'
 
 const NAV_LINKS = [
   { href: '/member', label: 'Home' },
+  { href: '/member/book', label: 'Book' },
+  { href: '/member/bookings', label: 'Bookings' },
   { href: '/member/visits', label: 'Visits' },
-  { href: '/member/subscription', label: 'Membership' },
   { href: '/member/account', label: 'Account' },
 ]
 

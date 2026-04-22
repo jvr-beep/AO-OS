@@ -57,6 +57,12 @@ export default async function MemberDashboard() {
 
       {/* Quick actions */}
       <div className="grid grid-cols-2 gap-3">
+        <a href="/member/book" className="rounded-lg bg-accent-primary p-4 text-center hover:opacity-90 transition-opacity no-underline">
+          <p className="text-xs text-white uppercase tracking-wider font-medium">Book a Visit</p>
+        </a>
+        <a href="/member/bookings" className="rounded-lg bg-surface-1 border border-border-subtle p-4 text-center hover:border-accent-primary transition-colors no-underline">
+          <p className="text-xs text-text-muted uppercase tracking-wider">My Bookings</p>
+        </a>
         <a href="/member/visits" className="rounded-lg bg-surface-1 border border-border-subtle p-4 text-center hover:border-accent-primary transition-colors no-underline">
           <p className="text-xs text-text-muted uppercase tracking-wider">Visit History</p>
         </a>
