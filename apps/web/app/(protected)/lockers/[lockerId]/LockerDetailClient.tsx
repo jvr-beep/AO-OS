@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { apiGet, apiPost } from '@/lib/browser-api'
+import { apiGet, apiPost, apiPatch } from '@/lib/browser-api'
 import { StatusBadge } from '@/components/status-badge'
 import type { Locker, LockerAccessEvent } from '@/types/api'
 
@@ -116,6 +116,37 @@ export function LockerDetailClient({ token, lockerId, staffUserId, okMessage, er
           </div>
         </div>
       )}
+
+      <div className="card p-4 mb-4">
+        <h2 className="text-sm font-semibold text-gray-200 mb-2">Maintenance</h2>
+        <p className="text-xs text-gray-400 mb-3">
+          {locker.status === 'maintenance'
+            ? 'Locker is in maintenance mode. Assignment and access are blocked.'
+            : 'Mark this locker out of service for repairs or inspection.'}
+        </p>
+        <button
+          disabled={busy || ['occupied', 'reserved', 'assigned'].includes(locker.status)}
+          onClick={async () => {
+            setBusy(true)
+            setMessage(null)
+            try {
+              const updated = await apiPatch<Locker>(`/lockers/${lockerId}/maintenance`, { maintenance: locker.status !== 'maintenance' }, token)
+              setLocker(updated)
+              setMessage({ text: locker.status === 'maintenance' ? 'Locker returned to service' : 'Locker set to maintenance', ok: true })
+            } catch (e2: unknown) {
+              setMessage({ text: e2 instanceof Error ? e2.message : 'Failed', ok: false })
+            } finally {
+              setBusy(false)
+            }
+          }}
+          className={`text-xs px-4 py-2 rounded font-medium transition-colors disabled:opacity-40 ${locker.status === 'maintenance' ? 'bg-green-800 hover:bg-green-700 text-green-100' : 'bg-yellow-900 hover:bg-yellow-800 text-yellow-100'}`}
+        >
+          {busy ? '…' : locker.status === 'maintenance' ? 'Return to Service' : 'Set Maintenance'}
+        </button>
+        {['occupied', 'reserved', 'assigned'].includes(locker.status) && (
+          <p className="text-xs text-gray-500 mt-2">Cannot set maintenance while locker is {locker.status}.</p>
+        )}
+      </div>
 
       <div className="card mb-4">
         <h2 className="text-sm font-semibold text-accent-primary mb-2 uppercase tracking-wide">Operational Safety Rules</h2>

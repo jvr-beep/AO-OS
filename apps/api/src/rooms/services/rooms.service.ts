@@ -80,6 +80,20 @@ export class RoomsService {
     return this.toRoomResponse(row);
   }
 
+  async setMaintenanceMode(id: string, maintenance: boolean): Promise<RoomResponseDto> {
+    const room = await this.prisma.room.findUnique({ where: { id } })
+    if (!room) throw new NotFoundException("ROOM_NOT_FOUND")
+    const blocked = ["reserved", "checked_in", "cleaning"]
+    if (maintenance && blocked.includes(room.status)) {
+      throw new BadRequestException(`Cannot set maintenance: room is currently ${room.status}`)
+    }
+    const updated = await this.prisma.room.update({
+      where: { id },
+      data: { status: maintenance ? "maintenance" : "available" },
+    })
+    return this.toRoomResponse(updated)
+  }
+
   async accessRoom(input: CreateRoomAccessDto): Promise<RoomAccessEventResponseDto> {
     const occurredAt = this.parseDate(input.occurredAt, "INVALID_OCCURRED_AT");
 

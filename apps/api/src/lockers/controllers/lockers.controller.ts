@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Query, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from "@nestjs/common";
 import { Roles } from "../../auth/decorators/roles.decorator";
 import { JwtAuthGuard } from "../../auth/guards/jwt-auth.guard";
 import { RolesGuard } from "../../auth/guards/roles.guard";
@@ -42,6 +42,15 @@ export class LockersController {
     @Query() query: ListLockerAccessEventsQueryDto
   ): Promise<LockerAccessEventResponseDto[]> {
     return this.lockersService.listLockerAccessEvents(lockerId, query);
+  }
+
+  @Patch("lockers/:id/maintenance")
+  @Roles("operations", "admin")
+  setLockerMaintenance(
+    @Param("id") id: string,
+    @Body() body: { maintenance: boolean },
+  ): Promise<LockerResponseDto> {
+    return this.lockersService.setMaintenanceMode(id, body.maintenance)
   }
 
   @Post("lockers/assign")

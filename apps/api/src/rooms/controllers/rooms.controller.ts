@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Query, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from "@nestjs/common";
 import { Roles } from "../../auth/decorators/roles.decorator";
 import { JwtAuthGuard } from "../../auth/guards/jwt-auth.guard";
 import { RolesGuard } from "../../auth/guards/roles.guard";
@@ -31,6 +31,15 @@ export class RoomsController {
   @Roles("front_desk", "operations", "admin")
   getRoom(@Param("id") id: string): Promise<RoomResponseDto> {
     return this.roomsService.getRoom(id);
+  }
+
+  @Patch("rooms/:id/maintenance")
+  @Roles("operations", "admin")
+  setRoomMaintenance(
+    @Param("id") id: string,
+    @Body() body: { maintenance: boolean },
+  ): Promise<RoomResponseDto> {
+    return this.roomsService.setMaintenanceMode(id, body.maintenance)
   }
 
   @Post("rooms/access")

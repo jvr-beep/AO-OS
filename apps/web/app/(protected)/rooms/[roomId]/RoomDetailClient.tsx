@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { apiGet, apiPost } from '@/lib/browser-api'
+import { apiGet, apiPost, apiPatch } from '@/lib/browser-api'
 import { StatusBadge } from '@/components/status-badge'
 import type { Room, RoomBooking, RoomAccessEvent } from '@/types/api'
 
@@ -15,6 +15,7 @@ export function RoomDetailClient({ token, roomId, okMessage, errorMessage }: { t
     okMessage ? { text: okMessage, ok: true } : errorMessage ? { text: errorMessage, ok: false } : null
   )
   const [logging, setLogging] = useState(false)
+  const [togglingMaintenance, setTogglingMaintenance] = useState(false)
 
   const load = () => {
     setLoading(true)
@@ -81,6 +82,37 @@ export function RoomDetailClient({ token, roomId, okMessage, errorMessage }: { t
           <dt className="text-gray-400">Last Turned</dt><dd className="text-gray-100">{room.lastTurnedAt ? new Date(room.lastTurnedAt).toLocaleString() : '—'}</dd>
           <dt className="text-gray-400">Floor Plan Area</dt><dd className="font-mono text-xs text-gray-300 break-all">{room.floorPlanAreaId}</dd>
         </dl>
+      </div>
+
+      <div className="card p-4 mb-4">
+        <h2 className="text-sm font-semibold text-gray-200 mb-2">Maintenance</h2>
+        <p className="text-xs text-gray-400 mb-3">
+          {room.status === 'maintenance'
+            ? 'Room is in maintenance mode. Bookings and check-ins are blocked.'
+            : 'Mark this room out of service for cleaning or repairs.'}
+        </p>
+        <button
+          disabled={togglingMaintenance || ['reserved', 'checked_in', 'cleaning'].includes(room.status)}
+          onClick={async () => {
+            setTogglingMaintenance(true)
+            setMessage(null)
+            try {
+              const updated = await apiPatch<Room>(`/rooms/${roomId}/maintenance`, { maintenance: room.status !== 'maintenance' }, token)
+              setRoom(updated)
+              setMessage({ text: room.status === 'maintenance' ? 'Room returned to service' : 'Room set to maintenance', ok: true })
+            } catch (e2: unknown) {
+              setMessage({ text: e2 instanceof Error ? e2.message : 'Failed', ok: false })
+            } finally {
+              setTogglingMaintenance(false)
+            }
+          }}
+          className={`text-xs px-4 py-2 rounded font-medium transition-colors disabled:opacity-40 ${room.status === 'maintenance' ? 'bg-green-800 hover:bg-green-700 text-green-100' : 'bg-yellow-900 hover:bg-yellow-800 text-yellow-100'}`}
+        >
+          {togglingMaintenance ? '…' : room.status === 'maintenance' ? 'Return to Service' : 'Set Maintenance'}
+        </button>
+        {['reserved', 'checked_in', 'cleaning'].includes(room.status) && (
+          <p className="text-xs text-gray-500 mt-2">Cannot set maintenance while room is {room.status}.</p>
+        )}
       </div>
 
       <div id="log-access" className="card p-4 mb-4">

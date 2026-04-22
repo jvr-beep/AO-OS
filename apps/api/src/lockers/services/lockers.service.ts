@@ -467,6 +467,21 @@ export class LockersService {
     return { released: staleAssignments.length };
   }
 
+  async setMaintenanceMode(id: string, maintenance: boolean): Promise<LockerResponseDto> {
+    const locker = await this.prisma.locker.findUnique({ where: { id }, include: { assignments: { where: { unassignedAt: null }, take: 1, orderBy: { assignedAt: "desc" } } } })
+    if (!locker) throw new NotFoundException("LOCKER_NOT_FOUND")
+    const blocked = ["occupied", "reserved", "assigned"]
+    if (maintenance && blocked.includes(locker.status)) {
+      throw new BadRequestException(`Cannot set maintenance: locker is currently ${locker.status}`)
+    }
+    const updated = await this.prisma.locker.update({
+      where: { id },
+      data: { status: maintenance ? "maintenance" : "available" },
+      include: { assignments: { where: { unassignedAt: null }, take: 1, orderBy: { assignedAt: "desc" } } },
+    })
+    return this.toLockerResponse(updated)
+  }
+
   private buildAccessEventWhere(query: ListLockerAccessEventsQueryDto): {
     decision?: LockerAccessDecision;
     eventType?: LockerAccessEventType;
