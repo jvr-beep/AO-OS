@@ -72,16 +72,22 @@ export async function acceptWaiverAction(formData: FormData): Promise<void> {
   const session = await getKioskSession()
   if (!session.guestId) redirect('/kiosk')
 
+  // Returning guest reconfirm — waiver is still current, no new record needed
+  if (formData.get('reconfirm') === 'true') {
+    session.waiverCompleted = true
+    await session.save()
+    redirect('/kiosk/product')
+  }
+
   const signature = formData.get('signature')?.toString().trim()
   if (!signature) redirect('/kiosk/waiver?error=Signature+required+to+accept+waiver')
 
   try {
-    const res = await fetch(`${API_BASE}/waivers`, {
+    const res = await fetch(`${API_BASE}/guests/${session.guestId}/waivers`, {
       method: 'POST',
       headers: LOCATION_HEADERS,
       body: JSON.stringify({
-        guestId: session.guestId,
-        waiverVersion: '1.0',
+        waiverVersion: 'AO-WAIVER-v1',
         acceptedChannel: 'kiosk',
         signatureText: signature,
       }),
@@ -96,7 +102,7 @@ export async function acceptWaiverAction(formData: FormData): Promise<void> {
     await session.save()
   } catch (err: any) {
     console.error(`[kiosk-error] acceptWaiverAction: ${err?.message ?? err}`)
-    await reportErrorAction({ message: err?.message ?? 'acceptWaiverAction failed', page: '/kiosk/waiver', errorName: err?.name ?? 'KioskError', apiUrl: `${API_BASE}/waivers` })
+    await reportErrorAction({ message: err?.message ?? 'acceptWaiverAction failed', page: '/kiosk/waiver', errorName: err?.name ?? 'KioskError', apiUrl: `${API_BASE}/guests/${session.guestId}/waivers` })
     redirect(`/kiosk/waiver?error=${encodeURIComponent(err.message ?? 'Waiver submission failed')}`)
   }
 
