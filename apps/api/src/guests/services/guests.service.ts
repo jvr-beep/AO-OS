@@ -147,6 +147,55 @@ export class GuestsService {
     };
   }
 
+  async listWristbandLinks(guestId: string) {
+    const guest = await this.prisma.guest.findUnique({ where: { id: guestId } });
+    if (!guest) throw new NotFoundException("Guest not found");
+
+    const links = await this.prisma.wristbandLink.findMany({
+      where: { guestId },
+      include: { wristband: true, visit: { select: { id: true, status: true, startTime: true } } },
+      orderBy: { createdAt: "desc" },
+    });
+
+    return links.map((l) => ({
+      id: l.id,
+      wristbandId: l.wristbandId,
+      wristbandUid: l.wristband.uid,
+      visitId: l.visitId,
+      visitStatus: l.visit?.status ?? null,
+      visitStartTime: l.visit?.startTime?.toISOString() ?? null,
+      linkStatus: l.linkStatus,
+      reasonCode: l.reasonCode,
+      createdAt: l.createdAt.toISOString(),
+    }));
+  }
+
+  async mergeGuests(sourceGuestId: string, targetGuestId: string) {
+    if (sourceGuestId === targetGuestId) {
+      throw new BadRequestException("Source and target guest must be different");
+    }
+
+    const [source, target] = await Promise.all([
+      this.prisma.guest.findUnique({ where: { id: sourceGuestId } }),
+      this.prisma.guest.findUnique({ where: { id: targetGuestId } }),
+    ]);
+    if (!source) throw new NotFoundException("Source guest not found");
+    if (!target) throw new NotFoundException("Target guest not found");
+
+    await this.prisma.$transaction([
+      this.prisma.visit.updateMany({ where: { guestId: sourceGuestId }, data: { guestId: targetGuestId } }),
+      this.prisma.guestBooking.updateMany({ where: { guestId: sourceGuestId }, data: { guestId: targetGuestId } }),
+      this.prisma.guestWaiver.updateMany({ where: { guestId: sourceGuestId }, data: { guestId: targetGuestId } }),
+      this.prisma.wristbandLink.updateMany({ where: { guestId: sourceGuestId }, data: { guestId: targetGuestId } }),
+      this.prisma.guest.update({
+        where: { id: sourceGuestId },
+        data: { email: null, phone: null, riskFlagStatus: "banned" },
+      }),
+    ]);
+
+    return { mergedIntoGuestId: targetGuestId, sourceGuestId };
+  }
+
   private toGuestResponse(guest: {
     id: string;
     firstName: string;

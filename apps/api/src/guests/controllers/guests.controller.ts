@@ -36,4 +36,18 @@ export class GuestsController {
   updateGuest(@Param("guestId") guestId: string, @Body() body: UpdateGuestDto): Promise<GuestResponseDto> {
     return this.guestsService.update(guestId, body);
   }
+
+  @Get(":guestId/wristband-links")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("front_desk", "operations", "admin")
+  listWristbandLinks(@Param("guestId") guestId: string) {
+    return this.guestsService.listWristbandLinks(guestId);
+  }
+
+  @Post("merge")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("operations", "admin")
+  mergeGuests(@Body() body: { source_guest_id: string; target_guest_id: string }) {
+    return this.guestsService.mergeGuests(body.source_guest_id, body.target_guest_id);
+  }
 }

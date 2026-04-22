@@ -55,6 +55,26 @@ export class WaiversService {
     };
   }
 
+  async listWaivers(guestId: string) {
+    const guest = await this.prisma.guest.findUnique({ where: { id: guestId } });
+    if (!guest) {
+      throw new NotFoundException("Guest not found");
+    }
+
+    const waivers = await this.prisma.guestWaiver.findMany({
+      where: { guestId },
+      orderBy: { acceptedAt: "desc" },
+    });
+
+    return waivers.map((w) => ({
+      id: w.id,
+      waiverVersion: w.waiverVersion,
+      acceptedAt: w.acceptedAt.toISOString(),
+      acceptedChannel: w.acceptedChannel,
+      isCurrent: w.isCurrent,
+    }));
+  }
+
   async getLatestWaiverStatus(guestId: string): Promise<LatestWaiverResponseDto> {
     const guest = await this.prisma.guest.findUnique({ where: { id: guestId } });
     if (!guest) {
