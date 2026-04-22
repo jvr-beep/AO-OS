@@ -262,6 +262,10 @@ export function GuestDetailClient({
   const [mergeTarget, setMergeTarget] = useState('')
   const [merging, setMerging] = useState(false)
   const [mergeError, setMergeError] = useState<string | null>(null)
+  const [mergeSearchQ, setMergeSearchQ] = useState('')
+  const [mergeSearching, setMergeSearching] = useState(false)
+  const [mergeCandidates, setMergeCandidates] = useState<Guest[]>([])
+  const [mergeSelected, setMergeSelected] = useState<Guest | null>(null)
 
   useEffect(() => {
     Promise.all([
@@ -291,6 +295,37 @@ export function GuestDetailClient({
       setMergeError(err.message ?? 'Merge failed')
       setMerging(false)
     }
+  }
+
+  async function searchMergeTarget(e: React.FormEvent) {
+    e.preventDefault()
+    if (!mergeSearchQ.trim()) return
+    setMergeSearching(true)
+    setMergeCandidates([])
+    setMergeSelected(null)
+    setMergeTarget('')
+    try {
+      const q = mergeSearchQ.trim()
+      const isEmail = q.includes('@')
+      const isPhone = /^\+?[\d\s\-()]{7,}$/.test(q)
+      const body = isEmail ? { email: q } : isPhone ? { phone: q } : { firstName: q }
+      const result = await apiPost<{ guest: Guest | null; duplicateCandidates: Guest[] }>('/guests/lookup', body, token)
+      const all: Guest[] = [
+        ...(result.guest ? [result.guest] : []),
+        ...(result.duplicateCandidates ?? []),
+      ].filter((g) => g.id !== guestId)
+      setMergeCandidates(all)
+    } catch {
+      setMergeCandidates([])
+    } finally {
+      setMergeSearching(false)
+    }
+  }
+
+  function selectMergeTarget(g: Guest) {
+    setMergeSelected(g)
+    setMergeTarget(g.id)
+    setMergeCandidates([])
   }
 
   if (loading) return <div className="max-w-5xl"><p className="text-text-muted">Loading…</p></div>
@@ -489,28 +524,87 @@ export function GuestDetailClient({
       <div className="card p-4">
         <h2 className="text-xs font-semibold text-accent-primary uppercase tracking-wide mb-1">Merge Duplicate Record</h2>
         <p className="text-xs text-gray-400 mb-4">
-          Move all visits, bookings, and waivers from this guest into another. This guest&apos;s contact info will be cleared and the record flagged.
+          Move all visits, bookings, and waivers from this guest into a target record. This guest&apos;s contact info will be cleared and the record marked as merged.
         </p>
-        <form onSubmit={handleMerge} className="flex gap-3 items-end">
-          <div className="flex-1">
-            <label className="block text-xs text-gray-400 mb-1">Target Guest ID</label>
+
+        {/* Step 1: search */}
+        {!mergeSelected && (
+          <form onSubmit={searchMergeTarget} className="flex gap-2 mb-3">
             <input
               type="text"
-              value={mergeTarget}
-              onChange={(e) => setMergeTarget(e.target.value)}
-              placeholder="Paste target guest UUID"
-              className="w-full bg-surface-0 border border-gray-600 text-white rounded px-3 py-2 text-xs focus:outline-none focus:border-accent-primary"
+              value={mergeSearchQ}
+              onChange={(e) => setMergeSearchQ(e.target.value)}
+              placeholder="Search by name, email, or phone"
+              className="flex-1 bg-surface-0 border border-gray-600 text-white rounded px-3 py-2 text-xs focus:outline-none focus:border-accent-primary"
             />
+            <button
+              type="submit"
+              disabled={mergeSearching || !mergeSearchQ.trim()}
+              className="btn-secondary text-xs py-2 px-3 disabled:opacity-50 shrink-0"
+            >
+              {mergeSearching ? '…' : 'Search'}
+            </button>
+          </form>
+        )}
+
+        {/* Candidate list */}
+        {mergeCandidates.length > 0 && (
+          <div className="border border-gray-700 rounded divide-y divide-gray-700 mb-3">
+            {mergeCandidates.map((c) => (
+              <button
+                key={c.id}
+                onClick={() => selectMergeTarget(c)}
+                className="w-full text-left px-3 py-2.5 hover:bg-gray-700/50 transition-colors"
+              >
+                <p className="text-xs text-white">{[c.firstName, c.lastName].filter(Boolean).join(' ') || '—'}</p>
+                <p className="text-xs text-gray-400">{c.email ?? c.phone ?? c.id.slice(0, 8) + '…'}</p>
+              </button>
+            ))}
           </div>
-          <button
-            type="submit"
-            disabled={merging || !mergeTarget.trim()}
-            className="btn-secondary text-xs py-2 px-4 disabled:opacity-50 shrink-0"
-          >
-            {merging ? 'Merging…' : 'Merge →'}
-          </button>
-        </form>
-        {mergeError && <p className="text-red-400 text-xs mt-2">{mergeError}</p>}
+        )}
+        {mergeCandidates.length === 0 && mergeSearchQ && !mergeSearching && !mergeSelected && (
+          <p className="text-xs text-gray-500 mb-3">No matching guests found.</p>
+        )}
+
+        {/* Step 2: confirm with side-by-side preview */}
+        {mergeSelected && (
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded border border-red-700 bg-red-950/30 p-3">
+                <p className="text-xs text-red-400 uppercase tracking-wide mb-1.5">This record (source)</p>
+                <p className="text-xs text-white font-medium">{[guest?.firstName, guest?.lastName].filter(Boolean).join(' ') || '—'}</p>
+                <p className="text-xs text-gray-400">{guest?.email ?? '—'}</p>
+                <p className="text-xs text-gray-400">{guest?.phone ?? '—'}</p>
+                <p className="text-xs text-gray-500 mt-1">Will be cleared + flagged</p>
+              </div>
+              <div className="rounded border border-green-700 bg-green-950/30 p-3">
+                <p className="text-xs text-green-400 uppercase tracking-wide mb-1.5">Target (keep)</p>
+                <p className="text-xs text-white font-medium">{[mergeSelected.firstName, mergeSelected.lastName].filter(Boolean).join(' ') || '—'}</p>
+                <p className="text-xs text-gray-400">{mergeSelected.email ?? '—'}</p>
+                <p className="text-xs text-gray-400">{mergeSelected.phone ?? '—'}</p>
+                <p className="text-xs text-gray-500 mt-1">Receives all history</p>
+              </div>
+            </div>
+
+            <form onSubmit={handleMerge} className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => { setMergeSelected(null); setMergeTarget(''); setMergeError(null) }}
+                className="btn-secondary text-xs py-2 px-4"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={merging}
+                className="flex-1 rounded bg-red-700 hover:bg-red-600 text-white text-xs font-medium py-2 px-4 transition-colors disabled:opacity-50"
+              >
+                {merging ? 'Merging…' : 'Confirm Merge — This Cannot Be Undone'}
+              </button>
+            </form>
+            {mergeError && <p className="text-red-400 text-xs">{mergeError}</p>}
+          </div>
+        )}
       </div>
     </div>
   )
