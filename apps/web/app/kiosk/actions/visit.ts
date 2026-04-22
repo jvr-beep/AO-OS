@@ -226,7 +226,6 @@ export async function lookupBookingAction(formData: FormData): Promise<void> {
     session.guestId = guest.id
     session.bookingData = {
       bookingCode: booking.booking_code,
-      guestFirstName: guest.first_name ?? 'Guest',
       tierName: booking.tier_name,
       productType: booking.product_type,
       arrivalWindowStart: booking.arrival_window_start,

@@ -151,8 +151,6 @@ export class KioskBookingService {
       },
       guest: {
         id: booking.guest?.id ?? booking.guestId,
-        first_name: booking.guest?.firstName ?? null,
-        last_name: booking.guest?.lastName ?? null,
       },
     }
   }

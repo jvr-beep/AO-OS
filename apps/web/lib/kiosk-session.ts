@@ -8,7 +8,6 @@ import type { IronSession } from 'iron-session'
  */
 export interface KioskBookingData {
   bookingCode: string
-  guestFirstName: string
   tierName: string | null
   productType: string
   arrivalWindowStart: string

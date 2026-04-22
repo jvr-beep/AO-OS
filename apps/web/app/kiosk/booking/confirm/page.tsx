@@ -42,8 +42,8 @@ export default async function BookingConfirmPage({
         {/* Booking summary card */}
         <div className="rounded-lg bg-surface-1 border border-border-subtle p-6 mb-6 space-y-4">
           <div className="text-center pb-4 border-b border-border-subtle">
-            <p className="text-2xl font-medium text-text-primary">{b.guestFirstName}</p>
-            <p className="text-xs text-text-muted mt-0.5 uppercase tracking-wider">
+            <p className="text-xs text-text-muted uppercase tracking-wider mb-1">Booking Reference</p>
+            <p className="text-2xl font-mono font-semibold text-accent-primary tracking-widest">
               {b.bookingCode}
             </p>
           </div>
