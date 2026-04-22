@@ -123,30 +123,32 @@ export default function LoginClient({ resetState, resetToken, sessionExpired }: 
 
             rememberUser(emailVal)
             setLoginError(null)
-            startTransition(async () => {
-              let data: unknown
-              try {
-                const res = await fetch('https://api.aosanctuary.com/v1/auth/login', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ email: emailVal, password: passwordVal }),
-                })
-                if (!res.ok) {
-                  if (res.status === 401 || res.status === 403) {
-                    setLoginError('Invalid email or password.')
-                  } else {
-                    setLoginError('Could not sign in right now. Please try again.')
-                    await reportErrorAction({ message: `Login HTTP ${res.status}`, page: '/login', errorName: 'LoginError' })
+            startTransition(() => {
+              void (async () => {
+                let data: unknown
+                try {
+                  const res = await fetch('https://api.aosanctuary.com/v1/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: emailVal, password: passwordVal }),
+                  })
+                  if (!res.ok) {
+                    if (res.status === 401 || res.status === 403) {
+                      setLoginError('Invalid email or password.')
+                    } else {
+                      setLoginError('Could not sign in right now. Please try again.')
+                      await reportErrorAction({ message: `Login HTTP ${res.status}`, page: '/login', errorName: 'LoginError' })
+                    }
+                    return
                   }
+                  data = await res.json()
+                } catch {
+                  setLoginError('Could not sign in right now. Please try again.')
+                  await reportErrorAction({ message: 'Login fetch failed', page: '/login', errorName: 'NetworkError' })
                   return
                 }
-                data = await res.json()
-              } catch {
-                setLoginError('Could not sign in right now. Please try again.')
-                await reportErrorAction({ message: 'Login fetch failed', page: '/login', errorName: 'NetworkError' })
-                return
-              }
-              await setSessionAction(data as Parameters<typeof setSessionAction>[0])
+                await setSessionAction(data as Parameters<typeof setSessionAction>[0])
+              })()
             })
           }}
         >

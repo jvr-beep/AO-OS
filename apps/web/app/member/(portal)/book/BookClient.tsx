@@ -7,6 +7,7 @@ interface TierDurationOption {
   id: string
   durationMinutes: number
   priceCents: number
+  active?: boolean
 }
 
 interface Tier {
@@ -17,6 +18,7 @@ interface Tier {
   productType: string
   upgradeRank: number
   basePriceCents: number
+  active?: boolean
   durationOptions: TierDurationOption[]
 }
 
