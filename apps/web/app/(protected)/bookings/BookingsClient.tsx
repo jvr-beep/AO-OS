@@ -74,17 +74,17 @@ export function BookingsClient({ token, prefilledRoomId, prefilledMemberId }: { 
 
   return (
     <div className="max-w-6xl">
-      <h1 className="text-2xl font-semibold mb-6 text-gray-100">Bookings</h1>
+      <h1 className="text-2xl font-semibold mb-6 text-text-primary">Bookings</h1>
 
       {message && (
-        <div className={`mb-4 rounded-md border px-3 py-2 text-sm ${message.ok ? 'border-green-700 bg-green-900 text-green-200' : 'border-red-700 bg-red-900 text-red-200'}`}>
+        <div className={`mb-4 rounded-md border px-3 py-2 text-sm ${message.ok ? 'border-success/40 bg-success/10 text-success' : 'border-critical/40 bg-critical/10 text-critical'}`}>
           {message.text}
         </div>
       )}
 
       <div className="card p-4 mb-4">
-        <h2 className="text-sm font-semibold text-gray-200 mb-3">Create Booking</h2>
-        <p className="text-xs text-gray-400 mb-3">Allowed roles: front_desk, operations, admin.</p>
+        <h2 className="text-sm font-semibold text-text-primary mb-3">Create Booking</h2>
+        <p className="text-xs text-text-muted mb-3">Allowed roles: front_desk, operations, admin.</p>
         <form onSubmit={handleCreate} className="grid grid-cols-1 gap-2 md:grid-cols-3">
           <input name="memberId" placeholder="Member ID" defaultValue={prefilledMemberId} className="form-input" required />
           <input name="roomId" placeholder="Room ID" defaultValue={prefilledRoomId} className="form-input" required />
@@ -108,15 +108,15 @@ export function BookingsClient({ token, prefilledRoomId, prefilledMemberId }: { 
       </div>
 
       <div className="card overflow-hidden">
-        <div className="p-4 border-b border-gray-700">
-          <p className="text-xs text-gray-400 mb-2">Tip: partial matches are supported.</p>
+        <div className="p-4 border-b border-border-subtle">
+          <p className="text-xs text-text-muted mb-2">Tip: partial matches are supported.</p>
           <div className="flex flex-col sm:flex-row gap-2">
             <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search by room code/ID, member ID, type, or status" className="form-input flex-1" />
             {query && <button onClick={() => setQuery('')} className="btn-secondary">Clear</button>}
           </div>
         </div>
         <table className="w-full text-sm">
-          <thead className="bg-surface-0 border-b border-gray-700">
+          <thead className="bg-surface-0 border-b border-border-subtle">
             <tr>
               <th className="text-left px-4 py-3 text-xs font-semibold text-accent-primary uppercase tracking-wide">Start</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-accent-primary uppercase tracking-wide">End</th>
@@ -127,39 +127,43 @@ export function BookingsClient({ token, prefilledRoomId, prefilledMemberId }: { 
               <th className="text-left px-4 py-3 text-xs font-semibold text-accent-primary uppercase tracking-wide">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y">
+          <tbody className="divide-y divide-border-subtle">
             {loading ? (
-              <tr><td colSpan={7} className="px-4 py-8 text-center text-sm text-gray-400">Loading…</td></tr>
+              <tr><td colSpan={7} className="px-4 py-8 text-center text-sm text-text-muted">Loading…</td></tr>
             ) : filtered.length === 0 ? (
-              <tr><td colSpan={7} className="px-4 py-8 text-center text-sm text-gray-400">No bookings found.</td></tr>
+              <tr><td colSpan={7} className="px-4 py-8 text-center text-sm text-text-muted">No bookings found.</td></tr>
             ) : filtered.map((booking) => {
               const room = rooms.get(booking.roomId)
               const isBusy = busyId === booking.id
               return (
-                <tr key={booking.id} className="hover:bg-gray-700/40">
-                  <td className="px-4 py-3 text-xs text-gray-400">{new Date(booking.startsAt).toLocaleString()}</td>
-                  <td className="px-4 py-3 text-xs text-gray-400">{new Date(booking.endsAt).toLocaleString()}</td>
+                <tr key={booking.id} className="hover:bg-surface-1/50 transition-colors">
+                  <td className="px-4 py-3 text-xs text-text-muted">{new Date(booking.startsAt).toLocaleString()}</td>
+                  <td className="px-4 py-3 text-xs text-text-muted">{new Date(booking.endsAt).toLocaleString()}</td>
                   <td className="px-4 py-3 text-xs">
-                    <Link href={`/rooms/${booking.roomId}`} className="text-accent-primary hover:text-accent-primary transition-colors">{room?.code ?? booking.roomId.slice(0, 8)}</Link>
+                    <Link href={`/rooms/${booking.roomId}`} className="text-accent-primary hover:underline">{room?.code ?? booking.roomId.slice(0, 8)}</Link>
                   </td>
                   <td className="px-4 py-3 text-xs">
-                    <Link href={`/members/${booking.memberId}`} className="text-accent-primary hover:text-accent-primary transition-colors font-mono">{booking.memberId.slice(0, 8)}…</Link>
+                    <Link href={`/members/${booking.memberId}`} className="text-accent-primary hover:underline font-mono">{booking.memberId.slice(0, 8)}…</Link>
                   </td>
                   <td className="px-4 py-3"><StatusBadge status={booking.status} /></td>
-                  <td className="px-4 py-3 text-xs text-gray-400">{booking.bookingType}</td>
+                  <td className="px-4 py-3 text-xs text-text-muted">{booking.bookingType}</td>
                   <td className="px-4 py-3">
-                    <p className="text-[11px] text-gray-500 mb-1">Check-in/check-out/cancel: front_desk, operations, admin.</p>
+                    <p className="text-[11px] text-text-muted mb-1">Check-in/check-out/cancel: front_desk, operations, admin.</p>
                     <div className="flex flex-col gap-1">
                       {booking.status === 'reserved' && (
                         <>
                           <button onClick={() => bookingMutate(booking.id, `/bookings/${booking.id}/check-in`, { occurredAt: new Date().toISOString() }, 'Booking checked in')} disabled={isBusy} className="btn-primary text-xs px-2 py-1">Check In</button>
+                          <ExtendButton bookingId={booking.id} busy={isBusy} onExtend={(m) => bookingMutate(booking.id, `/bookings/${booking.id}/extend`, { minutes: m }, `Extended +${m}m`)} />
                           <CancelRow bookingId={booking.id} busy={isBusy} onCancel={(reason) => bookingMutate(booking.id, `/bookings/${booking.id}/cancel`, { occurredAt: new Date().toISOString(), reason: reason || undefined }, 'Booking cancelled')} />
                         </>
                       )}
                       {booking.status === 'checked_in' && (
-                        <button onClick={() => bookingMutate(booking.id, `/bookings/${booking.id}/check-out`, { occurredAt: new Date().toISOString() }, 'Booking checked out')} disabled={isBusy} className="btn-secondary text-xs px-2 py-1">Check Out</button>
+                        <div className="flex flex-col gap-1">
+                          <button onClick={() => bookingMutate(booking.id, `/bookings/${booking.id}/check-out`, { occurredAt: new Date().toISOString() }, 'Booking checked out')} disabled={isBusy} className="btn-secondary text-xs px-2 py-1">Check Out</button>
+                          <ExtendButton bookingId={booking.id} busy={isBusy} onExtend={(m) => bookingMutate(booking.id, `/bookings/${booking.id}/extend`, { minutes: m }, `Extended +${m}m`)} />
+                        </div>
                       )}
-                      {booking.status !== 'reserved' && booking.status !== 'checked_in' && <span className="text-xs text-gray-500">No actions</span>}
+                      {booking.status !== 'reserved' && booking.status !== 'checked_in' && <span className="text-xs text-text-muted">No actions</span>}
                     </div>
                   </td>
                 </tr>
@@ -178,6 +182,21 @@ function CancelRow({ bookingId, busy, onCancel }: { bookingId: string; busy: boo
     <div className="flex flex-col gap-1">
       <input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="cancel reason" className="form-input text-xs" />
       <button onClick={() => onCancel(reason)} disabled={busy} className="btn-secondary text-xs px-2 py-1">Cancel</button>
+    </div>
+  )
+}
+
+function ExtendButton({ bookingId, busy, onExtend }: { bookingId: string; busy: boolean; onExtend: (minutes: number) => void }) {
+  const [open, setOpen] = useState(false)
+  const [mins, setMins] = useState('30')
+  if (!open) {
+    return <button onClick={() => setOpen(true)} disabled={busy} className="text-xs px-2 py-1 rounded bg-surface-2 text-text-muted hover:text-accent-primary border border-border-subtle transition-colors">+Extend</button>
+  }
+  return (
+    <div className="flex items-center gap-1 mt-1">
+      <input type="number" value={mins} onChange={(e) => setMins(e.target.value)} className="form-input h-7 text-xs w-16" min="5" max="480" />
+      <button onClick={() => { onExtend(Number(mins)); setOpen(false) }} disabled={busy} className="btn-primary text-xs px-2 h-7">+{mins}m</button>
+      <button onClick={() => setOpen(false)} className="text-xs text-text-muted hover:text-text-primary">✕</button>
     </div>
   )
 }

@@ -94,6 +94,23 @@ export class RoomsService {
     return this.toRoomResponse(updated)
   }
 
+  async setIncidentMode(id: string, incident: boolean): Promise<RoomResponseDto> {
+    const room = await this.prisma.room.findUnique({ where: { id } });
+    if (!room) throw new NotFoundException("ROOM_NOT_FOUND");
+    let nextStatus: RoomStatus;
+    if (incident) {
+      nextStatus = "incident" as RoomStatus;
+    } else {
+      const active = await this.prisma.roomBooking.findFirst({
+        where: { roomId: id, status: { in: ["checked_in", "reserved"] } },
+        orderBy: { startsAt: "asc" }
+      });
+      nextStatus = active?.status === "checked_in" ? "occupied" : active?.status === "reserved" ? "booked" : "available";
+    }
+    const updated = await this.prisma.room.update({ where: { id }, data: { status: nextStatus } });
+    return this.toRoomResponse(updated);
+  }
+
   async accessRoom(input: CreateRoomAccessDto): Promise<RoomAccessEventResponseDto> {
     const occurredAt = this.parseDate(input.occurredAt, "INVALID_OCCURRED_AT");
 

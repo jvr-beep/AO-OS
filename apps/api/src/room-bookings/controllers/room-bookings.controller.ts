@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Query, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, Query, UseGuards } from "@nestjs/common";
 import { Roles } from "../../auth/decorators/roles.decorator";
 import { JwtAuthGuard } from "../../auth/guards/jwt-auth.guard";
 import { RolesGuard } from "../../auth/guards/roles.guard";
@@ -64,5 +64,15 @@ export class RoomBookingsController {
   @Roles("front_desk", "operations", "admin")
   cancelBooking(@Param("id") bookingId: string, @Body() body: CancelBookingDto): Promise<BookingResponseDto> {
     return this.roomBookingsService.cancelBooking(bookingId, body);
+  }
+
+  @Post("bookings/:id/extend")
+  @Roles("front_desk", "operations", "admin")
+  @HttpCode(HttpStatus.OK)
+  extendBooking(
+    @Param("id") bookingId: string,
+    @Body() body: { minutes: number }
+  ): Promise<BookingResponseDto> {
+    return this.roomBookingsService.extendBooking(bookingId, body.minutes);
   }
 }

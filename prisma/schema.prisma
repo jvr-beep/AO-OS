@@ -190,6 +190,8 @@ enum RoomStatus {
   occupied
   cleaning
   out_of_service
+  maintenance
+  incident
 }
 
 enum RoomBookingType {

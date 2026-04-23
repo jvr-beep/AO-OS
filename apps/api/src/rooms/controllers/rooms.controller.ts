@@ -42,6 +42,15 @@ export class RoomsController {
     return this.roomsService.setMaintenanceMode(id, body.maintenance)
   }
 
+  @Patch("rooms/:id/incident")
+  @Roles("operations", "admin")
+  setRoomIncident(
+    @Param("id") id: string,
+    @Body() body: { incident: boolean },
+  ): Promise<RoomResponseDto> {
+    return this.roomsService.setIncidentMode(id, body.incident);
+  }
+
   @Post("rooms/access")
   @Roles("front_desk", "operations", "admin")
   accessRoom(@Body() body: CreateRoomAccessDto): Promise<RoomAccessEventResponseDto> {

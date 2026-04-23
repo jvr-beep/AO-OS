@@ -17,8 +17,10 @@ export function RoomDetailClient({ token, roomId, okMessage, errorMessage }: { t
   )
   const [logging, setLogging] = useState(false)
   const [togglingMaintenance, setTogglingMaintenance] = useState(false)
+  const [togglingIncident, setTogglingIncident] = useState(false)
   const [cleaningBusy, setCleaningBusy] = useState(false)
   const [completionNote, setCompletionNote] = useState('')
+  const [bookingBusyId, setBookingBusyId] = useState<string | null>(null)
 
   const load = () => {
     setLoading(true)
@@ -36,6 +38,34 @@ export function RoomDetailClient({ token, roomId, okMessage, errorMessage }: { t
         setCleaningTask(active)
       }
     }).finally(() => setLoading(false))
+  }
+
+  const bookingAction = async (bookingId: string, path: string, body: Record<string, unknown>, msg: string) => {
+    setBookingBusyId(bookingId)
+    setMessage(null)
+    try {
+      await apiPost(path, body, token)
+      setMessage({ text: msg, ok: true })
+      load()
+    } catch (e: unknown) {
+      setMessage({ text: e instanceof Error ? e.message : 'Action failed', ok: false })
+    } finally {
+      setBookingBusyId(null)
+    }
+  }
+
+  const toggleIncident = async () => {
+    setTogglingIncident(true)
+    setMessage(null)
+    try {
+      const updated = await apiPatch<Room>(`/rooms/${roomId}/incident`, { incident: room!.status !== 'incident' }, token)
+      setRoom(updated)
+      setMessage({ text: updated.status === 'incident' ? 'Room marked as incident' : 'Incident cleared', ok: true })
+    } catch (e: unknown) {
+      setMessage({ text: e instanceof Error ? e.message : 'Failed', ok: false })
+    } finally {
+      setTogglingIncident(false)
+    }
   }
 
   const flagUrgent = async () => {
@@ -166,6 +196,22 @@ export function RoomDetailClient({ token, roomId, okMessage, errorMessage }: { t
         )}
       </div>
 
+      <div className="card p-4 mb-4">
+        <h2 className="text-sm font-semibold text-text-primary mb-2">Incident</h2>
+        <p className="text-xs text-text-muted mb-3">
+          {room.status === 'incident'
+            ? 'Room is flagged as incident. Access and bookings are blocked.'
+            : 'Flag this room to block all access immediately — security issues, equipment failure, etc.'}
+        </p>
+        <button
+          disabled={togglingIncident || ['occupied', 'cleaning'].includes(room.status) && room.status !== 'incident'}
+          onClick={toggleIncident}
+          className={`text-xs px-4 py-2 rounded font-medium transition-colors disabled:opacity-40 ${room.status === 'incident' ? 'bg-success/20 hover:bg-success/30 text-success' : 'bg-critical/20 hover:bg-critical/30 text-critical'}`}
+        >
+          {togglingIncident ? '…' : room.status === 'incident' ? 'Clear Incident' : 'Flag Incident'}
+        </button>
+      </div>
+
       {cleaningTask !== undefined && (
         <div className="card p-4 mb-4">
           <h2 className="text-sm font-semibold text-text-primary mb-2">Cleaning</h2>
@@ -252,19 +298,41 @@ export function RoomDetailClient({ token, roomId, okMessage, errorMessage }: { t
               <th className="text-left px-4 py-2 text-xs font-semibold text-accent-primary uppercase tracking-wide">Window</th>
               <th className="text-left px-4 py-2 text-xs font-semibold text-accent-primary uppercase tracking-wide">Status</th>
               <th className="text-left px-4 py-2 text-xs font-semibold text-accent-primary uppercase tracking-wide">Type</th>
+              <th className="text-left px-4 py-2 text-xs font-semibold text-accent-primary uppercase tracking-wide">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y">
             {bookings.length === 0 ? (
-              <tr><td colSpan={4} className="px-4 py-8 text-center text-sm text-text-muted">No bookings for this room.</td></tr>
-            ) : bookings.map((booking) => (
-              <tr key={booking.id} className="hover:bg-surface-1/50 transition-colors">
-                <td className="px-4 py-2 text-xs"><Link href={`/members/${booking.memberId}`} className="text-accent-primary hover:text-accent-primary transition-colors font-mono">{booking.memberId.slice(0, 8)}…</Link></td>
-                <td className="px-4 py-2 text-xs text-text-muted">{new Date(booking.startsAt).toLocaleString()} → {new Date(booking.endsAt).toLocaleString()}</td>
-                <td className="px-4 py-2"><StatusBadge status={booking.status} /></td>
-                <td className="px-4 py-2 text-xs text-text-muted">{booking.bookingType}</td>
-              </tr>
-            ))}
+              <tr><td colSpan={5} className="px-4 py-8 text-center text-sm text-text-muted">No bookings for this room.</td></tr>
+            ) : bookings.map((booking) => {
+              const isBusy = bookingBusyId === booking.id
+              return (
+                <tr key={booking.id} className="hover:bg-surface-1/50 transition-colors align-top">
+                  <td className="px-4 py-2 text-xs"><Link href={`/members/${booking.memberId}`} className="text-accent-primary hover:text-accent-primary transition-colors font-mono">{booking.memberId.slice(0, 8)}…</Link></td>
+                  <td className="px-4 py-2 text-xs text-text-muted">{new Date(booking.startsAt).toLocaleString()} → {new Date(booking.endsAt).toLocaleString()}</td>
+                  <td className="px-4 py-2"><StatusBadge status={booking.status} /></td>
+                  <td className="px-4 py-2 text-xs text-text-muted">{booking.bookingType}</td>
+                  <td className="px-4 py-2">
+                    <div className="flex flex-wrap gap-1">
+                      {booking.status === 'reserved' && (
+                        <>
+                          <button onClick={() => bookingAction(booking.id, `/bookings/${booking.id}/check-in`, { occurredAt: new Date().toISOString() }, 'Checked in')} disabled={isBusy} className="btn-primary text-xs px-2 py-1">Check In</button>
+                          <BookingExtendButton bookingId={booking.id} busy={isBusy} onExtend={(m) => bookingAction(booking.id, `/bookings/${booking.id}/extend`, { minutes: m }, `Extended +${m}m`)} />
+                          <button onClick={() => bookingAction(booking.id, `/bookings/${booking.id}/cancel`, {}, 'Cancelled')} disabled={isBusy} className="text-xs px-2 py-1 rounded bg-surface-2 text-text-muted hover:text-critical border border-border-subtle transition-colors">Cancel</button>
+                        </>
+                      )}
+                      {booking.status === 'checked_in' && (
+                        <>
+                          <button onClick={() => bookingAction(booking.id, `/bookings/${booking.id}/check-out`, { occurredAt: new Date().toISOString() }, 'Checked out')} disabled={isBusy} className="btn-secondary text-xs px-2 py-1">Check Out</button>
+                          <BookingExtendButton bookingId={booking.id} busy={isBusy} onExtend={(m) => bookingAction(booking.id, `/bookings/${booking.id}/extend`, { minutes: m }, `Extended +${m}m`)} />
+                        </>
+                      )}
+                      {!['reserved', 'checked_in'].includes(booking.status) && <span className="text-xs text-text-muted">—</span>}
+                    </div>
+                  </td>
+                </tr>
+              )
+            })}
           </tbody>
         </table>
       </div>
@@ -296,6 +364,21 @@ export function RoomDetailClient({ token, roomId, okMessage, errorMessage }: { t
           </tbody>
         </table>
       </div>
+    </div>
+  )
+}
+
+function BookingExtendButton({ bookingId, busy, onExtend }: { bookingId: string; busy: boolean; onExtend: (minutes: number) => void }) {
+  const [open, setOpen] = useState(false)
+  const [mins, setMins] = useState('30')
+  if (!open) {
+    return <button onClick={() => setOpen(true)} disabled={busy} className="text-xs px-2 py-1 rounded bg-surface-2 text-text-muted hover:text-accent-primary border border-border-subtle transition-colors">+Extend</button>
+  }
+  return (
+    <div className="flex items-center gap-1">
+      <input type="number" value={mins} onChange={(e) => setMins(e.target.value)} className="form-input h-7 text-xs w-16" min="5" max="480" />
+      <button onClick={() => { onExtend(Number(mins)); setOpen(false) }} disabled={busy} className="btn-primary text-xs px-2 h-7">+{mins}m</button>
+      <button onClick={() => setOpen(false)} className="text-xs text-text-muted hover:text-text-primary">✕</button>
     </div>
   )
 }

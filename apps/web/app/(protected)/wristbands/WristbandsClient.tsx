@@ -11,6 +11,7 @@ export function WristbandsClient({ token, role }: { token: string; role?: string
   const [query, setQuery] = useState('')
   const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null)
   const [busy, setBusy] = useState(false)
+  const [busyRowId, setBusyRowId] = useState<string | null>(null)
 
   const canManage = role === 'operations' || role === 'admin'
   const canActivate = role === 'front_desk' || role === 'operations' || role === 'admin'
@@ -62,6 +63,20 @@ export function WristbandsClient({ token, role }: { token: string; role?: string
     const fd = new FormData(e.currentTarget)
     mutate('/wristbands/replace', { oldCredentialId: fd.get('oldCredentialId') as string, newCredentialUid: fd.get('newCredentialUid') as string }, 'Credential replaced')
     e.currentTarget.reset()
+  }
+
+  const rowAction = async (wristbandId: string, path: string, body: Record<string, string>, msg: string) => {
+    setBusyRowId(wristbandId)
+    setMessage(null)
+    try {
+      await apiPost(path, body, token)
+      setMessage({ text: msg, ok: true })
+      load()
+    } catch (e: unknown) {
+      setMessage({ text: e instanceof Error ? e.message : 'Action failed', ok: false })
+    } finally {
+      setBusyRowId(null)
+    }
   }
 
   const filtered = query
@@ -137,21 +152,39 @@ export function WristbandsClient({ token, role }: { token: string; role?: string
               <th className="text-left px-4 py-3 text-xs font-semibold text-accent-primary uppercase tracking-wide">Status</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-accent-primary uppercase tracking-wide">Member ID</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-accent-primary uppercase tracking-wide">Created</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-accent-primary uppercase tracking-wide">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border-subtle">
             {loading ? (
-              <tr><td colSpan={4} className="px-4 py-8 text-center text-sm text-text-muted">Loading…</td></tr>
+              <tr><td colSpan={5} className="px-4 py-8 text-center text-sm text-text-muted">Loading…</td></tr>
             ) : filtered.length === 0 ? (
-              <tr><td colSpan={4} className="px-4 py-8 text-center text-sm text-text-muted">No wristbands found.</td></tr>
-            ) : filtered.map((wb) => (
-              <tr key={wb.id} className="hover:bg-surface-1/50 transition-colors">
-                <td className="px-4 py-3 font-mono text-xs text-text-primary">{wb.uid}</td>
-                <td className="px-4 py-3"><StatusBadge status={wb.status} /></td>
-                <td className="px-4 py-3 font-mono text-xs text-text-muted">{wb.memberId ?? '—'}</td>
-                <td className="px-4 py-3 text-xs text-text-muted">{new Date(wb.createdAt).toLocaleDateString()}</td>
-              </tr>
-            ))}
+              <tr><td colSpan={5} className="px-4 py-8 text-center text-sm text-text-muted">No wristbands found.</td></tr>
+            ) : filtered.map((wb) => {
+              const isRowBusy = busyRowId === wb.id
+              return (
+                <tr key={wb.id} className="hover:bg-surface-1/50 transition-colors">
+                  <td className="px-4 py-3 font-mono text-xs text-text-primary">{wb.uid}</td>
+                  <td className="px-4 py-3"><StatusBadge status={wb.status} /></td>
+                  <td className="px-4 py-3 font-mono text-xs text-text-muted">{wb.memberId ?? '—'}</td>
+                  <td className="px-4 py-3 text-xs text-text-muted">{new Date(wb.createdAt).toLocaleDateString()}</td>
+                  <td className="px-4 py-3">
+                    <div className="flex gap-1 flex-wrap">
+                      {wb.status === 'pending_activation' && canActivate && (
+                        <button onClick={() => rowAction(wb.id, '/wristbands/activate', { credentialId: wb.id }, 'Activated')} disabled={isRowBusy} className="btn-primary text-xs px-2 py-1">{isRowBusy ? '…' : 'Activate'}</button>
+                      )}
+                      {wb.status === 'active' && canManage && (
+                        <button onClick={() => rowAction(wb.id, '/wristbands/suspend', { credentialId: wb.id }, 'Suspended')} disabled={isRowBusy} className="text-xs px-2 py-1 rounded bg-warning/20 text-warning hover:bg-warning/30 border border-warning/30 transition-colors">{isRowBusy ? '…' : 'Suspend'}</button>
+                      )}
+                      {wb.status === 'suspended' && canManage && (
+                        <button onClick={() => rowAction(wb.id, '/wristbands/activate', { credentialId: wb.id }, 'Reactivated')} disabled={isRowBusy} className="btn-primary text-xs px-2 py-1">{isRowBusy ? '…' : 'Reactivate'}</button>
+                      )}
+                      {!['pending_activation', 'active', 'suspended'].includes(wb.status) && <span className="text-xs text-text-muted">—</span>}
+                    </div>
+                  </td>
+                </tr>
+              )
+            })}
           </tbody>
         </table>
       </div>

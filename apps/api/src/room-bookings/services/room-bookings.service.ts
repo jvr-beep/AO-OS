@@ -247,6 +247,22 @@ export class RoomBookingsService {
     return this.toResponse(updated);
   }
 
+  async extendBooking(id: string, minutes: number): Promise<BookingResponseDto> {
+    if (!Number.isInteger(minutes) || minutes <= 0 || minutes > 480) {
+      throw new BadRequestException("INVALID_EXTEND_MINUTES");
+    }
+    const booking = await this.prisma.roomBooking.findUnique({ where: { id } });
+    if (!booking) throw new NotFoundException("BOOKING_NOT_FOUND");
+    if (booking.status !== "reserved" && booking.status !== "checked_in") {
+      throw new ConflictException("BOOKING_NOT_EXTENDABLE");
+    }
+    const updated = await this.prisma.roomBooking.update({
+      where: { id },
+      data: { endsAt: new Date(booking.endsAt.getTime() + minutes * 60_000) }
+    });
+    return this.toResponse(updated);
+  }
+
   private buildWhere(query: ListBookingsQueryDto): Prisma.RoomBookingWhereInput {
     const startDate = this.parseOptionalDate(query.startDate, "INVALID_START_DATE");
     const endDate = this.parseOptionalDate(query.endDate, "INVALID_END_DATE");
