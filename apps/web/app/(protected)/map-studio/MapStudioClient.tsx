@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { apiGet } from '@/lib/browser-api'
 import { StatusBadge } from '@/components/status-badge'
 
 interface MapFloorVersionSummary {
@@ -19,17 +18,116 @@ function levelLabel(level: number): string {
   return `Basement ${Math.abs(level)}`
 }
 
+function NewFloorForm({ onCreated }: { onCreated: () => void }) {
+  const [open, setOpen] = useState(false)
+  const [name, setName] = useState('')
+  const [level, setLevel] = useState('0')
+  const [description, setDescription] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!name.trim()) return
+    setBusy(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/map-studio/floors', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: name.trim(),
+          level: parseInt(level, 10),
+          description: description.trim() || undefined,
+        }),
+      })
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}))
+        throw new Error(j.message ?? `HTTP ${res.status}`)
+      }
+      setName(''); setLevel('0'); setDescription('')
+      setOpen(false)
+      onCreated()
+    } catch (e2: unknown) {
+      setError(e2 instanceof Error ? e2.message : 'Failed to create floor')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  if (!open) {
+    return (
+      <button onClick={() => setOpen(true)} className="btn-primary text-sm">
+        + New Floor
+      </button>
+    )
+  }
+
+  return (
+    <div className="card p-5 mb-6">
+      <h2 className="text-sm font-semibold text-text-primary mb-4">New Floor</h2>
+      {error && <p className="text-sm text-critical mb-3">{error}</p>}
+      <form onSubmit={handleSubmit} className="space-y-3">
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs text-text-muted mb-1">Name *</label>
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g. Ground Floor"
+              className="form-input w-full"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-text-muted mb-1">Level</label>
+            <select value={level} onChange={(e) => setLevel(e.target.value)} className="form-input w-full">
+              <option value="-2">Basement 2</option>
+              <option value="-1">Basement 1</option>
+              <option value="0">Ground (0)</option>
+              <option value="1">Level 1</option>
+              <option value="2">Level 2</option>
+              <option value="3">Level 3</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label className="block text-xs text-text-muted mb-1">Description (optional)</label>
+          <input
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="e.g. Main facility — restore rooms, lockers, reception"
+            className="form-input w-full"
+          />
+        </div>
+        <div className="flex gap-2 pt-1">
+          <button type="submit" disabled={!name.trim() || busy} className="btn-primary text-sm disabled:opacity-40">
+            {busy ? 'Creating…' : 'Create Floor'}
+          </button>
+          <button type="button" onClick={() => { setOpen(false); setError(null) }} className="btn-secondary text-sm">
+            Cancel
+          </button>
+        </div>
+      </form>
+    </div>
+  )
+}
+
 export function MapStudioClient({ token }: { token: string }) {
   const [floors, setFloors] = useState<MapFloor[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    apiGet<MapFloor[]>('/map-studio/floors', token)
+  const load = () => {
+    setLoading(true)
+    fetch('/api/map-studio/floors', { cache: 'no-store' })
+      .then((r) => r.json())
       .then(setFloors)
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false))
-  }, [token])
+  }
+
+  useEffect(() => { load() }, [token])
 
   if (loading) return <div className="max-w-5xl"><div className="flex items-center justify-between mb-6"><h1 className="text-2xl font-semibold text-text-primary">Map Studio</h1></div><p className="text-text-muted">Loading…</p></div>
 
@@ -40,8 +138,11 @@ export function MapStudioClient({ token }: { token: string }) {
         {!error && <span className="text-sm text-text-muted font-sans">{floors.length} floor{floors.length !== 1 ? 's' : ''}</span>}
       </div>
       {error && <div className="mb-4 rounded border border-critical/40 bg-critical/10 px-4 py-3 text-sm text-critical">{error}</div>}
+
+      <NewFloorForm onCreated={load} />
+
       {floors.length === 0 && !error ? (
-        <div className="card p-8 text-center text-sm text-text-muted">No floors configured for this location.</div>
+        <div className="card p-8 text-center text-sm text-text-muted">No floors configured for this location. Create one above to get started.</div>
       ) : (
         <div className="grid md:grid-cols-2 gap-4">
           {floors.map((floor) => (
