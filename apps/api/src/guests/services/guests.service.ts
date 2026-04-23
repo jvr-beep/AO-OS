@@ -70,7 +70,7 @@ export class GuestsService {
           ...(dto.dateOfBirth !== undefined ? { dateOfBirth: dto.dateOfBirth ? new Date(dto.dateOfBirth) : null } : {}),
           ...(dto.preferredLanguage !== undefined ? { preferredLanguage: dto.preferredLanguage?.trim() || "en" } : {}),
           ...(dto.marketingOptIn !== undefined ? { marketingOptIn: dto.marketingOptIn } : {}),
-          ...(dto.preferences !== undefined ? { preferences: dto.preferences ?? null } : {}),
+          ...(dto.preferences !== undefined ? { preferences: dto.preferences ?? Prisma.DbNull } : {}),
           ...(riskFlagChange ? { riskFlagStatus: dto.riskFlagStatus } : {}),
           ...(riskFlagChange ? { riskFlagReason: dto.riskFlagReason ?? null } : {}),
           ...(riskFlagChange ? { riskFlaggedAt: new Date() } : {}),

@@ -15,7 +15,7 @@ const MEMBER_SELECT = {
   createdAt: true,
   profile: { select: { preferredName: true } },
   subscriptions: {
-    where: { status: { in: ['active', 'trialing'] } },
+    where: { status: { in: ['active', 'trialing'] as string[] } },
     take: 1,
     orderBy: { createdAt: 'desc' as const },
     select: {
@@ -23,7 +23,7 @@ const MEMBER_SELECT = {
       membershipPlan: { select: { id: true, name: true } },
     },
   },
-} as const;
+};
 
 @Injectable()
 export class MembersService {
