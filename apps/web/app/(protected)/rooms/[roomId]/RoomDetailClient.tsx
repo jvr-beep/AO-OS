@@ -4,18 +4,21 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { apiGet, apiPost, apiPatch } from '@/lib/browser-api'
 import { StatusBadge } from '@/components/status-badge'
-import type { Room, RoomBooking, RoomAccessEvent } from '@/types/api'
+import type { Room, RoomBooking, RoomAccessEvent, CleaningTask } from '@/types/api'
 
 export function RoomDetailClient({ token, roomId, okMessage, errorMessage }: { token: string; roomId: string; okMessage?: string; errorMessage?: string }) {
   const [room, setRoom] = useState<Room | null>(null)
   const [bookings, setBookings] = useState<RoomBooking[]>([])
   const [events, setEvents] = useState<RoomAccessEvent[]>([])
+  const [cleaningTask, setCleaningTask] = useState<CleaningTask | null | undefined>(undefined)
   const [loading, setLoading] = useState(true)
   const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(
     okMessage ? { text: okMessage, ok: true } : errorMessage ? { text: errorMessage, ok: false } : null
   )
   const [logging, setLogging] = useState(false)
   const [togglingMaintenance, setTogglingMaintenance] = useState(false)
+  const [cleaningBusy, setCleaningBusy] = useState(false)
+  const [completionNote, setCompletionNote] = useState('')
 
   const load = () => {
     setLoading(true)
@@ -23,11 +26,45 @@ export function RoomDetailClient({ token, roomId, okMessage, errorMessage }: { t
       apiGet<Room>(`/rooms/${roomId}`, token),
       apiGet<RoomBooking[]>(`/rooms/${roomId}/bookings`, token),
       apiGet<RoomAccessEvent[]>(`/rooms/${roomId}/access-events`, token),
-    ]).then(([r, b, e]) => {
+      apiGet<CleaningTask[]>(`/cleaning/tasks?roomId=${roomId}`, token),
+    ]).then(([r, b, e, ct]) => {
       if (r.status === 'fulfilled') setRoom(r.value)
       if (b.status === 'fulfilled') setBookings([...b.value].sort((a, z) => new Date(z.startsAt).getTime() - new Date(a.startsAt).getTime()))
       if (e.status === 'fulfilled') setEvents([...e.value].sort((a, z) => new Date(z.occurredAt).getTime() - new Date(a.occurredAt).getTime()))
+      if (ct.status === 'fulfilled') {
+        const active = ct.value.find((t) => t.status === 'open' || t.status === 'in_progress') ?? null
+        setCleaningTask(active)
+      }
     }).finally(() => setLoading(false))
+  }
+
+  const startCleaning = async () => {
+    setCleaningBusy(true)
+    setMessage(null)
+    try {
+      await apiPost(`/cleaning/rooms/${roomId}/start`, {}, token)
+      setMessage({ text: 'Cleaning started — room marked as cleaning', ok: true })
+      load()
+    } catch (e: unknown) {
+      setMessage({ text: e instanceof Error ? e.message : 'Failed to start cleaning', ok: false })
+    } finally {
+      setCleaningBusy(false)
+    }
+  }
+
+  const completeCleaning = async () => {
+    setCleaningBusy(true)
+    setMessage(null)
+    try {
+      await apiPost(`/cleaning/rooms/${roomId}/complete`, { notes: completionNote || undefined }, token)
+      setMessage({ text: 'Cleaning complete — room marked as available', ok: true })
+      setCompletionNote('')
+      load()
+    } catch (e: unknown) {
+      setMessage({ text: e instanceof Error ? e.message : 'Failed to complete cleaning', ok: false })
+    } finally {
+      setCleaningBusy(false)
+    }
   }
 
   useEffect(() => { load() }, [roomId, token])
@@ -114,6 +151,51 @@ export function RoomDetailClient({ token, roomId, okMessage, errorMessage }: { t
           <p className="text-xs text-text-muted mt-2">Cannot set maintenance while room is {room.status}.</p>
         )}
       </div>
+
+      {cleaningTask !== undefined && (
+        <div className="card p-4 mb-4">
+          <h2 className="text-sm font-semibold text-text-primary mb-2">Cleaning</h2>
+          {cleaningTask === null ? (
+            <div className="flex items-center gap-3">
+              <p className="text-xs text-text-muted flex-1">No active cleaning task.</p>
+              {room.status !== 'occupied' && room.status !== 'booked' && (
+                <button onClick={startCleaning} disabled={cleaningBusy} className="btn-primary text-xs px-3 h-8">
+                  {cleaningBusy ? '…' : 'Start Cleaning'}
+                </button>
+              )}
+            </div>
+          ) : cleaningTask.status === 'open' ? (
+            <div className="flex items-center gap-3">
+              <div className="flex-1">
+                <p className="text-xs text-text-muted">Task queued — <span className="text-text-primary font-mono">{cleaningTask.taskType}</span></p>
+                <p className="text-xs text-text-muted mt-0.5">Created {new Date(cleaningTask.createdAt).toLocaleString()}</p>
+              </div>
+              <button onClick={startCleaning} disabled={cleaningBusy} className="btn-primary text-xs px-3 h-8">
+                {cleaningBusy ? '…' : 'Start Cleaning'}
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold bg-critical/20 text-critical border border-critical/30">Cleaning in progress</span>
+                {cleaningTask.startedAt && <span className="text-xs text-text-muted">since {new Date(cleaningTask.startedAt).toLocaleTimeString()}</span>}
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={completionNote}
+                  onChange={(e) => setCompletionNote(e.target.value)}
+                  placeholder="Completion note (optional)"
+                  className="form-input h-8 text-xs flex-1"
+                />
+                <button onClick={completeCleaning} disabled={cleaningBusy} className="btn-primary text-xs px-3 h-8 whitespace-nowrap">
+                  {cleaningBusy ? '…' : 'Mark Complete'}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       <div id="log-access" className="card p-4 mb-4">
         <h2 className="text-sm font-semibold text-text-primary mb-3">Log Room Access Event</h2>

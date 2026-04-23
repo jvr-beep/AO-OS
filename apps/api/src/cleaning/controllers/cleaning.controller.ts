@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Query, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Param, Post, Query, UseGuards, HttpCode, HttpStatus } from "@nestjs/common";
 import { Roles } from "../../auth/decorators/roles.decorator";
 import { JwtAuthGuard } from "../../auth/guards/jwt-auth.guard";
 import { RolesGuard } from "../../auth/guards/roles.guard";
@@ -35,5 +35,25 @@ export class CleaningController {
     @Body() body: CompleteCleaningTaskDto
   ): Promise<CleaningTaskResponseDto> {
     return this.cleaningService.completeTask(id, body);
+  }
+
+  @Post("cleaning/rooms/:roomId/start")
+  @Roles("operations", "admin")
+  @HttpCode(HttpStatus.OK)
+  startRoomCleaning(
+    @Param("roomId") roomId: string,
+    @Body() body: { assignedToStaffUserId?: string }
+  ): Promise<CleaningTaskResponseDto> {
+    return this.cleaningService.startTaskByRoom(roomId, body.assignedToStaffUserId);
+  }
+
+  @Post("cleaning/rooms/:roomId/complete")
+  @Roles("operations", "admin")
+  @HttpCode(HttpStatus.OK)
+  completeRoomCleaning(
+    @Param("roomId") roomId: string,
+    @Body() body: { notes?: string }
+  ): Promise<CleaningTaskResponseDto> {
+    return this.cleaningService.completeTaskByRoom(roomId, body.notes);
   }
 }

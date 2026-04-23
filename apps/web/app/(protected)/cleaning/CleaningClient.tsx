@@ -195,7 +195,6 @@ function TaskRow({ task, room, booking, canManage, busy, onStart, onComplete }: 
   onStart: (id: string, occurredAt: string) => void
   onComplete: (id: string, notes: string) => void
 }) {
-  const [occurredAt, setOccurredAt] = useState('')
   const [notes, setNotes] = useState('')
 
   return (
@@ -212,10 +211,7 @@ function TaskRow({ task, room, booking, canManage, busy, onStart, onComplete }: 
       <td className="px-4 py-3 text-xs text-text-muted max-w-xs">{task.notes ?? '—'}</td>
       <td className="px-4 py-3">
         {canManage && task.status === 'open' && (
-          <div className="flex items-center gap-2">
-            <input type="text" value={occurredAt} onChange={(e) => setOccurredAt(e.target.value)} placeholder="occurredAt (optional)" className="form-input h-8 text-xs w-36" />
-            <button onClick={() => onStart(task.id, occurredAt)} disabled={busy} className="btn-primary h-8 px-3 text-xs">Start</button>
-          </div>
+          <button onClick={() => onStart(task.id, new Date().toISOString())} disabled={busy} className="btn-primary h-8 px-3 text-xs">Start</button>
         )}
         {canManage && task.status === 'in_progress' && (
           <div className="flex items-center gap-2">
@@ -224,7 +220,7 @@ function TaskRow({ task, room, booking, canManage, busy, onStart, onComplete }: 
           </div>
         )}
         {!canManage && <span className="text-xs text-text-muted">View only</span>}
-        {canManage && task.status !== 'open' && task.status !== 'in_progress' && <span className="text-xs text-text-muted">No actions</span>}
+        {canManage && task.status !== 'open' && task.status !== 'in_progress' && <span className="text-xs text-text-muted">—</span>}
       </td>
     </tr>
   )

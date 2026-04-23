@@ -27,23 +27,46 @@ export class CleaningService {
 
   async startTask(id: string, input: StartCleaningTaskDto): Promise<CleaningTaskResponseDto> {
     const occurredAt = this.parseDate(input.occurredAt, "INVALID_OCCURRED_AT");
+    return this.startTaskById(id, occurredAt, input.assignedToStaffUserId);
+  }
 
+  async startTaskByRoom(roomId: string, staffUserId?: string): Promise<CleaningTaskResponseDto> {
+    const task = await this.prisma.cleaningTask.findFirst({
+      where: { roomId, status: "open" },
+      orderBy: { createdAt: "asc" }
+    });
+    if (!task) throw new NotFoundException("NO_OPEN_CLEANING_TASK_FOR_ROOM");
+    return this.startTaskById(task.id, new Date(), staffUserId);
+  }
+
+  async completeTaskByRoom(roomId: string, notes?: string): Promise<CleaningTaskResponseDto> {
+    const task = await this.prisma.cleaningTask.findFirst({
+      where: { roomId, status: { in: ["open", "in_progress"] } },
+      orderBy: [{ status: "desc" }, { createdAt: "asc" }]
+    });
+    if (!task) throw new NotFoundException("NO_ACTIVE_CLEANING_TASK_FOR_ROOM");
+    return this.completeTaskById(task.id, new Date(), notes);
+  }
+
+  private async startTaskById(id: string, occurredAt: Date, staffUserId?: string): Promise<CleaningTaskResponseDto> {
     const task = await this.prisma.cleaningTask.findUnique({ where: { id } });
-    if (!task) {
-      throw new NotFoundException("CLEANING_TASK_NOT_FOUND");
-    }
+    if (!task) throw new NotFoundException("CLEANING_TASK_NOT_FOUND");
+    if (task.status !== "open") throw new ConflictException("CLEANING_TASK_NOT_STARTABLE");
 
-    if (task.status !== "open") {
-      throw new ConflictException("CLEANING_TASK_NOT_STARTABLE");
-    }
-
-    const updated = await this.prisma.cleaningTask.update({
-      where: { id },
-      data: {
-        status: "in_progress",
-        startedAt: occurredAt,
-        assignedToStaffUserId: input.assignedToStaffUserId ?? task.assignedToStaffUserId
-      }
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const row = await tx.cleaningTask.update({
+        where: { id },
+        data: {
+          status: "in_progress",
+          startedAt: occurredAt,
+          assignedToStaffUserId: staffUserId ?? task.assignedToStaffUserId
+        }
+      });
+      await tx.room.update({
+        where: { id: task.roomId },
+        data: { status: "cleaning" }
+      });
+      return row;
     });
 
     return this.toResponse(updated);
@@ -51,12 +74,12 @@ export class CleaningService {
 
   async completeTask(id: string, input: CompleteCleaningTaskDto): Promise<CleaningTaskResponseDto> {
     const occurredAt = this.parseDate(input.occurredAt, "INVALID_OCCURRED_AT");
+    return this.completeTaskById(id, occurredAt, input.notes);
+  }
 
+  private async completeTaskById(id: string, occurredAt: Date, notes?: string): Promise<CleaningTaskResponseDto> {
     const task = await this.prisma.cleaningTask.findUnique({ where: { id } });
-    if (!task) {
-      throw new NotFoundException("CLEANING_TASK_NOT_FOUND");
-    }
-
+    if (!task) throw new NotFoundException("CLEANING_TASK_NOT_FOUND");
     if (task.status !== "open" && task.status !== "in_progress") {
       throw new ConflictException("CLEANING_TASK_NOT_COMPLETABLE");
     }
@@ -67,7 +90,7 @@ export class CleaningService {
         data: {
           status: "completed",
           completedAt: occurredAt,
-          notes: input.notes ?? task.notes
+          notes: notes ?? task.notes
         }
       });
 
