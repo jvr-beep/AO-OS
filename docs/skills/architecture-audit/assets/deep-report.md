@@ -41,7 +41,7 @@
   - **Finding:** {{one sentence}}
   - **Impact:** {{why it matters}}
   - **Fix:** {{concrete action}}
-  - **Effort:** {{XS/S/M/L}} · **Bucket:** {{0-30 / 30-60 / 60-90 / later}}
+  - **Effort:** {{XS/S/M/L}} · **Priority:** {{Now / Next / Later / Backlog}}
 
 *(Repeat for each finding in this pillar.)*
 
@@ -128,21 +128,21 @@ Factor-by-factor pass/partial/fail. Cite evidence for any non-pass.
 
 ---
 
-## 30-60-90 remediation queue (consolidated)
+## Remediation queue (consolidated)
 
-### 0-30 days — must-fix
+### Now — must-fix
 | ID | Severity | Effort | Finding | Recommended fix |
 |---|---|---|---|---|
 
-### 30-60 days — should-fix
+### Next — should-fix
 | ID | Severity | Effort | Finding | Recommended fix |
 |---|---|---|---|---|
 
-### 60-90 days — follow-through
+### Later — follow-through
 | ID | Severity | Effort | Finding | Recommended fix |
 |---|---|---|---|---|
 
-### Later / backlog
+### Backlog
 | ID | Severity | Effort | Finding | Recommended fix |
 |---|---|---|---|---|
 

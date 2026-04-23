@@ -40,23 +40,23 @@ Full finding details for each in the "Findings" section below.
 - **Impact:** {{what breaks, what's at risk}}
 - **Recommended fix:** {{concrete action}}
 - **Effort:** XS / S / M / L
-- **30-60-90 bucket:** 0-30
+- **Priority:** Now
 
 *(Repeat for remaining top findings — in Quick mode, limit to 10–15 total.)*
 
-## 30-60-90 remediation queue
+## Remediation queue
 
-### 0-30 days (must-fix)
+### Now (must-fix)
 - [ ] `{{finding-id}}` (Critical, XS) — {{one-line summary}}
 - [ ] `{{finding-id}}` (High, S) — {{one-line summary}}
 
-### 30-60 days (should-fix)
+### Next (should-fix)
 - [ ] `{{finding-id}}` (High, M) — {{one-line summary}}
 
-### 60-90 days (follow-through)
+### Later (follow-through)
 - [ ] `{{finding-id}}` (Medium, S) — {{one-line summary}}
 
-### Later / backlog
+### Backlog
 - [ ] `{{finding-id}}` (Medium, L) — {{one-line summary}}
 
 ## What I couldn't check

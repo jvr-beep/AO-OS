@@ -73,12 +73,13 @@ Pair severity with effort to produce the remediation queue:
 - **M** (1–2 weeks) — multi-service change, infra migration, new capability
 - **L** (>2 weeks) — major refactor, framework upgrade, platform migration
 
-## 30-60-90 bucket assignment
+## Priority bucket assignment
 
-Default bucketing (override for context):
-- **0-30 (must-fix):** all Critical + High with XS/S effort
-- **30-60 (should-fix):** remaining High + Medium with M effort
-- **60-90 (follow-through):** Low-severity + remaining Medium
-- **Later / backlog:** L-effort items where there's no active incident
+Four buckets — deliberately cadence-neutral so the reader can map them to whatever rhythm they run (sprints, phases, weeks, quarters). Default rules:
 
-Gut-check at the end: can the team realistically complete the 0-30 bucket in 30 days? If it's more than 10 items of M+ effort, bump some to 30-60 or flag staffing as a blocker in "What I couldn't check."
+- **Now (must-fix):** all Critical + High items with XS/S effort
+- **Next (should-fix):** remaining High + Medium items with M effort
+- **Later (follow-through):** Low-severity + remaining Medium
+- **Backlog:** L-effort items where there's no active incident
+
+Gut-check: can the team realistically complete the Now bucket in their next cadence unit (sprint / phase / whatever)? If the Now bucket has more than 10 items of M+ effort, bump some to Next or flag staffing as a blocker in "What I couldn't check."

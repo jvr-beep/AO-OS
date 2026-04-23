@@ -1,6 +1,6 @@
 ---
 name: architecture-audit
-description: Audit a running software system's architecture against best-practice frameworks (Google Cloud Architecture Framework, 12-factor, CNCF Cloud Native Maturity, OWASP ASVS) and produce a gap-scored report with a 30-60-90 remediation queue. Use this skill whenever the user asks to "audit my architecture", "grade the system against best practices", "architecture review", "security posture check", "run a quarterly architecture audit", "check my GCP / n8n / cloud setup against best practices", "where are the architecture gaps", "find technical debt", "produce a remediation plan". Especially for AO-OS and similar GCP + n8n + GitHub + Datadog stacks, but works on any codebase the user points it at. Supports a Quick (50k-foot) mode, a Deep walkthrough mode, or both run in sequence — ask if the user doesn't specify. Produces a dated markdown report designed for drop-in to Notion or any other doc system.
+description: Audit a running software system's architecture against best-practice frameworks (Google Cloud Architecture Framework, 12-factor, CNCF Cloud Native Maturity, OWASP ASVS) and produce a gap-scored report with a prioritized remediation queue (Now / Next / Later / Backlog). Use this skill whenever the user asks to "audit my architecture", "grade the system against best practices", "architecture review", "security posture check", "run a quarterly architecture audit", "check my GCP / n8n / cloud setup against best practices", "where are the architecture gaps", "find technical debt", "produce a remediation plan". Especially for AO-OS and similar GCP + n8n + GitHub + Datadog stacks, but works on any codebase the user points it at. Supports a Quick (50k-foot) mode, a Deep walkthrough mode, or both run in sequence — ask if the user doesn't specify. Produces a dated markdown report designed for drop-in to Notion or any other doc system.
 ---
 
 # architecture-audit
@@ -18,7 +18,7 @@ For a target system (code + config + workflow definitions + docs), this skill:
    - **CNCF Cloud Native Maturity** (progressing levels)
    - **OWASP ASVS** (Application Security Verification Standard) for the security slice
 3. **Surfaces gaps** as structured findings — issue, severity, evidence (file path / config / endpoint), recommended fix, effort estimate.
-4. **Sequences remediation** into a 30-60-90 queue matching the user's operating cadence.
+4. **Sequences remediation** into a prioritized queue (Now / Next / Later / Backlog) that the user can map to their own cadence — sprints, phases, quarters, whatever they run on.
 
 ## Modes
 
@@ -27,7 +27,7 @@ Ask the user which mode they want if they haven't said. Defaults: **Quick first,
 ### Quick mode (50k-foot)
 - **Goal:** Whole-architecture scorecard in 15–25 minutes.
 - **What it looks at:** Repo top-level layout, deployment manifests, service boundaries, top auth / secrets / observability files, README / docs, package manifests. Doesn't open every source file.
-- **Output:** 1 scorecard (all 5 GCP pillars + security summary) + top 10 findings + 30-60-90 headline queue. See `assets/quick-scorecard.md`.
+- **Output:** 1 scorecard (all 5 GCP pillars + security summary) + top 10 findings + prioritized headline queue. See `assets/quick-scorecard.md`.
 - **When to use:** First run · stakeholder briefing · "is anything on fire?" sanity check.
 
 ### Deep mode (walkthrough)
@@ -85,7 +85,7 @@ Each finding has this shape (use the structure consistently — it's what makes 
 - Impact: Why it matters (what breaks, what's at risk)
 - Recommended fix: Concrete, actionable — "add OWASP secure headers middleware to src/middleware/security.ts" not "improve security"
 - Effort: XS (<1 day) | S (1–3 days) | M (1–2 weeks) | L (>2 weeks)
-- 30-60-90 bucket: 0-30 | 30-60 | 60-90 | later
+- Priority bucket: Now | Next | Later | Backlog
 ```
 
 ### Key discipline: evidence or skip
@@ -143,19 +143,19 @@ Table: Framework × Pillar, 5-point rating, one-line rationale.
 ### OWASP ASVS (security deep-dive)
 ...
 
-## 30-60-90 remediation queue
+## Remediation queue
 
-### 0-30 days (must-fix)
+### Now (must-fix)
 - [ID] (Critical) Fix summary — owner TBD — effort XS/S
 ...
 
-### 30-60 days (should-fix)
+### Next (should-fix)
 ...
 
-### 60-90 days (follow-through)
+### Later (follow-through)
 ...
 
-### Later / backlog
+### Backlog
 ...
 
 ## What I couldn't check

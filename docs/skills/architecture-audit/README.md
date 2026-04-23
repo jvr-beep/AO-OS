@@ -1,6 +1,6 @@
 # architecture-audit skill
 
-A Claude skill that audits a running software system's architecture against best-practice frameworks and produces a gap-scored report with a 30-60-90 remediation queue.
+A Claude skill that audits a running software system's architecture against best-practice frameworks and produces a gap-scored report with a prioritized remediation queue.
 
 ## What it audits against
 
@@ -33,7 +33,7 @@ Claude will read `SKILL.md` and follow its workflow: discovery → framework-by-
 
 ### Modes
 
-- **Quick (15–25 min):** 50k-foot scorecard + top 10 findings + headline 30-60-90 queue.
+- **Quick (15–25 min):** 50k-foot scorecard + top 10 findings + headline prioritized queue.
 - **Deep (60–90 min):** Full framework-by-framework walkthrough, 40–100 findings.
 - **Both:** Quick first, review with stakeholders, then Deep.
 
@@ -44,7 +44,7 @@ A dated markdown report (`audit-[system]-[mode]-[YYYY-MM-DD].md`) containing:
 - Scorecard table (framework × pillar × 1–5 rating)
 - Top findings ordered by severity
 - Findings by framework, each with evidence citation
-- 30-60-90 remediation queue
+- Remediation queue (Now / Next / Later / Backlog)
 - "What I couldn't check" — explicit verification gaps
 
 ## Structure
@@ -81,7 +81,7 @@ architecture-audit/
 Ran against AO-OS and the bad-service fixture, with-skill vs. no-skill baseline. Key observations:
 
 - **AO-OS with skill:** 10 findings (0 Critical / 5 High / 5 Medium). The skill-anchored run verified `.env` was gitignored before flagging secrets as Critical. Top concerns surfaced: GitHub Actions with floating tags (supply-chain risk), VM secret sprawl, single-VM prod with no rollback.
-- **AO-OS baseline (no skill):** 16 findings (2 Critical / 6 High). Flagged gitignored JWT fallback as Critical without verification. Missed 30-60-90 structure.
+- **AO-OS baseline (no skill):** 16 findings (2 Critical / 6 High). Flagged gitignored JWT fallback as Critical without verification. Missed the prioritized-queue structure.
 - **bad-service with skill:** Quick 10 findings + Deep 38 findings. Framework-by-framework walk. Severity ~7C/14H/16M/1L.
 - **bad-service baseline:** 24 findings. Found the obvious issues but less structured output.
 

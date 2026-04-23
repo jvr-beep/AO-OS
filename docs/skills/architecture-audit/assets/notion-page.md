@@ -24,7 +24,7 @@ Use Notion-flavored markdown:
 
 - **Tables** for the scorecard and remediation queues — Notion tables render well.
 
-- **Checkbox lists** for the 30-60-90 queues — users can check them off inline:
+- **Checkbox lists** for the Now / Next / Later / Backlog queues — users can check them off inline:
   ```
   - [ ] `secrets-in-env-example` (Critical, XS) — remove .env.production from repo history
   ```
@@ -44,7 +44,7 @@ If the AO Notion space has a findings / issues database, create one row per find
 | Framework | GCP / 12-factor / CNCF / OWASP |
 | Status | Open (set on creation) |
 | Effort | XS / S / M / L |
-| Bucket | 0-30 / 30-60 / 60-90 / later |
+| Priority | Now / Next / Later / Backlog |
 | Evidence | The specific file / config / endpoint reference |
 | Fix | Recommended action |
 | Audit run | Link back to the audit report page |
