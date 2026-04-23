@@ -13,8 +13,8 @@ export interface StaffUser {
 export interface Member {
   id: string
   publicMemberNumber?: string
-  firstName: string
-  lastName: string
+  firstName?: string | null
+  lastName?: string | null
   displayName?: string | null
   email: string
   phone?: string | null
@@ -22,6 +22,7 @@ export interface Member {
   profileNotes?: string
   createdAt: string
   updatedAt?: string
+  activeSubscription?: { planName: string; planId: string; status: string } | null
 }
 
 export interface MembershipPlan {

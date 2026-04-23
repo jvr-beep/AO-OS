@@ -33,52 +33,81 @@ export function MemberDetailClient({ token, memberId }: { token: string; memberI
   }, [memberId, token])
 
   if (loading) return <div className="max-w-3xl"><p className="text-text-muted">Loading…</p></div>
-  if (error || !member) return <div className="max-w-3xl"><p className="text-red-400">{error ?? 'Member not found'}</p></div>
+  if (error || !member) return <div className="max-w-3xl"><p className="text-critical">{error ?? 'Member not found'}</p></div>
+
+  const alias = member.displayName ?? null
 
   return (
     <div className="max-w-3xl">
-      <div className="flex items-center gap-3 mb-6">
-        <Link href="/dashboard" className="text-sm text-blue-600 hover:underline">← Dashboard</Link>
-        <h1 className="text-2xl font-semibold">{member.firstName} {member.lastName}</h1>
-        <Link href={`/bookings?memberId=${member.id}`} className="text-xs rounded border border-blue-200 bg-blue-50 text-blue-700 px-2 py-1 hover:bg-blue-100">Create Booking →</Link>
+      <div className="flex items-center gap-3 mb-6 flex-wrap">
+        <Link href="/members" className="text-sm text-accent-primary hover:underline">← Members</Link>
+        <div className="flex-1">
+          {alias
+            ? <h1 className="text-2xl font-semibold text-text-primary">{alias}</h1>
+            : <h1 className="text-2xl font-semibold text-text-muted italic">No alias set</h1>
+          }
+          <p className="text-xs text-text-muted font-mono mt-0.5">{member.publicMemberNumber ?? member.id}</p>
+        </div>
+        <StatusBadge status={member.status ?? 'active'} />
+        <Link
+          href={`/bookings?memberId=${member.id}`}
+          className="btn-secondary text-xs"
+        >
+          Create Booking →
+        </Link>
       </div>
 
-      <div className="bg-white rounded-lg shadow-sm border p-4 mb-4">
-        <h2 className="text-sm font-semibold text-gray-700 mb-3">Member Details</h2>
-        <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-          <dt className="text-gray-500">ID</dt><dd className="font-mono text-xs break-all">{member.id}</dd>
-          <dt className="text-gray-500">Email</dt><dd>{member.email}</dd>
-          {member.phone && <><dt className="text-gray-500">Phone</dt><dd>{member.phone}</dd></>}
-          <dt className="text-gray-500">Joined</dt><dd>{new Date(member.createdAt).toLocaleDateString()}</dd>
+      <div className="card mb-4">
+        <h2 className="text-sm font-semibold text-text-primary mb-3 uppercase tracking-wide">Member Details</h2>
+        <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-sm">
+          <dt className="text-text-muted">ID</dt>
+          <dd className="font-mono text-xs text-text-primary break-all">{member.id}</dd>
+          <dt className="text-text-muted">Email</dt>
+          <dd className="text-text-primary">{member.email}</dd>
+          {member.phone && (
+            <>
+              <dt className="text-text-muted">Phone</dt>
+              <dd className="text-text-primary">{member.phone}</dd>
+            </>
+          )}
+          <dt className="text-text-muted">Joined</dt>
+          <dd className="text-text-primary">{new Date(member.createdAt).toLocaleDateString()}</dd>
         </dl>
       </div>
 
       {account && (
-        <div className="bg-white rounded-lg shadow-sm border p-4 mb-4">
+        <div className="card mb-4">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-gray-700">Account</h2>
-            <Link href={`/accounts/${memberId}`} className="text-xs text-blue-600 hover:underline">View full ledger →</Link>
+            <h2 className="text-sm font-semibold text-text-primary uppercase tracking-wide">Account</h2>
+            <Link href={`/accounts/${memberId}`} className="text-xs text-accent-primary hover:underline">View full ledger →</Link>
           </div>
-          <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-            <dt className="text-gray-500">Balance</dt>
-            <dd className={`font-semibold ${parseFloat(account.balance) < 0 ? 'text-red-600' : 'text-green-600'}`}>{account.currency} {account.balance}</dd>
-            <dt className="text-gray-500">Total Charges</dt><dd>{account.currency} {account.postedChargeTotal}</dd>
-            <dt className="text-gray-500">Total Payments</dt><dd>{account.currency} {account.postedPaymentTotal}</dd>
+          <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-sm">
+            <dt className="text-text-muted">Balance</dt>
+            <dd className={`font-semibold ${parseFloat(account.balance) < 0 ? 'text-critical' : 'text-success'}`}>
+              {account.currency} {account.balance}
+            </dd>
+            <dt className="text-text-muted">Total Charges</dt>
+            <dd className="text-text-primary">{account.currency} {account.postedChargeTotal}</dd>
+            <dt className="text-text-muted">Total Payments</dt>
+            <dd className="text-text-primary">{account.currency} {account.postedPaymentTotal}</dd>
           </dl>
         </div>
       )}
 
-      <div className="bg-white rounded-lg shadow-sm border p-4">
-        <h2 className="text-sm font-semibold text-gray-700 mb-3">Subscriptions</h2>
+      <div className="card">
+        <h2 className="text-sm font-semibold text-text-primary uppercase tracking-wide mb-3">Subscriptions</h2>
         {subs.length === 0 ? (
-          <p className="text-sm text-gray-500">No subscriptions.</p>
+          <p className="text-sm text-text-muted">No subscriptions — pay per visit.</p>
         ) : (
-          <div className="divide-y">
+          <div className="divide-y divide-border-subtle">
             {subs.map((sub) => (
-              <div key={sub.id} className="flex items-center justify-between py-2.5">
+              <div key={sub.id} className="flex items-center justify-between py-3">
                 <div>
-                  <p className="text-sm font-medium">{sub.membershipPlan?.name ?? sub.membershipPlanId}</p>
-                  <p className="text-xs text-gray-500">Started {new Date(sub.startDate).toLocaleDateString()}{sub.renewalDate && ` · Renews ${new Date(sub.renewalDate).toLocaleDateString()}`}</p>
+                  <p className="text-sm font-medium text-text-primary">{sub.membershipPlan?.name ?? sub.membershipPlanId}</p>
+                  <p className="text-xs text-text-muted">
+                    Started {new Date(sub.startDate).toLocaleDateString()}
+                    {sub.renewalDate && ` · Renews ${new Date(sub.renewalDate).toLocaleDateString()}`}
+                  </p>
                 </div>
                 <StatusBadge status={sub.status} />
               </div>
