@@ -39,6 +39,26 @@ export class CleaningService {
     return this.startTaskById(task.id, new Date(), staffUserId);
   }
 
+  async flagUrgent(id: string, isUrgent: boolean): Promise<CleaningTaskResponseDto> {
+    const task = await this.prisma.cleaningTask.findUnique({ where: { id } });
+    if (!task) throw new NotFoundException("CLEANING_TASK_NOT_FOUND");
+    if (task.status === "completed" || task.status === "cancelled") {
+      throw new ConflictException("CLEANING_TASK_NOT_FLAGGABLE");
+    }
+    const updated = await this.prisma.cleaningTask.update({ where: { id }, data: { isUrgent } });
+    return this.toResponse(updated);
+  }
+
+  async flagRoomUrgent(roomId: string): Promise<CleaningTaskResponseDto> {
+    const task = await this.prisma.cleaningTask.findFirst({
+      where: { roomId, status: { in: ["open", "in_progress"] } },
+      orderBy: [{ status: "desc" }, { createdAt: "asc" }]
+    });
+    if (!task) throw new NotFoundException("NO_ACTIVE_CLEANING_TASK_FOR_ROOM");
+    const updated = await this.prisma.cleaningTask.update({ where: { id: task.id }, data: { isUrgent: true } });
+    return this.toResponse(updated);
+  }
+
   async completeTaskByRoom(roomId: string, notes?: string): Promise<CleaningTaskResponseDto> {
     const task = await this.prisma.cleaningTask.findFirst({
       where: { roomId, status: { in: ["open", "in_progress"] } },
@@ -167,6 +187,7 @@ export class CleaningService {
     bookingId: string | null;
     taskType: CleaningTaskType;
     status: CleaningTaskStatus;
+    isUrgent: boolean;
     createdAt: Date;
     startedAt: Date | null;
     completedAt: Date | null;
@@ -179,6 +200,7 @@ export class CleaningService {
       bookingId: row.bookingId ?? undefined,
       taskType: row.taskType,
       status: row.status,
+      isUrgent: row.isUrgent,
       createdAt: row.createdAt.toISOString(),
       startedAt: row.startedAt?.toISOString(),
       completedAt: row.completedAt?.toISOString(),

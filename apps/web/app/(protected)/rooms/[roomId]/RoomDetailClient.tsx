@@ -38,6 +38,20 @@ export function RoomDetailClient({ token, roomId, okMessage, errorMessage }: { t
     }).finally(() => setLoading(false))
   }
 
+  const flagUrgent = async () => {
+    setCleaningBusy(true)
+    setMessage(null)
+    try {
+      await apiPost(`/cleaning/rooms/${roomId}/flag-urgent`, {}, token)
+      setMessage({ text: 'Room flagged for urgent cleaning', ok: true })
+      load()
+    } catch (e: unknown) {
+      setMessage({ text: e instanceof Error ? e.message : 'Failed to flag urgent', ok: false })
+    } finally {
+      setCleaningBusy(false)
+    }
+  }
+
   const startCleaning = async () => {
     setCleaningBusy(true)
     setMessage(null)
@@ -167,12 +181,20 @@ export function RoomDetailClient({ token, roomId, okMessage, errorMessage }: { t
           ) : cleaningTask.status === 'open' ? (
             <div className="flex items-center gap-3">
               <div className="flex-1">
-                <p className="text-xs text-text-muted">Task queued — <span className="text-text-primary font-mono">{cleaningTask.taskType}</span></p>
+                <div className="flex items-center gap-2">
+                  <p className="text-xs text-text-muted">Task queued — <span className="text-text-primary font-mono">{cleaningTask.taskType}</span></p>
+                  {cleaningTask.isUrgent && <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold bg-critical/20 text-critical border border-critical/30">⚑ Urgent</span>}
+                </div>
                 <p className="text-xs text-text-muted mt-0.5">Created {new Date(cleaningTask.createdAt).toLocaleString()}</p>
               </div>
               <button onClick={startCleaning} disabled={cleaningBusy} className="btn-primary text-xs px-3 h-8">
                 {cleaningBusy ? '…' : 'Start Cleaning'}
               </button>
+              {!cleaningTask.isUrgent && (
+                <button onClick={flagUrgent} disabled={cleaningBusy} className="h-8 px-2 text-xs rounded font-medium bg-surface-2 text-text-muted hover:text-critical border border-border-subtle transition-colors disabled:opacity-40" title="Flag as urgent">
+                  ⚑
+                </button>
+              )}
             </div>
           ) : (
             <div className="space-y-2">

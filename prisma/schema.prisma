@@ -950,9 +950,10 @@ model CleaningTask {
   bookingId             String?
   taskType              CleaningTaskType
   status                CleaningTaskStatus @default(open)
+  isUrgent              Boolean            @default(false)
   createdAt             DateTime           @default(now())
   startedAt             DateTime?
-  completedAt             DateTime?
+  completedAt           DateTime?
   assignedToStaffUserId String?
   notes                 String?
 

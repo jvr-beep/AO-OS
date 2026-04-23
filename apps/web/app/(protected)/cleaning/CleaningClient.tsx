@@ -2,32 +2,33 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { apiGet, apiPost } from '@/lib/browser-api'
+import { apiGet, apiPatch, apiPost } from '@/lib/browser-api'
 import { StatusBadge } from '@/components/status-badge'
 import type { CleaningTask, Room, RoomBooking } from '@/types/api'
 
 // Returns a numeric urgency priority + secondary sort key (ms) for a cleaning task.
 // Lower priority = more urgent (sort ascending).
 // Priority 0: in_progress  → secondary: startedAt asc (longest running first)
-// Priority 1: open, booking ended (checked_out / expired / no_show / cancelled) → secondary: endsAt asc (most overdue first)
-// Priority 2: open, booking still active (checked_in / reserved) → secondary: endsAt asc (soonest expiring first)
-// Priority 3: open, no booking context → secondary: createdAt asc
-// Priority 4: completed / cancelled → secondary: completedAt desc (most recent first, so negate)
+// Priority 1: urgent open  → secondary: same booking sub-sort as below
+// Priority 2: open, booking ended (checked_out / expired / no_show / cancelled) → secondary: endsAt asc
+// Priority 3: open, booking still active (checked_in / reserved) → secondary: endsAt asc (soonest first)
+// Priority 4: open, no booking context → secondary: createdAt asc
+// Priority 5: completed / cancelled → secondary: completedAt desc (most recent first, so negate)
 function urgencySort(task: CleaningTask, bookings: Map<string, RoomBooking>): [number, number] {
   if (task.status === 'in_progress') {
     return [0, new Date(task.startedAt ?? task.createdAt).getTime()]
   }
   if (task.status === 'open') {
     const booking = task.bookingId ? bookings.get(task.bookingId) : undefined
-    if (booking) {
-      const endsMs = new Date(booking.endsAt).getTime()
-      const ended = ['checked_out', 'expired', 'no_show', 'cancelled'].includes(booking.status)
-      return ended ? [1, endsMs] : [2, endsMs]
-    }
-    return [3, new Date(task.createdAt).getTime()]
+    const endsMs = booking ? new Date(booking.endsAt).getTime() : new Date(task.createdAt).getTime()
+    const ended = booking ? ['checked_out', 'expired', 'no_show', 'cancelled'].includes(booking.status) : false
+    if (task.isUrgent) return [1, endsMs]
+    if (booking && ended) return [2, endsMs]
+    if (booking && !ended) return [3, endsMs]
+    return [4, new Date(task.createdAt).getTime()]
   }
   // completed / cancelled — push to bottom, most recent first
-  return [4, -(new Date(task.completedAt ?? task.createdAt).getTime())]
+  return [5, -(new Date(task.completedAt ?? task.createdAt).getTime())]
 }
 
 export function CleaningClient({ token, role, staffUserId }: { token: string; role?: string; staffUserId?: string }) {
@@ -75,6 +76,20 @@ export function CleaningClient({ token, role, staffUserId }: { token: string; ro
     }
   }
 
+  const flagTask = async (taskId: string, isUrgent: boolean) => {
+    setBusyId(taskId)
+    setMessage(null)
+    try {
+      await apiPatch(`/cleaning/tasks/${taskId}/urgent`, { isUrgent }, token)
+      setMessage({ text: isUrgent ? 'Task flagged as urgent' : 'Urgent flag cleared', ok: true })
+      load()
+    } catch (e: unknown) {
+      setMessage({ text: e instanceof Error ? e.message : 'Flag update failed', ok: false })
+    } finally {
+      setBusyId(null)
+    }
+  }
+
   const completeTask = async (taskId: string, notes: string) => {
     setBusyId(taskId)
     setMessage(null)
@@ -107,7 +122,7 @@ export function CleaningClient({ token, role, staffUserId }: { token: string; ro
   return (
     <div className="max-w-6xl">
       <h1 className="text-2xl font-semibold mb-2 text-text-primary">Cleaning</h1>
-      <p className="text-sm text-text-muted mb-2">Sorted by urgency: active cleaning → room empty (booking ended) → soonest expiring booking.</p>
+      <p className="text-sm text-text-muted mb-2">Sorted by urgency: active cleaning → urgent → room empty → soonest expiring booking.</p>
       <p className="text-xs text-text-muted mb-6">Task actions (start/complete) allowed roles: operations, admin.</p>
 
       {message && (
@@ -153,6 +168,7 @@ export function CleaningClient({ token, role, staffUserId }: { token: string; ro
                   busy={busyId === task.id}
                   onStart={startTask}
                   onComplete={completeTask}
+                  onFlag={flagTask}
                 />
               )
             })}
@@ -168,6 +184,9 @@ function UrgencyChip({ task, booking }: { task: CleaningTask; booking: RoomBooki
     return <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold bg-critical/20 text-critical border border-critical/30">Cleaning now</span>
   }
   if (task.status !== 'open') return null
+  if (task.isUrgent) {
+    return <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold bg-critical/20 text-critical border border-critical/30">⚑ Urgent</span>
+  }
   if (!booking) return null
   const ended = ['checked_out', 'expired', 'no_show', 'cancelled'].includes(booking.status)
   if (ended) {
@@ -186,7 +205,7 @@ function UrgencyChip({ task, booking }: { task: CleaningTask; booking: RoomBooki
   return <span className="inline-block px-1.5 py-0.5 rounded text-[10px] text-text-muted border border-border-subtle">{label} left</span>
 }
 
-function TaskRow({ task, room, booking, canManage, busy, onStart, onComplete }: {
+function TaskRow({ task, room, booking, canManage, busy, onStart, onComplete, onFlag }: {
   task: CleaningTask
   room: Room | undefined
   booking: RoomBooking | undefined
@@ -194,6 +213,7 @@ function TaskRow({ task, room, booking, canManage, busy, onStart, onComplete }: 
   busy: boolean
   onStart: (id: string, occurredAt: string) => void
   onComplete: (id: string, notes: string) => void
+  onFlag: (id: string, isUrgent: boolean) => void
 }) {
   const [notes, setNotes] = useState('')
 
@@ -211,7 +231,17 @@ function TaskRow({ task, room, booking, canManage, busy, onStart, onComplete }: 
       <td className="px-4 py-3 text-xs text-text-muted max-w-xs">{task.notes ?? '—'}</td>
       <td className="px-4 py-3">
         {canManage && task.status === 'open' && (
-          <button onClick={() => onStart(task.id, new Date().toISOString())} disabled={busy} className="btn-primary h-8 px-3 text-xs">Start</button>
+          <div className="flex items-center gap-2">
+            <button onClick={() => onStart(task.id, new Date().toISOString())} disabled={busy} className="btn-primary h-8 px-3 text-xs">Start</button>
+            <button
+              onClick={() => onFlag(task.id, !task.isUrgent)}
+              disabled={busy}
+              className={`h-8 px-2 text-xs rounded font-medium transition-colors disabled:opacity-40 ${task.isUrgent ? 'bg-critical/20 text-critical hover:bg-critical/30 border border-critical/30' : 'bg-surface-2 text-text-muted hover:text-text-primary border border-border-subtle'}`}
+              title={task.isUrgent ? 'Clear urgent flag' : 'Flag as urgent'}
+            >
+              ⚑
+            </button>
+          </div>
         )}
         {canManage && task.status === 'in_progress' && (
           <div className="flex items-center gap-2">
