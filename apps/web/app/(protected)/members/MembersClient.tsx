@@ -7,10 +7,10 @@ import { StatusBadge } from '@/components/status-badge'
 import type { Member } from '@/types/api'
 
 function MemberAlias({ member }: { member: Member }) {
-  if (member.displayName) {
-    return <span className="text-text-primary font-medium">{member.displayName}</span>
+  if (member.alias) {
+    return <span className="text-text-primary font-medium">{member.alias}</span>
   }
-  return <span className="text-text-muted italic text-xs">no alias set</span>
+  return <span className="text-text-muted italic text-xs">{member.staffSafeDisplayName}</span>
 }
 
 function MemberType({ member }: { member: Member }) {

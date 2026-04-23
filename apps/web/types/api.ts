@@ -13,9 +13,8 @@ export interface StaffUser {
 export interface Member {
   id: string
   publicMemberNumber?: string
-  firstName?: string | null
-  lastName?: string | null
-  displayName?: string | null
+  staffSafeDisplayName: string
+  alias?: string | null
   email: string
   phone?: string | null
   status?: string

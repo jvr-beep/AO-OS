@@ -35,16 +35,14 @@ export function MemberDetailClient({ token, memberId }: { token: string; memberI
   if (loading) return <div className="max-w-3xl"><p className="text-text-muted">Loading…</p></div>
   if (error || !member) return <div className="max-w-3xl"><p className="text-critical">{error ?? 'Member not found'}</p></div>
 
-  const alias = member.displayName ?? null
-
   return (
     <div className="max-w-3xl">
       <div className="flex items-center gap-3 mb-6 flex-wrap">
         <Link href="/members" className="text-sm text-accent-primary hover:underline">← Members</Link>
         <div className="flex-1">
-          {alias
-            ? <h1 className="text-2xl font-semibold text-text-primary">{alias}</h1>
-            : <h1 className="text-2xl font-semibold text-text-muted italic">No alias set</h1>
+          {member.alias
+            ? <h1 className="text-2xl font-semibold text-text-primary">{member.alias}</h1>
+            : <h1 className="text-2xl font-semibold text-text-muted italic">{member.staffSafeDisplayName}</h1>
           }
           <p className="text-xs text-text-muted font-mono mt-0.5">{member.publicMemberNumber ?? member.id}</p>
         </div>

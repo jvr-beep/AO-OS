@@ -14,6 +14,15 @@ const MEMBER_SELECT = {
   status: true,
   createdAt: true,
   profile: { select: { preferredName: true } },
+  subscriptions: {
+    where: { status: { in: ['active', 'trialing'] } },
+    take: 1,
+    orderBy: { createdAt: 'desc' as const },
+    select: {
+      status: true,
+      membershipPlan: { select: { id: true, name: true } },
+    },
+  },
 } as const;
 
 @Injectable()
@@ -104,7 +113,9 @@ function toMemberDto(member: {
   status: string;
   createdAt: Date;
   profile?: { preferredName?: string | null } | null;
+  subscriptions?: Array<{ status: string; membershipPlan: { id: string; name: string } }>;
 }): MemberResponseDto {
+  const activeSub = member.subscriptions?.[0] ?? null;
   return {
     id: member.id,
     publicMemberNumber: member.publicMemberNumber,
@@ -114,5 +125,8 @@ function toMemberDto(member: {
     phone: member.phone,
     status: member.status,
     createdAt: member.createdAt.toISOString(),
+    activeSubscription: activeSub
+      ? { planId: activeSub.membershipPlan.id, planName: activeSub.membershipPlan.name, status: activeSub.status }
+      : null,
   };
 }

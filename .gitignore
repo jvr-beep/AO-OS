@@ -146,3 +146,4 @@ check_location.mjs
 apps/web/e2e/.auth/
 apps/web/playwright-report/
 apps/web/test-results/
+apps/api/scripts/reset-staff-password.ts

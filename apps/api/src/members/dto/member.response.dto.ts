@@ -1,3 +1,9 @@
+export class ActiveSubscriptionSummaryDto {
+  planId!: string;
+  planName!: string;
+  status!: string;
+}
+
 export class MemberResponseDto {
   id!: string;
   publicMemberNumber!: string;
@@ -9,6 +15,7 @@ export class MemberResponseDto {
   phone?: string | null;
   status!: string;
   createdAt!: string;
+  activeSubscription?: ActiveSubscriptionSummaryDto | null;
 }
 
 /** Legal identity — restricted to admin role, every access is audit logged. */
