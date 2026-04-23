@@ -1,0 +1,23 @@
+{
+  "skill_name": "architecture-audit",
+  "evals": [
+    {
+      "id": 1,
+      "name": "bad-service-quick-then-deep",
+      "prompt": "Run an architecture audit on the service at evals/fixtures/bad-service. Run Quick mode first to produce a 50k-foot scorecard, then Deep mode for a full walkthrough. Output both as markdown files in the current directory (audit-bad-service-quick-YYYY-MM-DD.md and audit-bad-service-deep-YYYY-MM-DD.md). Be disciplined about evidence — cite file paths and line numbers for every finding.",
+      "expected_output": "Two markdown files. Quick report: scorecard + ~10 top findings + 30-60-90 queue. Deep report: per-framework walkthrough covering GCP (5 pillars), 12-factor (all 12), CNCF maturity (7 dimensions), OWASP ASVS (chapters V2/V3/V4/V5/V7/V9) + consolidated 30-60-90 queue. Should find most of the 24 seeded issues in KNOWN_ISSUES.md (which the skill should NOT read during the audit — that's the grader's file). Severity calibration should be reasonable (no more than ~7 Criticals).",
+      "files": [
+        "evals/fixtures/bad-service/"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "ao-os-quick-only",
+      "prompt": "Run a Quick-mode architecture audit on AO-OS. The main repo is at C:\\Users\\Jason van Ravenswaay\\AO-OS. Produce a 50k-foot scorecard and 30-60-90 remediation queue as a markdown file in the current working directory named audit-ao-os-quick-YYYY-MM-DD.md. Don't run Deep mode this time — just the scorecard and top findings. This is a real system, so don't invent findings — cite concrete evidence for each one. If you can't verify something, list it under 'What I couldn't check.'",
+      "expected_output": "One markdown file: audit-ao-os-quick-[date].md. Scorecard covering all 4 frameworks. ~10-15 top findings with real evidence from the repo. 30-60-90 queue. 'What I couldn't check' section noting the GCP/Datadog live-probe gap (since the skill is v1 / code-only). Should load the ao-os-stack.md reference to anchor discovery.",
+      "files": [
+        "C:\\Users\\Jason van Ravenswaay\\AO-OS\\"
+      ]
+    }
+  ]
+}

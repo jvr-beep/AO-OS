@@ -1,0 +1,14 @@
+{
+  "name": "bad-service",
+  "version": "1.0.0",
+  "description": "Deliberately flawed Node/Express/Postgres service used as a test fixture for the architecture-audit skill. DO NOT USE IN PRODUCTION.",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js"
+  },
+  "dependencies": {
+    "express": "*",
+    "pg": "^7.0.0",
+    "jsonwebtoken": "^8.0.0"
+  }
+}
