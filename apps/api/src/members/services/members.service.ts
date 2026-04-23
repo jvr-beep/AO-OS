@@ -1,10 +1,11 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
+import { Prisma } from "@prisma/client";
 import { PrismaService } from "../../prisma/prisma.service";
 import { CreateMemberDto } from "../dto/create-member.dto";
 import { MemberLegalIdentityDto, MemberResponseDto } from "../dto/member.response.dto";
 import { resolveDisplayName } from "../utils/member-display";
 
-const MEMBER_SELECT = {
+const MEMBER_SELECT = Prisma.validator<Prisma.MemberSelect>()({
   id: true,
   publicMemberNumber: true,
   email: true,
@@ -15,15 +16,15 @@ const MEMBER_SELECT = {
   createdAt: true,
   profile: { select: { preferredName: true } },
   subscriptions: {
-    where: { status: { in: ['active', 'trialing'] as string[] } },
+    where: { status: { in: ['active', 'trialing'] } },
     take: 1,
-    orderBy: { createdAt: 'desc' as const },
+    orderBy: { createdAt: 'desc' },
     select: {
       status: true,
       membershipPlan: { select: { id: true, name: true } },
     },
   },
-};
+});
 
 @Injectable()
 export class MembersService {
