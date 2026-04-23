@@ -513,19 +513,19 @@ export function MapStudioAuthoringPanel({ floorId, token }: { floorId: string; t
                   </thead>
                   <tbody className="divide-y divide-border-subtle">
                     {objects.map((obj) => (
-                      <tr key={obj.id} className="text-gray-200 hover:bg-surface-2 transition-colors">
+                      <tr key={obj.id} className="text-text-primary hover:bg-surface-2 transition-colors">
                         <td className="py-2 pr-3 font-mono text-xs">{obj.code}</td>
                         <td className="py-2 pr-3">{obj.label}</td>
                         <td className="py-2 pr-3 text-text-muted">{obj.objectType}</td>
                         <td className="py-2 pr-3 font-mono text-xs text-text-muted">{obj.svgElementId ?? '—'}</td>
                         <td className="py-2 pr-3">
-                          <span className={`text-xs px-1.5 py-0.5 rounded ${obj.active ? 'bg-green-900/30 text-green-300' : 'bg-gray-800 text-text-muted'}`}>
+                          <span className={`text-xs px-1.5 py-0.5 rounded ${obj.active ? 'bg-success/20 text-success' : 'bg-surface-2 text-text-muted'}`}>
                             {obj.active ? 'active' : 'inactive'}
                           </span>
                         </td>
                         <td className="py-2 flex gap-2 justify-end">
                           <button onClick={() => { setEditingObj(obj); setTab('objects') }} className="text-xs text-accent-primary hover:underline">Edit</button>
-                          <button onClick={() => deleteObject(obj)} className="text-xs text-red-400 hover:underline">Del</button>
+                          <button onClick={() => deleteObject(obj)} className="text-xs text-critical hover:underline">Del</button>
                         </td>
                       </tr>
                     ))}

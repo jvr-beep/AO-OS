@@ -114,25 +114,25 @@ function TierRow({ tier, token, onUpdated }: { tier: AdminTier; token: string; o
   }
 
   return (
-    <div className={`card p-4 border ${tier.active ? 'border-border-subtle' : 'border-gray-700 opacity-60'}`}>
+    <div className={`card p-4 border ${tier.active ? 'border-border-subtle' : 'border-border-subtle opacity-60'}`}>
       <div className="flex items-start justify-between gap-4 mb-3">
         <div className="min-w-0 flex-1">
           {editing ? (
             <div className="space-y-2">
               <input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                className="w-full bg-surface-0 border border-gray-600 text-white rounded px-2 py-1 text-sm" placeholder="Tier name" />
+                className="w-full bg-surface-0 border border-border-subtle text-text-primary rounded px-2 py-1 text-sm" placeholder="Tier name" />
               <textarea value={form.publicDescription} onChange={(e) => setForm((f) => ({ ...f, publicDescription: e.target.value }))}
-                className="w-full bg-surface-0 border border-gray-600 text-white rounded px-2 py-1 text-xs resize-none" rows={2} placeholder="Public description (optional)" />
+                className="w-full bg-surface-0 border border-border-subtle text-text-primary rounded px-2 py-1 text-xs resize-none" rows={2} placeholder="Public description (optional)" />
               <div className="flex gap-2">
                 <div className="flex-1">
-                  <label className="block text-xs text-gray-400 mb-1">Base Price (cents)</label>
+                  <label className="block text-xs text-text-muted mb-1">Base Price (cents)</label>
                   <input type="number" value={form.basePriceCents} onChange={(e) => setForm((f) => ({ ...f, basePriceCents: e.target.value }))}
-                    className="w-full bg-surface-0 border border-gray-600 text-white rounded px-2 py-1 text-sm" />
+                    className="w-full bg-surface-0 border border-border-subtle text-text-primary rounded px-2 py-1 text-sm" />
                 </div>
                 <div className="w-24">
-                  <label className="block text-xs text-gray-400 mb-1">Rank</label>
+                  <label className="block text-xs text-text-muted mb-1">Rank</label>
                   <input type="number" value={form.upgradeRank} onChange={(e) => setForm((f) => ({ ...f, upgradeRank: e.target.value }))}
-                    className="w-full bg-surface-0 border border-gray-600 text-white rounded px-2 py-1 text-sm" />
+                    className="w-full bg-surface-0 border border-border-subtle text-text-primary rounded px-2 py-1 text-sm" />
                 </div>
               </div>
             </div>
@@ -140,11 +140,11 @@ function TierRow({ tier, token, onUpdated }: { tier: AdminTier; token: string; o
             <>
               <div className="flex items-center gap-2 mb-1">
                 <p className="text-sm font-semibold text-white">{tier.name}</p>
-                <span className="text-xs text-gray-400 font-mono">{tier.code}</span>
-                <span className="text-xs text-gray-500 capitalize">{tier.productType}</span>
+                <span className="text-xs text-text-mutedfont-mono">{tier.code}</span>
+                <span className="text-xs text-text-muted capitalize">{tier.productType}</span>
               </div>
-              {tier.publicDescription && <p className="text-xs text-gray-400 mb-1">{tier.publicDescription}</p>}
-              <p className="text-xs text-gray-400">Base: {formatPrice(tier.basePriceCents)} · Rank: {tier.upgradeRank}</p>
+              {tier.publicDescription && <p className="text-xs text-text-muted mb-1">{tier.publicDescription}</p>}
+              <p className="text-xs text-text-muted">Base: {formatPrice(tier.basePriceCents)} · Rank: {tier.upgradeRank}</p>
             </>
           )}
         </div>
@@ -153,12 +153,12 @@ function TierRow({ tier, token, onUpdated }: { tier: AdminTier; token: string; o
           {editing ? (
             <>
               <button onClick={saveEdit} disabled={saving} className="text-xs btn-primary px-2 py-1 disabled:opacity-50">{saving ? '…' : 'Save'}</button>
-              <button onClick={() => { setEditing(false); setErr(null) }} className="text-xs text-gray-400 hover:text-white px-2">Cancel</button>
+              <button onClick={() => { setEditing(false); setErr(null) }} className="text-xs text-text-mutedhover:text-text-primary px-2">Cancel</button>
             </>
           ) : (
             <>
-              <button onClick={() => setEditing(true)} className="text-xs text-gray-400 hover:text-white uppercase tracking-wider">Edit</button>
-              <button onClick={toggleActive} disabled={saving} className="text-xs text-gray-400 hover:text-white uppercase tracking-wider disabled:opacity-50">
+              <button onClick={() => setEditing(true)} className="text-xs text-text-mutedhover:text-text-primary uppercase tracking-wider">Edit</button>
+              <button onClick={toggleActive} disabled={saving} className="text-xs text-text-mutedhover:text-text-primary uppercase tracking-wider disabled:opacity-50">
                 {tier.active ? 'Disable' : 'Enable'}
               </button>
             </>
@@ -168,28 +168,28 @@ function TierRow({ tier, token, onUpdated }: { tier: AdminTier; token: string; o
 
       {err && <p className="text-red-400 text-xs mb-2">{err}</p>}
 
-      <div className="border-t border-gray-700 pt-3 mt-1">
-        <p className="text-xs text-gray-500 uppercase tracking-wider mb-2">Duration Options</p>
+      <div className="border-t border-border-subtle pt-3 mt-1">
+        <p className="text-xs text-text-muted uppercase tracking-wider mb-2">Duration Options</p>
         <div className="space-y-1 mb-3">
           {tier.durationOptions.length === 0 ? (
-            <p className="text-xs text-gray-500">No duration options.</p>
+            <p className="text-xs text-text-muted">No duration options.</p>
           ) : tier.durationOptions.map((d) => (
-            <div key={d.id} className={`flex items-center justify-between text-xs ${d.active ? 'text-gray-300' : 'text-gray-600 line-through'}`}>
+            <div key={d.id} className={`flex items-center justify-between text-xs ${d.active ? 'text-text-primary' : 'text-text-muted line-through'}`}>
               <span>{d.durationMinutes} min — {formatPrice(d.priceCents)}</span>
-              <button onClick={() => toggleDuration(d)} className="text-xs text-gray-500 hover:text-white ml-4">{d.active ? 'Disable' : 'Enable'}</button>
+              <button onClick={() => toggleDuration(d)} className="text-xs text-text-muted hover:text-text-primary ml-4">{d.active ? 'Disable' : 'Enable'}</button>
             </div>
           ))}
         </div>
         <form onSubmit={addDuration} className="flex gap-2 items-end">
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Minutes</label>
+            <label className="block text-xs text-text-muted mb-1">Minutes</label>
             <input type="number" value={addDur.durationMinutes} onChange={(e) => setAddDur((a) => ({ ...a, durationMinutes: e.target.value }))}
-              placeholder="120" className="w-20 bg-surface-0 border border-gray-700 text-white rounded px-2 py-1 text-xs" />
+              placeholder="120" className="w-20 bg-surface-0 border border-border-subtle text-text-primary rounded px-2 py-1 text-xs" />
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Price (cents)</label>
+            <label className="block text-xs text-text-muted mb-1">Price (cents)</label>
             <input type="number" value={addDur.priceCents} onChange={(e) => setAddDur((a) => ({ ...a, priceCents: e.target.value }))}
-              placeholder="4500" className="w-24 bg-surface-0 border border-gray-700 text-white rounded px-2 py-1 text-xs" />
+              placeholder="4500" className="w-24 bg-surface-0 border border-border-subtle text-text-primary rounded px-2 py-1 text-xs" />
           </div>
           <button type="submit" disabled={addingDur || !addDur.durationMinutes || !addDur.priceCents}
             className="text-xs btn-secondary px-3 py-1 disabled:opacity-50">+ Add</button>
@@ -235,43 +235,43 @@ function CreateTierForm({ token, onCreated }: { token: string; onCreated: (t: Ad
       <p className="text-xs font-semibold text-accent-primary uppercase tracking-wider">New Tier</p>
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="block text-xs text-gray-400 mb-1">Code (unique)</label>
+          <label className="block text-xs text-text-muted mb-1">Code (unique)</label>
           <input value={form.code} onChange={(e) => setForm((f) => ({ ...f, code: e.target.value }))} required
-            placeholder="LOCKER-BASIC" className="w-full bg-surface-0 border border-gray-600 text-white rounded px-2 py-1 text-sm font-mono" />
+            placeholder="LOCKER-BASIC" className="w-full bg-surface-0 border border-border-subtle text-text-primary rounded px-2 py-1 text-sm font-mono" />
         </div>
         <div>
-          <label className="block text-xs text-gray-400 mb-1">Product Type</label>
+          <label className="block text-xs text-text-muted mb-1">Product Type</label>
           <select value={form.productType} onChange={(e) => setForm((f) => ({ ...f, productType: e.target.value }))}
-            className="w-full bg-surface-0 border border-gray-600 text-white rounded px-2 py-1 text-sm">
+            className="w-full bg-surface-0 border border-border-subtle text-text-primary rounded px-2 py-1 text-sm">
             <option value="locker">Locker</option>
             <option value="room">Room</option>
           </select>
         </div>
         <div>
-          <label className="block text-xs text-gray-400 mb-1">Name</label>
+          <label className="block text-xs text-text-muted mb-1">Name</label>
           <input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} required
-            placeholder="Basic Locker" className="w-full bg-surface-0 border border-gray-600 text-white rounded px-2 py-1 text-sm" />
+            placeholder="Basic Locker" className="w-full bg-surface-0 border border-border-subtle text-text-primary rounded px-2 py-1 text-sm" />
         </div>
         <div>
-          <label className="block text-xs text-gray-400 mb-1">Base Price (cents)</label>
+          <label className="block text-xs text-text-muted mb-1">Base Price (cents)</label>
           <input type="number" value={form.basePriceCents} onChange={(e) => setForm((f) => ({ ...f, basePriceCents: e.target.value }))} required min="0"
-            placeholder="2000" className="w-full bg-surface-0 border border-gray-600 text-white rounded px-2 py-1 text-sm" />
+            placeholder="2000" className="w-full bg-surface-0 border border-border-subtle text-text-primary rounded px-2 py-1 text-sm" />
         </div>
         <div className="col-span-2">
-          <label className="block text-xs text-gray-400 mb-1">Public Description (optional)</label>
+          <label className="block text-xs text-text-muted mb-1">Public Description (optional)</label>
           <input value={form.publicDescription} onChange={(e) => setForm((f) => ({ ...f, publicDescription: e.target.value }))}
-            placeholder="Shown to guests during checkout" className="w-full bg-surface-0 border border-gray-600 text-white rounded px-2 py-1 text-sm" />
+            placeholder="Shown to guests during checkout" className="w-full bg-surface-0 border border-border-subtle text-text-primary rounded px-2 py-1 text-sm" />
         </div>
         <div className="w-24">
-          <label className="block text-xs text-gray-400 mb-1">Rank</label>
+          <label className="block text-xs text-text-muted mb-1">Rank</label>
           <input type="number" value={form.upgradeRank} onChange={(e) => setForm((f) => ({ ...f, upgradeRank: e.target.value }))} min="0"
-            className="w-full bg-surface-0 border border-gray-600 text-white rounded px-2 py-1 text-sm" />
+            className="w-full bg-surface-0 border border-border-subtle text-text-primary rounded px-2 py-1 text-sm" />
         </div>
       </div>
       {err && <p className="text-red-400 text-xs">{err}</p>}
       <div className="flex gap-2">
         <button type="submit" disabled={saving} className="text-xs btn-primary px-3 py-1 disabled:opacity-50">{saving ? 'Creating…' : 'Create Tier'}</button>
-        <button type="button" onClick={() => { setOpen(false); setErr(null) }} className="text-xs text-gray-400 hover:text-white px-2">Cancel</button>
+        <button type="button" onClick={() => { setOpen(false); setErr(null) }} className="text-xs text-text-mutedhover:text-text-primary px-2">Cancel</button>
       </div>
     </form>
   )
@@ -364,14 +364,14 @@ function WaiverEditor({ token }: { token: string }) {
           </button>
         ))}
         {!creating ? (
-          <button onClick={() => setCreating(true)} className="text-xs text-gray-400 hover:text-white uppercase tracking-wider">+ New Version</button>
+          <button onClick={() => setCreating(true)} className="text-xs text-text-mutedhover:text-text-primary uppercase tracking-wider">+ New Version</button>
         ) : (
           <div className="flex gap-2 items-center">
             <input value={newVersion} onChange={(e) => setNewVersion(e.target.value)} placeholder="AO-WAIVER-v2"
-              className="w-40 bg-surface-0 border border-gray-600 text-white rounded px-2 py-1 text-xs font-mono" />
+              className="w-40 bg-surface-0 border border-border-subtle text-text-primary rounded px-2 py-1 text-xs font-mono" />
             <button onClick={createDraft} disabled={!newVersion.trim() || saving}
               className="text-xs btn-secondary px-2 py-1 disabled:opacity-50">Create Draft</button>
-            <button onClick={() => { setCreating(false); setNewVersion('') }} className="text-xs text-gray-400 hover:text-white">Cancel</button>
+            <button onClick={() => { setCreating(false); setNewVersion('') }} className="text-xs text-text-mutedhover:text-text-primary">Cancel</button>
           </div>
         )}
       </div>
@@ -381,13 +381,13 @@ function WaiverEditor({ token }: { token: string }) {
           <div className="flex items-center justify-between">
             <div>
               <span className="font-mono text-sm text-accent-primary">{selected.version}</span>
-              <span className={`ml-2 text-xs uppercase tracking-wider ${selected.status === 'published' ? 'text-green-400' : selected.status === 'draft' ? 'text-yellow-400' : 'text-gray-500'}`}>
+              <span className={`ml-2 text-xs uppercase tracking-wider ${selected.status === 'published' ? 'text-success' : selected.status === 'draft' ? 'text-warning' : 'text-text-muted'}`}>
                 {selected.status}
               </span>
-              {selected.publishedAt && <span className="ml-2 text-xs text-gray-500">Published {fmtDate(selected.publishedAt)}</span>}
+              {selected.publishedAt && <span className="ml-2 text-xs text-text-muted">Published {fmtDate(selected.publishedAt)}</span>}
             </div>
             <div className="flex gap-2">
-              <button onClick={() => setPreview((p) => !p)} className="text-xs text-gray-400 hover:text-white uppercase tracking-wider">
+              <button onClick={() => setPreview((p) => !p)} className="text-xs text-text-mutedhover:text-text-primary uppercase tracking-wider">
                 {preview ? 'Edit' : 'Preview'}
               </button>
               {selected.status === 'draft' && (
@@ -400,24 +400,24 @@ function WaiverEditor({ token }: { token: string }) {
           </div>
 
           {preview ? (
-            <div className="bg-surface-0 border border-gray-700 rounded p-4 max-h-80 overflow-y-auto">
-              <p className="text-sm font-semibold text-white mb-3">{editTitle}</p>
-              <pre className="text-xs text-gray-300 leading-relaxed whitespace-pre-wrap font-sans">{editBody}</pre>
+            <div className="bg-surface-0 border border-border-subtle rounded p-4 max-h-80 overflow-y-auto">
+              <p className="text-sm font-semibold text-text-primary mb-3">{editTitle}</p>
+              <pre className="text-xs text-text-muted leading-relaxed whitespace-pre-wrap font-sans">{editBody}</pre>
             </div>
           ) : (
             <div className="space-y-2">
               <div>
-                <label className="block text-xs text-gray-400 mb-1">Title</label>
+                <label className="block text-xs text-text-muted mb-1">Title</label>
                 <input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} disabled={selected.status !== 'draft'}
-                  className="w-full bg-surface-0 border border-gray-600 text-white rounded px-2 py-1 text-sm disabled:opacity-50" />
+                  className="w-full bg-surface-0 border border-border-subtle text-text-primary rounded px-2 py-1 text-sm disabled:opacity-50" />
               </div>
               <div>
-                <label className="block text-xs text-gray-400 mb-1">Body</label>
+                <label className="block text-xs text-text-muted mb-1">Body</label>
                 <textarea value={editBody} onChange={(e) => setEditBody(e.target.value)} disabled={selected.status !== 'draft'}
-                  rows={16} className="w-full bg-surface-0 border border-gray-600 text-white rounded px-2 py-1 text-xs font-mono leading-relaxed resize-y disabled:opacity-50" />
+                  rows={16} className="w-full bg-surface-0 border border-border-subtle text-text-primary rounded px-2 py-1 text-xs font-mono leading-relaxed resize-y disabled:opacity-50" />
               </div>
               {selected.status === 'published' && (
-                <p className="text-xs text-gray-500">Published waivers are read-only. Create a new draft version to make changes.</p>
+                <p className="text-xs text-text-muted">Published waivers are read-only. Create a new draft version to make changes.</p>
               )}
             </div>
           )}
@@ -452,14 +452,14 @@ function ResourceStatusRow({ resource, token, onUpdated }: { resource: ResourceI
   }
 
   return (
-    <div className="flex items-center justify-between py-2 border-b border-gray-800 last:border-0">
+    <div className="flex items-center justify-between py-2 border-b border-border-subtle last:border-0">
       <div className="min-w-0">
         <span className="text-sm text-white font-medium">{resource.displayLabel}</span>
-        <span className="ml-2 text-xs text-gray-500">{resource.tierName} · {resource.zoneCode}</span>
+        <span className="ml-2 text-xs text-text-muted">{resource.tierName} · {resource.zoneCode}</span>
         {err && <p className="text-red-400 text-xs mt-0.5">{err}</p>}
       </div>
       <div className="flex items-center gap-2 shrink-0">
-        <span className={`text-xs uppercase tracking-wider font-mono ${statusColor[resource.status] ?? 'text-gray-400'}`}>{resource.status.replace(/_/g, ' ')}</span>
+        <span className={`text-xs uppercase tracking-wider font-mono ${statusColor[resource.status] ?? 'text-text-muted'}`}>{resource.status.replace(/_/g, ' ')}</span>
         {resource.status !== 'occupied' && resource.status !== 'held' && (
           resource.status === 'out_of_service' ? (
             <button onClick={() => setStatus('available')} disabled={busy}
@@ -470,7 +470,7 @@ function ResourceStatusRow({ resource, token, onUpdated }: { resource: ResourceI
           )
         )}
         {(resource.status === 'occupied' || resource.status === 'held') && (
-          <span className="text-xs text-gray-600">In use</span>
+          <span className="text-xs text-text-muted">In use</span>
         )}
       </div>
     </div>
@@ -552,7 +552,7 @@ export function SettingsClient({ token }: { token: string }) {
 
           <div className="space-y-3">
             {displayed.map((tier) => <TierRow key={tier.id} tier={tier} token={token} onUpdated={updateTier} />)}
-            {!loading && displayed.length === 0 && <p className="text-gray-500 text-sm">No tiers found.</p>}
+            {!loading && displayed.length === 0 && <p className="text-text-muted text-sm">No tiers found.</p>}
           </div>
         </div>
       )}
@@ -564,7 +564,7 @@ export function SettingsClient({ token }: { token: string }) {
             <h2 className="text-xs font-semibold text-accent-primary uppercase tracking-wide">Waiver Documents</h2>
             <a href="/settings/waiver-compliance" className="text-xs text-accent-primary hover:underline uppercase tracking-wider">Compliance Report →</a>
           </div>
-          <p className="text-xs text-gray-400 mb-4">
+          <p className="text-xs text-text-mutedmb-4">
             The published version is shown to guests at the kiosk. Publishing a new version forces all returning guests to re-sign on their next visit.
           </p>
           <WaiverEditor token={token} />
@@ -575,11 +575,11 @@ export function SettingsClient({ token }: { token: string }) {
       {section === 'resources' && (
         <div>
           <h2 className="text-xs font-semibold text-accent-primary uppercase tracking-wide mb-4">Resource Status</h2>
-          <p className="text-xs text-gray-400 mb-4">
+          <p className="text-xs text-text-mutedmb-4">
             Toggle resources out of service to prevent the kiosk from offering them. Occupied or held resources cannot be changed here — check out the active visit first.
           </p>
           {loading && <p className="text-text-muted text-sm">Loading…</p>}
-          {resources.length === 0 && !loading && <p className="text-gray-500 text-sm">No resources found.</p>}
+          {resources.length === 0 && !loading && <p className="text-text-muted text-sm">No resources found.</p>}
           {resources.length > 0 && (
             <div className="card p-4 border border-border-subtle">
               {resources.map((r) => (

@@ -67,30 +67,30 @@ function EditGuestPanel({ guest, token, onSaved }: { guest: Guest; token: string
       <form onSubmit={handleSave} className="space-y-3">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div>
-            <label className="block text-xs text-gray-400 mb-1">First Name</label>
+            <label className="block text-xs text-text-muted mb-1">First Name</label>
             <input
               type="text"
               value={firstName}
               onChange={(e) => setFirstName(e.target.value)}
-              className="w-full bg-surface-0 border border-gray-600 text-white rounded px-3 py-2 text-xs focus:outline-none focus:border-accent-primary"
+              className="w-full bg-surface-0 border border-border-subtle text-text-primary rounded px-3 py-2 text-xs focus:outline-none focus:border-accent-primary"
             />
           </div>
           <div>
-            <label className="block text-xs text-gray-400 mb-1">Email</label>
+            <label className="block text-xs text-text-muted mb-1">Email</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-surface-0 border border-gray-600 text-white rounded px-3 py-2 text-xs focus:outline-none focus:border-accent-primary"
+              className="w-full bg-surface-0 border border-border-subtle text-text-primary rounded px-3 py-2 text-xs focus:outline-none focus:border-accent-primary"
             />
           </div>
           <div>
-            <label className="block text-xs text-gray-400 mb-1">Phone</label>
+            <label className="block text-xs text-text-muted mb-1">Phone</label>
             <input
               type="tel"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              className="w-full bg-surface-0 border border-gray-600 text-white rounded px-3 py-2 text-xs focus:outline-none focus:border-accent-primary"
+              className="w-full bg-surface-0 border border-border-subtle text-text-primary rounded px-3 py-2 text-xs focus:outline-none focus:border-accent-primary"
             />
           </div>
         </div>
@@ -98,8 +98,8 @@ function EditGuestPanel({ guest, token, onSaved }: { guest: Guest; token: string
           <button type="submit" disabled={saving} className="btn-primary text-xs py-1.5 px-4 disabled:opacity-50">
             {saving ? 'Saving…' : 'Save Changes'}
           </button>
-          {ok && <span className="text-green-400 text-xs">Saved.</span>}
-          {err && <span className="text-red-400 text-xs">{err}</span>}
+          {ok && <span className="text-success text-xs">Saved.</span>}
+          {err && <span className="text-critical text-xs">{err}</span>}
         </div>
       </form>
     </div>
@@ -138,11 +138,11 @@ function RiskFlagPanel({ guest, token, onSaved }: { guest: Guest; token: string;
       <form onSubmit={handleSave} className="space-y-3">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs text-gray-400 mb-1">Status</label>
+            <label className="block text-xs text-text-muted mb-1">Status</label>
             <select
               value={status}
               onChange={(e) => setStatus(e.target.value)}
-              className="w-full bg-surface-0 border border-gray-600 text-white rounded px-3 py-2 text-xs focus:outline-none focus:border-accent-primary"
+              className="w-full bg-surface-0 border border-border-subtle text-text-primary rounded px-3 py-2 text-xs focus:outline-none focus:border-accent-primary"
             >
               {RISK_FLAG_OPTIONS.map((o) => (
                 <option key={o.value} value={o.value}>{o.label}</option>
@@ -150,13 +150,13 @@ function RiskFlagPanel({ guest, token, onSaved }: { guest: Guest; token: string;
             </select>
           </div>
           <div>
-            <label className="block text-xs text-gray-400 mb-1">Reason (staff note)</label>
+            <label className="block text-xs text-text-muted mb-1">Reason (staff note)</label>
             <input
               type="text"
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               placeholder="e.g. aggressive behaviour 2026-04-20"
-              className="w-full bg-surface-0 border border-gray-600 text-white rounded px-3 py-2 text-xs focus:outline-none focus:border-accent-primary"
+              className="w-full bg-surface-0 border border-border-subtle text-text-primary rounded px-3 py-2 text-xs focus:outline-none focus:border-accent-primary"
             />
           </div>
         </div>
@@ -164,8 +164,8 @@ function RiskFlagPanel({ guest, token, onSaved }: { guest: Guest; token: string;
           <button type="submit" disabled={saving} className="btn-primary text-xs py-1.5 px-4 disabled:opacity-50">
             {saving ? 'Saving…' : 'Update Flag'}
           </button>
-          {ok && <span className="text-green-400 text-xs">Saved.</span>}
-          {err && <span className="text-red-400 text-xs">{err}</span>}
+          {ok && <span className="text-success text-xs">Saved.</span>}
+          {err && <span className="text-critical text-xs">{err}</span>}
         </div>
       </form>
     </div>
@@ -201,7 +201,7 @@ function CancelBookingButton({ booking, token, onCancelled }: {
     return (
       <button
         onClick={() => setOpen(true)}
-        className="text-xs text-red-400 hover:text-red-300 hover:underline"
+        className="text-xs text-critical hover:underline"
       >
         Cancel
       </button>
@@ -216,25 +216,25 @@ function CancelBookingButton({ booking, token, onCancelled }: {
         onChange={(e) => setReason(e.target.value)}
         placeholder="Reason (optional)"
         autoFocus
-        className="bg-surface-0 border border-gray-600 text-white rounded px-2 py-1 text-xs focus:outline-none focus:border-red-500 w-40"
+        className="bg-surface-0 border border-border-subtle text-text-primary rounded px-2 py-1 text-xs focus:outline-none focus:border-red-500 w-40"
       />
       <div className="flex gap-2">
         <button
           type="button"
           onClick={() => { setOpen(false); setErr(null) }}
-          className="text-xs text-gray-400 hover:text-white"
+          className="text-xs text-text-muted hover:text-text-primary"
         >
           Keep
         </button>
         <button
           type="submit"
           disabled={cancelling}
-          className="text-xs text-red-400 hover:text-red-300 disabled:opacity-50"
+          className="text-xs text-critical disabled:opacity-50"
         >
           {cancelling ? 'Cancelling…' : 'Confirm Cancel'}
         </button>
       </div>
-      {err && <p className="text-red-400 text-xs">{err}</p>}
+      {err && <p className="text-critical text-xs">{err}</p>}
     </form>
   )
 }
@@ -329,7 +329,7 @@ export function GuestDetailClient({
   }
 
   if (loading) return <div className="max-w-5xl"><p className="text-text-muted">Loading…</p></div>
-  if (error || !guest) return <div className="max-w-5xl"><p className="text-red-400">{error ?? 'Guest not found'}</p></div>
+  if (error || !guest) return <div className="max-w-5xl"><p className="text-critical">{error ?? 'Guest not found'}</p></div>
 
   const displayIdentifier = guest.email ?? guest.phone ?? `Guest …${guest.id.slice(-8)}`
   const isBanned = guest.riskFlagStatus === 'banned'
@@ -340,7 +340,7 @@ export function GuestDetailClient({
       <div className="flex items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold mb-1">{displayIdentifier}</h1>
-          <p className="text-gray-400 text-xs font-mono">{guest.id}</p>
+          <p className="text-text-muted text-xs font-mono">{guest.id}</p>
         </div>
         <div className="flex gap-2">
           <Link href={`/check-in?guestId=${guest.id}`} className="btn-primary text-xs">Check In →</Link>
@@ -349,7 +349,7 @@ export function GuestDetailClient({
       </div>
 
       {(isBanned || isFlagged) && (
-        <div className={`rounded-md border px-4 py-3 text-sm flex items-start gap-3 ${isBanned ? 'border-red-700 bg-red-950 text-red-200' : 'border-yellow-700 bg-yellow-950 text-yellow-200'}`}>
+        <div className={`rounded-md border px-4 py-3 text-sm flex items-start gap-3 ${isBanned ? 'border-critical/40 bg-critical/10 text-critical' : 'border-warning/40 bg-warning/10 text-warning'}`}>
           <span className="text-lg">{isBanned ? '🚫' : '⚠️'}</span>
           <div>
             <p className="font-semibold">{isBanned ? 'Guest is banned' : 'Guest is flagged'}</p>
@@ -365,7 +365,7 @@ export function GuestDetailClient({
       )}
 
       {(okMessage || errorMessage) && (
-        <div className={`rounded-md border px-3 py-2 text-sm ${errorMessage ? 'border-red-700 bg-red-900 text-red-200' : 'border-green-700 bg-green-900 text-green-200'}`}>
+        <div className={`rounded-md border px-3 py-2 text-sm ${errorMessage ? 'border-critical/40 bg-critical/10 text-critical' : 'border-success/40 bg-success/10 text-success'}`}>
           {errorMessage ?? okMessage}
         </div>
       )}
@@ -375,19 +375,19 @@ export function GuestDetailClient({
         <div className="card p-4">
           <h2 className="text-xs font-semibold text-accent-primary uppercase tracking-wide mb-3">Contact</h2>
           <dl className="space-y-2 text-sm">
-            <div className="flex justify-between"><dt className="text-gray-400">Name</dt><dd className="text-white">{[guest.firstName, guest.lastName].filter(Boolean).join(' ') || '—'}</dd></div>
-            <div className="flex justify-between"><dt className="text-gray-400">Email</dt><dd className="text-white">{guest.email ?? '—'}</dd></div>
-            <div className="flex justify-between"><dt className="text-gray-400">Phone</dt><dd className="text-white">{guest.phone ?? '—'}</dd></div>
-            <div className="flex justify-between"><dt className="text-gray-400">Language</dt><dd className="text-white">{guest.preferredLanguage}</dd></div>
-            <div className="flex justify-between"><dt className="text-gray-400">Marketing</dt><dd className="text-white">{guest.marketingOptIn ? 'Opted in' : 'No'}</dd></div>
+            <div className="flex justify-between"><dt className="text-text-muted">Name</dt><dd className="text-text-primary">{[guest.firstName, guest.lastName].filter(Boolean).join(' ') || '—'}</dd></div>
+            <div className="flex justify-between"><dt className="text-text-muted">Email</dt><dd className="text-text-primary">{guest.email ?? '—'}</dd></div>
+            <div className="flex justify-between"><dt className="text-text-muted">Phone</dt><dd className="text-text-primary">{guest.phone ?? '—'}</dd></div>
+            <div className="flex justify-between"><dt className="text-text-muted">Language</dt><dd className="text-text-primary">{guest.preferredLanguage}</dd></div>
+            <div className="flex justify-between"><dt className="text-text-muted">Marketing</dt><dd className="text-text-primary">{guest.marketingOptIn ? 'Opted in' : 'No'}</dd></div>
           </dl>
         </div>
         <div className="card p-4">
           <h2 className="text-xs font-semibold text-accent-primary uppercase tracking-wide mb-3">Status</h2>
           <dl className="space-y-2 text-sm">
-            <div className="flex justify-between items-center"><dt className="text-gray-400">Membership</dt><dd><StatusBadge status={guest.membershipStatus} /></dd></div>
-            <div className="flex justify-between items-center"><dt className="text-gray-400">Risk Flag</dt><dd><StatusBadge status={guest.riskFlagStatus} /></dd></div>
-            <div className="flex justify-between"><dt className="text-gray-400">Created</dt><dd className="text-white text-xs">{new Date(guest.createdAt).toLocaleDateString()}</dd></div>
+            <div className="flex justify-between items-center"><dt className="text-text-muted">Membership</dt><dd><StatusBadge status={guest.membershipStatus} /></dd></div>
+            <div className="flex justify-between items-center"><dt className="text-text-muted">Risk Flag</dt><dd><StatusBadge status={guest.riskFlagStatus} /></dd></div>
+            <div className="flex justify-between"><dt className="text-text-muted">Created</dt><dd className="text-text-primary text-xs">{new Date(guest.createdAt).toLocaleDateString()}</dd></div>
           </dl>
         </div>
       </div>
@@ -400,9 +400,9 @@ export function GuestDetailClient({
 
       {/* Visits */}
       <div className="card overflow-hidden">
-        <div className="px-4 py-3 border-b border-gray-700"><h2 className="text-sm font-semibold text-gray-200">Visits ({visits.length})</h2></div>
+        <div className="px-4 py-3 border-b border-border-subtle"><h2 className="text-sm font-semibold text-text-primary">Visits ({visits.length})</h2></div>
         <table className="w-full text-sm">
-          <thead className="bg-surface-0 border-b border-gray-700">
+          <thead className="bg-surface-0 border-b border-border-subtle">
             <tr>
               <th className="text-left px-4 py-3 text-xs font-semibold text-accent-primary uppercase tracking-wide">Date</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-accent-primary uppercase tracking-wide">Type</th>
@@ -411,15 +411,15 @@ export function GuestDetailClient({
               <th className="px-4 py-3" />
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-700">
+          <tbody className="divide-y divide-border-subtle">
             {visits.length === 0 ? (
-              <tr><td colSpan={5} className="px-4 py-6 text-center text-sm text-gray-500">No visits yet.</td></tr>
+              <tr><td colSpan={5} className="px-4 py-6 text-center text-sm text-text-muted">No visits yet.</td></tr>
             ) : visits.map((visit) => (
-              <tr key={visit.id} className="hover:bg-gray-700/40">
-                <td className="px-4 py-3 text-xs text-gray-300">{new Date(visit.created_at).toLocaleDateString()}</td>
-                <td className="px-4 py-3 text-xs text-gray-300">{visit.source_type}</td>
+              <tr key={visit.id} className="hover:bg-surface-1/50 transition-colors">
+                <td className="px-4 py-3 text-xs text-text-muted">{new Date(visit.created_at).toLocaleDateString()}</td>
+                <td className="px-4 py-3 text-xs text-text-muted">{visit.source_type}</td>
                 <td className="px-4 py-3"><StatusBadge status={visit.status} /></td>
-                <td className="px-4 py-3 text-xs text-gray-300">{visit.duration_minutes ? `${visit.duration_minutes} min` : '—'}</td>
+                <td className="px-4 py-3 text-xs text-text-muted">{visit.duration_minutes ? `${visit.duration_minutes} min` : '—'}</td>
                 <td className="px-4 py-3 text-right"><Link href={`/visits/${visit.id}`} className="text-xs text-accent-primary hover:underline">View →</Link></td>
               </tr>
             ))}
@@ -429,9 +429,9 @@ export function GuestDetailClient({
 
       {/* Bookings */}
       <div className="card overflow-hidden">
-        <div className="px-4 py-3 border-b border-gray-700"><h2 className="text-sm font-semibold text-gray-200">Bookings ({bookings.length})</h2></div>
+        <div className="px-4 py-3 border-b border-border-subtle"><h2 className="text-sm font-semibold text-text-primary">Bookings ({bookings.length})</h2></div>
         <table className="w-full text-sm">
-          <thead className="bg-surface-0 border-b border-gray-700">
+          <thead className="bg-surface-0 border-b border-border-subtle">
             <tr>
               <th className="text-left px-4 py-3 text-xs font-semibold text-accent-primary uppercase tracking-wide">Code</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-accent-primary uppercase tracking-wide">Status</th>
@@ -441,16 +441,16 @@ export function GuestDetailClient({
               <th className="px-4 py-3" />
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-700">
+          <tbody className="divide-y divide-border-subtle">
             {bookings.length === 0 ? (
-              <tr><td colSpan={6} className="px-4 py-6 text-center text-sm text-gray-500">No bookings yet.</td></tr>
+              <tr><td colSpan={6} className="px-4 py-6 text-center text-sm text-text-muted">No bookings yet.</td></tr>
             ) : bookings.map((booking) => (
-              <tr key={booking.id} className="hover:bg-gray-700/40">
-                <td className="px-4 py-3 text-xs font-mono text-gray-300">{booking.booking_code}</td>
+              <tr key={booking.id} className="hover:bg-surface-1/50 transition-colors">
+                <td className="px-4 py-3 text-xs font-mono text-text-muted">{booking.booking_code}</td>
                 <td className="px-4 py-3"><StatusBadge status={booking.status} /></td>
-                <td className="px-4 py-3 text-xs text-gray-400">{booking.booking_channel}</td>
-                <td className="px-4 py-3 text-xs text-gray-300">{booking.balance_due_cents > 0 ? `$${(booking.balance_due_cents / 100).toFixed(2)}` : '—'}</td>
-                <td className="px-4 py-3 text-xs text-gray-400">{new Date(booking.created_at).toLocaleDateString()}</td>
+                <td className="px-4 py-3 text-xs text-text-muted">{booking.booking_channel}</td>
+                <td className="px-4 py-3 text-xs text-text-muted">{booking.balance_due_cents > 0 ? `$${(booking.balance_due_cents / 100).toFixed(2)}` : '—'}</td>
+                <td className="px-4 py-3 text-xs text-text-muted">{new Date(booking.created_at).toLocaleDateString()}</td>
                 <td className="px-4 py-3 text-right">
                   <CancelBookingButton
                     booking={booking}
@@ -466,9 +466,9 @@ export function GuestDetailClient({
 
       {/* Waivers */}
       <div className="card overflow-hidden">
-        <div className="px-4 py-3 border-b border-gray-700"><h2 className="text-sm font-semibold text-gray-200">Waiver History ({waivers.length})</h2></div>
+        <div className="px-4 py-3 border-b border-border-subtle"><h2 className="text-sm font-semibold text-text-primary">Waiver History ({waivers.length})</h2></div>
         <table className="w-full text-sm">
-          <thead className="bg-surface-0 border-b border-gray-700">
+          <thead className="bg-surface-0 border-b border-border-subtle">
             <tr>
               <th className="text-left px-4 py-3 text-xs font-semibold text-accent-primary uppercase tracking-wide">Version</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-accent-primary uppercase tracking-wide">Accepted</th>
@@ -476,14 +476,14 @@ export function GuestDetailClient({
               <th className="text-left px-4 py-3 text-xs font-semibold text-accent-primary uppercase tracking-wide">Current</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-700">
+          <tbody className="divide-y divide-border-subtle">
             {waivers.length === 0 ? (
-              <tr><td colSpan={4} className="px-4 py-6 text-center text-sm text-gray-500">No waiver on file.</td></tr>
+              <tr><td colSpan={4} className="px-4 py-6 text-center text-sm text-text-muted">No waiver on file.</td></tr>
             ) : waivers.map((w) => (
-              <tr key={w.id} className="hover:bg-gray-700/40">
-                <td className="px-4 py-3 text-xs font-mono text-gray-300">{w.waiverVersion}</td>
-                <td className="px-4 py-3 text-xs text-gray-300">{new Date(w.acceptedAt).toLocaleString()}</td>
-                <td className="px-4 py-3 text-xs text-gray-400 capitalize">{w.acceptedChannel}</td>
+              <tr key={w.id} className="hover:bg-surface-1/50 transition-colors">
+                <td className="px-4 py-3 text-xs font-mono text-text-muted">{w.waiverVersion}</td>
+                <td className="px-4 py-3 text-xs text-text-muted">{new Date(w.acceptedAt).toLocaleString()}</td>
+                <td className="px-4 py-3 text-xs text-text-muted capitalize">{w.acceptedChannel}</td>
                 <td className="px-4 py-3"><StatusBadge status={w.isCurrent ? 'active' : 'superseded'} /></td>
               </tr>
             ))}
@@ -493,9 +493,9 @@ export function GuestDetailClient({
 
       {/* Wristband Links */}
       <div className="card overflow-hidden">
-        <div className="px-4 py-3 border-b border-gray-700"><h2 className="text-sm font-semibold text-gray-200">Wristband History ({wristbandLinks.length})</h2></div>
+        <div className="px-4 py-3 border-b border-border-subtle"><h2 className="text-sm font-semibold text-text-primary">Wristband History ({wristbandLinks.length})</h2></div>
         <table className="w-full text-sm">
-          <thead className="bg-surface-0 border-b border-gray-700">
+          <thead className="bg-surface-0 border-b border-border-subtle">
             <tr>
               <th className="text-left px-4 py-3 text-xs font-semibold text-accent-primary uppercase tracking-wide">UID</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-accent-primary uppercase tracking-wide">Visit</th>
@@ -503,17 +503,17 @@ export function GuestDetailClient({
               <th className="text-left px-4 py-3 text-xs font-semibold text-accent-primary uppercase tracking-wide">Issued</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-700">
+          <tbody className="divide-y divide-border-subtle">
             {wristbandLinks.length === 0 ? (
-              <tr><td colSpan={4} className="px-4 py-6 text-center text-sm text-gray-500">No wristband history.</td></tr>
+              <tr><td colSpan={4} className="px-4 py-6 text-center text-sm text-text-muted">No wristband history.</td></tr>
             ) : wristbandLinks.map((wl) => (
-              <tr key={wl.id} className="hover:bg-gray-700/40">
-                <td className="px-4 py-3 text-xs font-mono text-gray-300">{wl.wristbandUid}</td>
-                <td className="px-4 py-3 text-xs text-gray-300">
+              <tr key={wl.id} className="hover:bg-surface-1/50 transition-colors">
+                <td className="px-4 py-3 text-xs font-mono text-text-muted">{wl.wristbandUid}</td>
+                <td className="px-4 py-3 text-xs text-text-muted">
                   {wl.visitStartTime ? new Date(wl.visitStartTime).toLocaleDateString() : '—'}
                 </td>
                 <td className="px-4 py-3"><StatusBadge status={wl.linkStatus} /></td>
-                <td className="px-4 py-3 text-xs text-gray-400">{new Date(wl.createdAt).toLocaleDateString()}</td>
+                <td className="px-4 py-3 text-xs text-text-muted">{new Date(wl.createdAt).toLocaleDateString()}</td>
               </tr>
             ))}
           </tbody>
@@ -523,7 +523,7 @@ export function GuestDetailClient({
       {/* Merge Guest */}
       <div className="card p-4">
         <h2 className="text-xs font-semibold text-accent-primary uppercase tracking-wide mb-1">Merge Duplicate Record</h2>
-        <p className="text-xs text-gray-400 mb-4">
+        <p className="text-xs text-text-muted mb-4">
           Move all visits, bookings, and waivers from this guest into a target record. This guest&apos;s contact info will be cleared and the record marked as merged.
         </p>
 
@@ -535,7 +535,7 @@ export function GuestDetailClient({
               value={mergeSearchQ}
               onChange={(e) => setMergeSearchQ(e.target.value)}
               placeholder="Search by name, email, or phone"
-              className="flex-1 bg-surface-0 border border-gray-600 text-white rounded px-3 py-2 text-xs focus:outline-none focus:border-accent-primary"
+              className="flex-1 bg-surface-0 border border-border-subtle text-text-primary rounded px-3 py-2 text-xs focus:outline-none focus:border-accent-primary"
             />
             <button
               type="submit"
@@ -549,40 +549,40 @@ export function GuestDetailClient({
 
         {/* Candidate list */}
         {mergeCandidates.length > 0 && (
-          <div className="border border-gray-700 rounded divide-y divide-gray-700 mb-3">
+          <div className="border border-border-subtle rounded divide-y divide-border-subtle mb-3">
             {mergeCandidates.map((c) => (
               <button
                 key={c.id}
                 onClick={() => selectMergeTarget(c)}
-                className="w-full text-left px-3 py-2.5 hover:bg-gray-700/50 transition-colors"
+                className="w-full text-left px-3 py-2.5 hover:bg-surface-1/50 transition-colors"
               >
-                <p className="text-xs text-white">{[c.firstName, c.lastName].filter(Boolean).join(' ') || '—'}</p>
-                <p className="text-xs text-gray-400">{c.email ?? c.phone ?? c.id.slice(0, 8) + '…'}</p>
+                <p className="text-xs text-text-primary">{[c.firstName, c.lastName].filter(Boolean).join(' ') || '—'}</p>
+                <p className="text-xs text-text-muted">{c.email ?? c.phone ?? c.id.slice(0, 8) + '…'}</p>
               </button>
             ))}
           </div>
         )}
         {mergeCandidates.length === 0 && mergeSearchQ && !mergeSearching && !mergeSelected && (
-          <p className="text-xs text-gray-500 mb-3">No matching guests found.</p>
+          <p className="text-xs text-text-muted mb-3">No matching guests found.</p>
         )}
 
         {/* Step 2: confirm with side-by-side preview */}
         {mergeSelected && (
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-3">
-              <div className="rounded border border-red-700 bg-red-950/30 p-3">
-                <p className="text-xs text-red-400 uppercase tracking-wide mb-1.5">This record (source)</p>
-                <p className="text-xs text-white font-medium">{[guest?.firstName, guest?.lastName].filter(Boolean).join(' ') || '—'}</p>
-                <p className="text-xs text-gray-400">{guest?.email ?? '—'}</p>
-                <p className="text-xs text-gray-400">{guest?.phone ?? '—'}</p>
-                <p className="text-xs text-gray-500 mt-1">Will be cleared + flagged</p>
+              <div className="rounded border border-critical/40 bg-critical/10 p-3">
+                <p className="text-xs text-critical uppercase tracking-wide mb-1.5">This record (source)</p>
+                <p className="text-xs text-text-primary font-medium">{[guest?.firstName, guest?.lastName].filter(Boolean).join(' ') || '—'}</p>
+                <p className="text-xs text-text-muted">{guest?.email ?? '—'}</p>
+                <p className="text-xs text-text-muted">{guest?.phone ?? '—'}</p>
+                <p className="text-xs text-text-muted mt-1">Will be cleared + flagged</p>
               </div>
-              <div className="rounded border border-green-700 bg-green-950/30 p-3">
-                <p className="text-xs text-green-400 uppercase tracking-wide mb-1.5">Target (keep)</p>
-                <p className="text-xs text-white font-medium">{[mergeSelected.firstName, mergeSelected.lastName].filter(Boolean).join(' ') || '—'}</p>
-                <p className="text-xs text-gray-400">{mergeSelected.email ?? '—'}</p>
-                <p className="text-xs text-gray-400">{mergeSelected.phone ?? '—'}</p>
-                <p className="text-xs text-gray-500 mt-1">Receives all history</p>
+              <div className="rounded border border-success/40 bg-success/10 p-3">
+                <p className="text-xs text-success uppercase tracking-wide mb-1.5">Target (keep)</p>
+                <p className="text-xs text-text-primary font-medium">{[mergeSelected.firstName, mergeSelected.lastName].filter(Boolean).join(' ') || '—'}</p>
+                <p className="text-xs text-text-muted">{mergeSelected.email ?? '—'}</p>
+                <p className="text-xs text-text-muted">{mergeSelected.phone ?? '—'}</p>
+                <p className="text-xs text-text-muted mt-1">Receives all history</p>
               </div>
             </div>
 
@@ -597,12 +597,12 @@ export function GuestDetailClient({
               <button
                 type="submit"
                 disabled={merging}
-                className="flex-1 rounded bg-red-700 hover:bg-red-600 text-white text-xs font-medium py-2 px-4 transition-colors disabled:opacity-50"
+                className="flex-1 rounded bg-red-700 hover:bg-red-600 text-text-primary text-xs font-medium py-2 px-4 transition-colors disabled:opacity-50"
               >
                 {merging ? 'Merging…' : 'Confirm Merge — This Cannot Be Undone'}
               </button>
             </form>
-            {mergeError && <p className="text-red-400 text-xs">{mergeError}</p>}
+            {mergeError && <p className="text-critical text-xs">{mergeError}</p>}
           </div>
         )}
       </div>

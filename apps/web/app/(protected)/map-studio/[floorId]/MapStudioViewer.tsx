@@ -232,7 +232,7 @@ export function MapStudioViewer({
             <div className="card p-4 space-y-3">
               <div className="flex items-start justify-between gap-2">
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-100">{selected.label}</h3>
+                  <h3 className="text-sm font-semibold text-text-primary">{selected.label}</h3>
                   <p className="text-xs text-text-muted font-mono">{selected.code}</p>
                 </div>
                 <StatePill state={selected.state} />
@@ -240,26 +240,26 @@ export function MapStudioViewer({
 
               <dl className="text-sm space-y-2 divide-y divide-border-subtle">
                 <div className="flex justify-between pt-1">
-                  <dt className="text-gray-400">Type</dt>
-                  <dd className="text-gray-200">{selected.objectType}</dd>
+                  <dt className="text-text-muted">Type</dt>
+                  <dd className="text-text-primary">{selected.objectType}</dd>
                 </div>
 
                 {selected.occupantName && (
                   <div className="flex justify-between pt-2">
-                    <dt className="text-gray-400">Occupant</dt>
-                    <dd className="text-gray-200 text-right max-w-[160px] truncate">{selected.occupantName}</dd>
+                    <dt className="text-text-muted">Occupant</dt>
+                    <dd className="text-text-primary text-right max-w-[160px] truncate">{selected.occupantName}</dd>
                   </div>
                 )}
 
                 {selected.endsAt && (
                   <>
                     <div className="flex justify-between pt-2">
-                      <dt className="text-gray-400">Ends at</dt>
-                      <dd className="text-gray-200">{new Date(selected.endsAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}</dd>
+                      <dt className="text-text-muted">Ends at</dt>
+                      <dd className="text-text-primary">{new Date(selected.endsAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}</dd>
                     </div>
                     <div className="flex justify-between pt-2">
-                      <dt className="text-gray-400">Time left</dt>
-                      <dd className={`font-medium tabular-nums ${(getLiveSecsRemaining(selected) ?? 999) < 300 ? 'text-warning' : 'text-gray-200'}`}>
+                      <dt className="text-text-muted">Time left</dt>
+                      <dd className={`font-medium tabular-nums ${(getLiveSecsRemaining(selected) ?? 999) < 300 ? 'text-warning' : 'text-text-primary'}`}>
                         {/* eslint-disable-next-line @typescript-eslint/no-unused-expressions */}
                         {ticker > -1 && formatTime(getLiveSecsRemaining(selected) ?? 0)}
                       </dd>
@@ -269,15 +269,15 @@ export function MapStudioViewer({
 
                 {selected.cleaningStatus && (
                   <div className="flex justify-between pt-2">
-                    <dt className="text-gray-400">Cleaning</dt>
-                    <dd className="text-yellow-300">{selected.cleaningStatus}</dd>
+                    <dt className="text-text-muted">Cleaning</dt>
+                    <dd className="text-warning">{selected.cleaningStatus}</dd>
                   </div>
                 )}
 
                 {selected.incidentNote && (
                   <div className="pt-2">
-                    <dt className="text-gray-400 mb-1">Incident</dt>
-                    <dd className="text-red-300 text-xs leading-relaxed">{selected.incidentNote}</dd>
+                    <dt className="text-text-muted mb-1">Incident</dt>
+                    <dd className="text-critical text-xs leading-relaxed">{selected.incidentNote}</dd>
                   </div>
                 )}
               </dl>
@@ -301,8 +301,8 @@ export function MapStudioViewer({
             <div className="space-y-1.5 text-sm">
               {Object.entries(objectByType).map(([type, objs]) => (
                 <div key={type} className="flex justify-between">
-                  <span className="text-gray-400">{type}</span>
-                  <span className="text-gray-200">{objs.length}</span>
+                  <span className="text-text-muted">{type}</span>
+                  <span className="text-text-primary">{objs.length}</span>
                 </div>
               ))}
               {data.objects.length === 0 && (

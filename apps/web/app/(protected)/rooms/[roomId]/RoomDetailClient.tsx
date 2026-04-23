@@ -61,32 +61,32 @@ export function RoomDetailClient({ token, roomId, okMessage, errorMessage }: { t
     <div className="max-w-5xl">
       <div className="flex items-center gap-3 mb-6">
         <Link href="/rooms" className="text-sm text-accent-primary hover:text-accent-primary transition-colors">← Rooms</Link>
-        <h1 className="text-2xl font-semibold text-gray-100">{room.name}</h1>
+        <h1 className="text-2xl font-semibold text-text-primary">{room.name}</h1>
         <StatusBadge status={room.status} />
       </div>
 
       {message && (
-        <div className={`mb-4 rounded-md border px-3 py-2 text-sm ${message.ok ? 'border-green-700 bg-green-900 text-green-200' : 'border-red-700 bg-red-900 text-red-200'}`}>
+        <div className={`mb-4 rounded-md border px-3 py-2 text-sm ${message.ok ? 'border-success/40 bg-success/10 text-success' : 'border-critical/40 bg-critical/10 text-critical'}`}>
           {message.text}
         </div>
       )}
 
       <div className="card p-4 mb-4">
-        <h2 className="text-sm font-semibold text-gray-200 mb-3">Room Details</h2>
+        <h2 className="text-sm font-semibold text-text-primary mb-3">Room Details</h2>
         <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-          <dt className="text-gray-400">Code</dt><dd className="font-mono text-xs text-gray-300">{room.code}</dd>
-          <dt className="text-gray-400">Type</dt><dd className="text-gray-100">{room.roomType}</dd>
-          <dt className="text-gray-400">Privacy</dt><dd className="text-gray-100">{room.privacyLevel}</dd>
-          <dt className="text-gray-400">Bookable</dt><dd className="text-gray-100">{room.bookable ? 'yes' : 'no'}</dd>
-          <dt className="text-gray-400">Cleaning Required</dt><dd className="text-gray-100">{room.cleaningRequired ? 'yes' : 'no'}</dd>
-          <dt className="text-gray-400">Last Turned</dt><dd className="text-gray-100">{room.lastTurnedAt ? new Date(room.lastTurnedAt).toLocaleString() : '—'}</dd>
-          <dt className="text-gray-400">Floor Plan Area</dt><dd className="font-mono text-xs text-gray-300 break-all">{room.floorPlanAreaId}</dd>
+          <dt className="text-text-muted">Code</dt><dd className="font-mono text-xs text-text-muted">{room.code}</dd>
+          <dt className="text-text-muted">Type</dt><dd className="text-text-primary">{room.roomType}</dd>
+          <dt className="text-text-muted">Privacy</dt><dd className="text-text-primary">{room.privacyLevel}</dd>
+          <dt className="text-text-muted">Bookable</dt><dd className="text-text-primary">{room.bookable ? 'yes' : 'no'}</dd>
+          <dt className="text-text-muted">Cleaning Required</dt><dd className="text-text-primary">{room.cleaningRequired ? 'yes' : 'no'}</dd>
+          <dt className="text-text-muted">Last Turned</dt><dd className="text-text-primary">{room.lastTurnedAt ? new Date(room.lastTurnedAt).toLocaleString() : '—'}</dd>
+          <dt className="text-text-muted">Floor Plan Area</dt><dd className="font-mono text-xs text-text-muted break-all">{room.floorPlanAreaId}</dd>
         </dl>
       </div>
 
       <div className="card p-4 mb-4">
-        <h2 className="text-sm font-semibold text-gray-200 mb-2">Maintenance</h2>
-        <p className="text-xs text-gray-400 mb-3">
+        <h2 className="text-sm font-semibold text-text-primary mb-2">Maintenance</h2>
+        <p className="text-xs text-text-muted mb-3">
           {room.status === 'maintenance'
             ? 'Room is in maintenance mode. Bookings and check-ins are blocked.'
             : 'Mark this room out of service for cleaning or repairs.'}
@@ -106,18 +106,18 @@ export function RoomDetailClient({ token, roomId, okMessage, errorMessage }: { t
               setTogglingMaintenance(false)
             }
           }}
-          className={`text-xs px-4 py-2 rounded font-medium transition-colors disabled:opacity-40 ${room.status === 'maintenance' ? 'bg-green-800 hover:bg-green-700 text-green-100' : 'bg-yellow-900 hover:bg-yellow-800 text-yellow-100'}`}
+          className={`text-xs px-4 py-2 rounded font-medium transition-colors disabled:opacity-40 ${room.status === 'maintenance' ? 'bg-success/20 hover:bg-success/30 text-success' : 'bg-warning/20 hover:bg-warning/30 text-warning'}`}
         >
           {togglingMaintenance ? '…' : room.status === 'maintenance' ? 'Return to Service' : 'Set Maintenance'}
         </button>
         {['reserved', 'checked_in', 'cleaning'].includes(room.status) && (
-          <p className="text-xs text-gray-500 mt-2">Cannot set maintenance while room is {room.status}.</p>
+          <p className="text-xs text-text-muted mt-2">Cannot set maintenance while room is {room.status}.</p>
         )}
       </div>
 
       <div id="log-access" className="card p-4 mb-4">
-        <h2 className="text-sm font-semibold text-gray-200 mb-3">Log Room Access Event</h2>
-        <p className="text-xs text-gray-400 mb-3">Allowed roles: front_desk, operations, admin.</p>
+        <h2 className="text-sm font-semibold text-text-primary mb-3">Log Room Access Event</h2>
+        <p className="text-xs text-text-muted mb-3">Allowed roles: front_desk, operations, admin.</p>
         <form onSubmit={handleLogAccess} className="grid grid-cols-1 gap-2 md:grid-cols-3">
           <input name="wristbandId" placeholder="Wristband ID" className="form-input" required />
           <select name="eventType" className="form-input" defaultValue="unlock">
@@ -140,9 +140,9 @@ export function RoomDetailClient({ token, roomId, okMessage, errorMessage }: { t
       </div>
 
       <div className="card overflow-hidden mb-4">
-        <div className="px-4 py-3 border-b border-gray-700"><h2 className="text-sm font-semibold text-gray-200">Bookings ({bookings.length})</h2></div>
+        <div className="px-4 py-3 border-b border-border-subtle"><h2 className="text-sm font-semibold text-text-primary">Bookings ({bookings.length})</h2></div>
         <table className="w-full text-sm">
-          <thead className="bg-surface-0 border-b border-gray-700">
+          <thead className="bg-surface-0 border-b border-border-subtle">
             <tr>
               <th className="text-left px-4 py-2 text-xs font-semibold text-accent-primary uppercase tracking-wide">Member</th>
               <th className="text-left px-4 py-2 text-xs font-semibold text-accent-primary uppercase tracking-wide">Window</th>
@@ -152,13 +152,13 @@ export function RoomDetailClient({ token, roomId, okMessage, errorMessage }: { t
           </thead>
           <tbody className="divide-y">
             {bookings.length === 0 ? (
-              <tr><td colSpan={4} className="px-4 py-8 text-center text-sm text-gray-400">No bookings for this room.</td></tr>
+              <tr><td colSpan={4} className="px-4 py-8 text-center text-sm text-text-muted">No bookings for this room.</td></tr>
             ) : bookings.map((booking) => (
-              <tr key={booking.id} className="hover:bg-gray-700/40">
+              <tr key={booking.id} className="hover:bg-surface-1/50 transition-colors">
                 <td className="px-4 py-2 text-xs"><Link href={`/members/${booking.memberId}`} className="text-accent-primary hover:text-accent-primary transition-colors font-mono">{booking.memberId.slice(0, 8)}…</Link></td>
-                <td className="px-4 py-2 text-xs text-gray-400">{new Date(booking.startsAt).toLocaleString()} → {new Date(booking.endsAt).toLocaleString()}</td>
+                <td className="px-4 py-2 text-xs text-text-muted">{new Date(booking.startsAt).toLocaleString()} → {new Date(booking.endsAt).toLocaleString()}</td>
                 <td className="px-4 py-2"><StatusBadge status={booking.status} /></td>
-                <td className="px-4 py-2 text-xs text-gray-400">{booking.bookingType}</td>
+                <td className="px-4 py-2 text-xs text-text-muted">{booking.bookingType}</td>
               </tr>
             ))}
           </tbody>
@@ -166,9 +166,9 @@ export function RoomDetailClient({ token, roomId, okMessage, errorMessage }: { t
       </div>
 
       <div className="card overflow-hidden">
-        <div className="px-4 py-3 border-b border-gray-700"><h2 className="text-sm font-semibold text-gray-200">Access Events ({events.length})</h2></div>
+        <div className="px-4 py-3 border-b border-border-subtle"><h2 className="text-sm font-semibold text-text-primary">Access Events ({events.length})</h2></div>
         <table className="w-full text-sm">
-          <thead className="bg-surface-0 border-b border-gray-700">
+          <thead className="bg-surface-0 border-b border-border-subtle">
             <tr>
               <th className="text-left px-4 py-2 text-xs font-semibold text-accent-primary uppercase tracking-wide">Time</th>
               <th className="text-left px-4 py-2 text-xs font-semibold text-accent-primary uppercase tracking-wide">Decision</th>
@@ -179,14 +179,14 @@ export function RoomDetailClient({ token, roomId, okMessage, errorMessage }: { t
           </thead>
           <tbody className="divide-y">
             {events.length === 0 ? (
-              <tr><td colSpan={5} className="px-4 py-8 text-center text-sm text-gray-400">No access events.</td></tr>
+              <tr><td colSpan={5} className="px-4 py-8 text-center text-sm text-text-muted">No access events.</td></tr>
             ) : events.map((event) => (
-              <tr key={event.id} className="hover:bg-gray-700/40">
-                <td className="px-4 py-2 text-xs text-gray-400">{new Date(event.occurredAt).toLocaleString()}</td>
+              <tr key={event.id} className="hover:bg-surface-1/50 transition-colors">
+                <td className="px-4 py-2 text-xs text-text-muted">{new Date(event.occurredAt).toLocaleString()}</td>
                 <td className="px-4 py-2"><StatusBadge status={event.decision} /></td>
-                <td className="px-4 py-2 text-xs text-gray-400 font-mono">{event.denialReasonCode ?? '—'}</td>
-                <td className="px-4 py-2 text-xs text-gray-400">{event.eventType}</td>
-                <td className="px-4 py-2 text-xs text-gray-400">{event.sourceType}</td>
+                <td className="px-4 py-2 text-xs text-text-muted font-mono">{event.denialReasonCode ?? '—'}</td>
+                <td className="px-4 py-2 text-xs text-text-muted">{event.eventType}</td>
+                <td className="px-4 py-2 text-xs text-text-muted">{event.sourceType}</td>
               </tr>
             ))}
           </tbody>

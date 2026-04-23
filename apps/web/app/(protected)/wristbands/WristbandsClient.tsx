@@ -74,10 +74,10 @@ export function WristbandsClient({ token, role }: { token: string; role?: string
   return (
     <div className="max-w-4xl">
       <h1 className="text-3xl font-bold mb-2">Wristbands</h1>
-      <p className="text-gray-400 mb-6">Credential lifecycle management</p>
+      <p className="text-text-muted mb-6">Credential lifecycle management</p>
 
       {message && (
-        <div className={`mb-4 rounded-lg border px-4 py-3 text-sm ${message.ok ? 'border-green-700 bg-green-900 text-green-200' : 'border-red-700 bg-red-900 text-red-200'}`}>
+        <div className={`mb-4 rounded-lg border px-4 py-3 text-sm ${message.ok ? 'border-success/40 bg-success/10 text-success' : 'border-critical/40 bg-critical/10 text-critical'}`}>
           {message.text}
         </div>
       )}
@@ -85,7 +85,7 @@ export function WristbandsClient({ token, role }: { token: string; role?: string
       <div className="grid grid-cols-1 gap-4 mb-6 lg:grid-cols-2">
         <div className="card">
           <h2 className="text-sm font-semibold text-accent-primary mb-3 uppercase tracking-wide">Issue Credential</h2>
-          <p className="text-xs text-gray-400 mb-3">Allowed roles: operations, admin.</p>
+          <p className="text-xs text-text-muted mb-3">Allowed roles: operations, admin.</p>
           <form onSubmit={handleIssue} className="space-y-3">
             <input name="uid" placeholder="New wristband UID" className="form-input" required />
             <input name="memberId" placeholder="Member ID" className="form-input" required />
@@ -95,7 +95,7 @@ export function WristbandsClient({ token, role }: { token: string; role?: string
 
         <div className="card">
           <h2 className="text-sm font-semibold text-accent-primary mb-3 uppercase tracking-wide">Activate Credential</h2>
-          <p className="text-xs text-gray-400 mb-3">Allowed roles: front_desk, operations, admin.</p>
+          <p className="text-xs text-text-muted mb-3">Allowed roles: front_desk, operations, admin.</p>
           <form onSubmit={handleActivate} className="space-y-3">
             <input name="credentialId" placeholder="Credential ID" className="form-input" required />
             <button disabled={!canActivate || busy} className={!canActivate ? 'btn-secondary opacity-50 cursor-not-allowed' : 'btn-primary'}>Activate</button>
@@ -104,7 +104,7 @@ export function WristbandsClient({ token, role }: { token: string; role?: string
 
         <div className="card">
           <h2 className="text-sm font-semibold text-accent-primary mb-3 uppercase tracking-wide">Suspend Credential</h2>
-          <p className="text-xs text-gray-400 mb-3">Allowed roles: operations, admin.</p>
+          <p className="text-xs text-text-muted mb-3">Allowed roles: operations, admin.</p>
           <form onSubmit={handleSuspend} className="space-y-3">
             <input name="credentialId" placeholder="Credential ID" className="form-input" required />
             <button disabled={!canManage || busy} className={!canManage ? 'btn-secondary opacity-50 cursor-not-allowed' : 'btn-primary'}>Suspend</button>
@@ -113,7 +113,7 @@ export function WristbandsClient({ token, role }: { token: string; role?: string
 
         <div className="card">
           <h2 className="text-sm font-semibold text-accent-primary mb-3 uppercase tracking-wide">Replace Credential</h2>
-          <p className="text-xs text-gray-400 mb-3">Allowed roles: operations, admin.</p>
+          <p className="text-xs text-text-muted mb-3">Allowed roles: operations, admin.</p>
           <form onSubmit={handleReplace} className="space-y-3">
             <input name="oldCredentialId" placeholder="Old credential ID" className="form-input" required />
             <input name="newCredentialUid" placeholder="New wristband UID" className="form-input" required />
@@ -123,15 +123,15 @@ export function WristbandsClient({ token, role }: { token: string; role?: string
       </div>
 
       <div className="card overflow-hidden">
-        <div className="p-4 border-b border-gray-700">
-          <p className="text-xs text-gray-400 mb-2">Tip: partial matches are supported.</p>
+        <div className="p-4 border-b border-border-subtle">
+          <p className="text-xs text-text-muted mb-2">Tip: partial matches are supported.</p>
           <div className="flex flex-col sm:flex-row gap-2">
             <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search by UID, status, member ID, or wristband ID" className="form-input flex-1" />
             {query && <button onClick={() => setQuery('')} className="btn-secondary">Clear</button>}
           </div>
         </div>
         <table className="w-full text-sm">
-          <thead className="border-b border-gray-600 bg-surface-0">
+          <thead className="border-b border-border-subtle bg-surface-0">
             <tr>
               <th className="text-left px-4 py-3 text-xs font-semibold text-accent-primary uppercase tracking-wide">UID</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-accent-primary uppercase tracking-wide">Status</th>
@@ -139,17 +139,17 @@ export function WristbandsClient({ token, role }: { token: string; role?: string
               <th className="text-left px-4 py-3 text-xs font-semibold text-accent-primary uppercase tracking-wide">Created</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-700">
+          <tbody className="divide-y divide-border-subtle">
             {loading ? (
-              <tr><td colSpan={4} className="px-4 py-8 text-center text-sm text-gray-500">Loading…</td></tr>
+              <tr><td colSpan={4} className="px-4 py-8 text-center text-sm text-text-muted">Loading…</td></tr>
             ) : filtered.length === 0 ? (
-              <tr><td colSpan={4} className="px-4 py-8 text-center text-sm text-gray-500">No wristbands found.</td></tr>
+              <tr><td colSpan={4} className="px-4 py-8 text-center text-sm text-text-muted">No wristbands found.</td></tr>
             ) : filtered.map((wb) => (
-              <tr key={wb.id} className="hover:bg-gray-700/30">
-                <td className="px-4 py-3 font-mono text-xs text-gray-200">{wb.uid}</td>
+              <tr key={wb.id} className="hover:bg-surface-1/50 transition-colors">
+                <td className="px-4 py-3 font-mono text-xs text-text-primary">{wb.uid}</td>
                 <td className="px-4 py-3"><StatusBadge status={wb.status} /></td>
-                <td className="px-4 py-3 font-mono text-xs text-gray-400">{wb.memberId ?? '—'}</td>
-                <td className="px-4 py-3 text-xs text-gray-400">{new Date(wb.createdAt).toLocaleDateString()}</td>
+                <td className="px-4 py-3 font-mono text-xs text-text-muted">{wb.memberId ?? '—'}</td>
+                <td className="px-4 py-3 text-xs text-text-muted">{new Date(wb.createdAt).toLocaleDateString()}</td>
               </tr>
             ))}
           </tbody>
