@@ -82,7 +82,7 @@ export function WristbandsClient({ token, role }: { token: string; role?: string
   const filtered = query
     ? wristbands.filter((wb) => {
         const q = query.toLowerCase()
-        return wb.uid.toLowerCase().includes(q) || wb.status.toLowerCase().includes(q) || (wb.memberId?.toLowerCase() ?? '').includes(q) || wb.id.toLowerCase().includes(q)
+        return wb.uid.toLowerCase().includes(q) || wb.status.toLowerCase().includes(q) || (wb.memberId?.toLowerCase() ?? '').includes(q) || (wb.memberAlias?.toLowerCase() ?? '').includes(q) || wb.id.toLowerCase().includes(q)
       })
     : wristbands
 
@@ -150,7 +150,7 @@ export function WristbandsClient({ token, role }: { token: string; role?: string
             <tr>
               <th className="text-left px-4 py-3 text-xs font-semibold text-accent-primary uppercase tracking-wide">UID</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-accent-primary uppercase tracking-wide">Status</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-accent-primary uppercase tracking-wide">Member ID</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-accent-primary uppercase tracking-wide">Member</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-accent-primary uppercase tracking-wide">Created</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-accent-primary uppercase tracking-wide">Actions</th>
             </tr>
@@ -166,7 +166,14 @@ export function WristbandsClient({ token, role }: { token: string; role?: string
                 <tr key={wb.id} className="hover:bg-surface-1/50 transition-colors">
                   <td className="px-4 py-3 font-mono text-xs text-text-primary">{wb.uid}</td>
                   <td className="px-4 py-3"><StatusBadge status={wb.status} /></td>
-                  <td className="px-4 py-3 font-mono text-xs text-text-muted">{wb.memberId ?? '—'}</td>
+                  <td className="px-4 py-3 text-xs text-text-muted">
+                    {wb.memberAlias
+                      ? <span className="text-text-primary">{wb.memberAlias}</span>
+                      : wb.memberId
+                        ? <span className="font-mono opacity-60">{wb.memberId.slice(0, 8)}…</span>
+                        : <span className="italic text-critical/70">unassigned</span>
+                    }
+                  </td>
                   <td className="px-4 py-3 text-xs text-text-muted">{new Date(wb.createdAt).toLocaleDateString()}</td>
                   <td className="px-4 py-3">
                     <div className="flex gap-1 flex-wrap">

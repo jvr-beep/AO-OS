@@ -59,7 +59,8 @@ export interface Wristband {
     | 'active'
     | 'suspended'
     | 'replaced'
-  memberId?: string
+  memberId?: string | null
+  memberAlias?: string | null
   locationId?: string | null
   homeLocationId?: string | null
   globalAccessFlag?: boolean

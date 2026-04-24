@@ -16,4 +16,6 @@ export class WristbandResponseDto {
   createdAt!: string;
   updatedAt!: string;
   assignmentId?: string | null;
+  memberId?: string | null;
+  memberAlias?: string | null;
 }

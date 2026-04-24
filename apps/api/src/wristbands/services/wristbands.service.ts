@@ -164,10 +164,27 @@ export class WristbandsService {
 
   async listWristbands(): Promise<WristbandResponseDto[]> {
     const wristbands = await this.prisma.wristband.findMany({
-      orderBy: { createdAt: "desc" }
+      orderBy: { createdAt: "desc" },
+      include: {
+        assignments: {
+          where: { active: true },
+          take: 1,
+          include: {
+            member: { select: { id: true, alias: true, displayName: true, publicMemberNumber: true } },
+          },
+        },
+      },
     });
 
-    return wristbands.map((wb) => this.toWristbandResponse(wb));
+    return wristbands.map((wb) => {
+      const assignment = wb.assignments?.[0] ?? null;
+      return {
+        ...this.toWristbandResponse(wb),
+        assignmentId: assignment?.id ?? null,
+        memberId: assignment?.memberId ?? null,
+        memberAlias: assignment?.member?.alias ?? assignment?.member?.displayName ?? assignment?.member?.publicMemberNumber ?? null,
+      };
+    });
   }
 
   async assignWristband(input: AssignWristbandDto): Promise<WristbandAssignmentResponseDto> {

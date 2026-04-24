@@ -6,8 +6,6 @@ import { logout } from '@/app/actions/auth'
 
 const NAV_ITEMS = [
   { href: '/dashboard', label: 'Dashboard' },
-  { href: '/floor-plans', label: 'Floor Plans' },
-  { href: '/map-studio', label: 'Map Studio' },
   { href: '/members', label: 'Members' },
   { href: '/guests', label: 'Guests' },
   { href: '/visits', label: 'Visits' },
@@ -22,6 +20,8 @@ const ADMIN_ITEMS = [
   { href: '/staff', label: 'Staff' },
   { href: '/staff/audit', label: 'Audit Log' },
   { href: '/settings', label: 'Settings' },
+  { href: '/map-studio', label: 'Map Studio' },
+  { href: '/floor-plans', label: 'Floor Plans' },
   { href: '/sandbox', label: 'Sandbox' },
 ]
 
