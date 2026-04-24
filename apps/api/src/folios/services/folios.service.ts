@@ -169,6 +169,22 @@ export class FoliosService {
     return this.getFolio(folioId);
   }
 
+  async applyWristbandCharge(
+    tx: Prisma.TransactionClient,
+    visitId: string,
+    deltaAmountCents: number
+  ): Promise<void> {
+    const folio = await tx.folio.findUnique({ where: { visitId } });
+    if (!folio) return;
+
+    await tx.folio.update({
+      where: { id: folio.id },
+      data: { wristbandChargeCents: Math.max(0, folio.wristbandChargeCents + deltaAmountCents) }
+    });
+
+    await this.recalculateFolioAndSyncVisitPaymentStatus(tx, folio.id);
+  }
+
   private async recalculateFolioAndSyncVisitPaymentStatus(
     tx: Prisma.TransactionClient,
     folioId: string

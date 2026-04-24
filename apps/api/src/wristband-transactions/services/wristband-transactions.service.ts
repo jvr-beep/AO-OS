@@ -5,6 +5,7 @@ import {
   WristbandTransactionStatus,
   WristbandTransactionType
 } from "@prisma/client";
+import { FoliosService } from "../../folios/services/folios.service";
 import { PrismaService } from "../../prisma/prisma.service";
 import { CreateWristbandTransactionDto } from "../dto/create-wristband-transaction.dto";
 import { ListWristbandTransactionsQueryDto } from "../dto/list-wristband-transactions.query.dto";
@@ -12,7 +13,10 @@ import { WristbandTransactionResponseDto } from "../dto/wristband-transaction.re
 
 @Injectable()
 export class WristbandTransactionsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly foliosService: FoliosService
+  ) {}
 
   async create(input: CreateWristbandTransactionDto): Promise<WristbandTransactionResponseDto> {
     this.ensureValidAmount(input.transactionType, input.amount);
@@ -37,7 +41,8 @@ export class WristbandTransactionsService {
     });
 
     if (!activeAssignment) {
-      throw new ConflictException("NO_ACTIVE_WRISTBAND_ASSIGNMENT");
+      // Guest path: wristband may be linked to a visit via WristbandLink
+      return this.createGuestWristbandCharge(input);
     }
 
     if (activeAssignment.member.status !== MemberStatus.active) {
@@ -78,6 +83,46 @@ export class WristbandTransactionsService {
     });
 
     return this.toResponse(created);
+  }
+
+  private async createGuestWristbandCharge(
+    input: CreateWristbandTransactionDto
+  ): Promise<WristbandTransactionResponseDto> {
+    const link = await this.prisma.wristbandLink.findFirst({
+      where: { wristbandId: input.wristbandId, linkStatus: "active" },
+      include: { visit: true }
+    });
+
+    if (!link) {
+      throw new ConflictException("NO_ACTIVE_WRISTBAND_ASSIGNMENT");
+    }
+
+    if (!["active", "in_progress", "checked_in"].includes(link.visit.status)) {
+      throw new ConflictException("VISIT_NOT_ACTIVE");
+    }
+
+    const amountCents = Math.round(input.amount * 100);
+    const deltaAmountCents =
+      input.transactionType === "refund" ? -amountCents : amountCents;
+
+    await this.prisma.$transaction(async (tx) => {
+      await this.foliosService.applyWristbandCharge(tx, link.visitId, deltaAmountCents);
+    });
+
+    return {
+      id: link.id,
+      memberId: link.guestId,
+      wristbandId: input.wristbandId,
+      transactionType: input.transactionType,
+      merchantType: input.merchantType,
+      amount: String(input.amount),
+      currency: input.currency,
+      description: input.description,
+      sourceReference: input.sourceReference,
+      status: "completed",
+      occurredAt: input.occurredAt,
+      createdAt: new Date().toISOString()
+    };
   }
 
   async list(query: ListWristbandTransactionsQueryDto): Promise<WristbandTransactionResponseDto[]> {
