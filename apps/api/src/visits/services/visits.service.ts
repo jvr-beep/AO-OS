@@ -5,6 +5,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { DomainEventsService } from '../../domain-events/domain-events.service';
 import { LocationContextService } from '../../location/location-context.service';
 import { CreateVisitDto } from '../dto/create-visit.dto';
 import { TransitionVisitStatusDto } from '../dto/transition-visit-status.dto';
@@ -28,6 +29,7 @@ export class VisitsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly locationContext: LocationContextService,
+    private readonly domainEvents: DomainEventsService,
   ) {}
 
   async initiateVisit(dto: CreateVisitDto) {
@@ -204,6 +206,26 @@ export class VisitsService {
 
       return result;
     });
+
+    const eventName =
+      dto.status === "active" ? "visit.checked_in" :
+      dto.status === "checked_out" ? "visit.checked_out" :
+      null;
+
+    if (eventName) {
+      void this.domainEvents.emit({
+        eventName,
+        aggregateType: "Visit",
+        aggregateId: visitId,
+        payload: {
+          guestId: updated.guestId,
+          tierId: updated.tierId,
+          status: updated.status,
+          startTime: updated.startTime?.toISOString() ?? null,
+          actualEndTime: updated.actualEndTime?.toISOString() ?? null
+        }
+      });
+    }
 
     return this.toResponse(updated);
   }

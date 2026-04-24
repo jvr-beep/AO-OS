@@ -1,5 +1,6 @@
 import { ConflictException, Injectable, NotFoundException } from "@nestjs/common";
 import { WristbandStatus } from "@prisma/client";
+import { DomainEventsService } from "../../domain-events/domain-events.service";
 import { PrismaService } from "../../prisma/prisma.service";
 import { ActivateCredentialDto } from "../dto/activate-credential.dto";
 import { AssignWristbandDto } from "../dto/assign-wristband.dto";
@@ -13,7 +14,10 @@ import { WristbandResponseDto } from "../dto/wristband.response.dto";
 
 @Injectable()
 export class WristbandsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly domainEvents: DomainEventsService
+  ) {}
 
   async issueCredential(input: IssueCredentialDto): Promise<WristbandResponseDto> {
     const created = await this.prisma.wristband.create({
@@ -65,6 +69,13 @@ export class WristbandsService {
       }
     });
 
+    void this.domainEvents.emit({
+      eventName: "wristband.activated",
+      aggregateType: "Wristband",
+      aggregateId: updated.id,
+      payload: { uid: updated.uid, status: "active" }
+    });
+
     return this.toWristbandResponse(updated);
   }
 
@@ -80,6 +91,13 @@ export class WristbandsService {
         status: "suspended",
         suspendedAt: new Date()
       }
+    });
+
+    void this.domainEvents.emit({
+      eventName: "wristband.suspended",
+      aggregateType: "Wristband",
+      aggregateId: updated.id,
+      payload: { uid: updated.uid, status: "suspended" }
     });
 
     return this.toWristbandResponse(updated);
@@ -133,6 +151,20 @@ export class WristbandsService {
     await this.prisma.wristband.update({
       where: { id: oldCredential.id },
       data: { status: "replaced" }
+    });
+
+    void this.domainEvents.emit({
+      eventName: "wristband.replaced",
+      aggregateType: "Wristband",
+      aggregateId: created.id,
+      memberId: activeAssignment?.memberId ?? null,
+      payload: {
+        newWristbandId: created.id,
+        newUid: created.uid,
+        oldWristbandId: oldCredential.id,
+        oldUid: oldCredential.uid,
+        reason: null
+      }
     });
 
     return this.toWristbandResponse(created);
@@ -220,6 +252,14 @@ export class WristbandsService {
       }
     });
 
+    void this.domainEvents.emit({
+      eventName: "wristband.assigned",
+      aggregateType: "Wristband",
+      aggregateId: input.wristbandId,
+      memberId: input.memberId,
+      payload: { assignmentId: assignment.id, memberId: input.memberId, uid: wristband.uid }
+    });
+
     return {
       id: assignment.id,
       wristbandId: assignment.wristbandId,
@@ -258,6 +298,14 @@ export class WristbandsService {
     await this.prisma.wristband.update({
       where: { id: input.wristbandId },
       data: { status: wristbandStatus }
+    });
+
+    void this.domainEvents.emit({
+      eventName: "wristband.unassigned",
+      aggregateType: "Wristband",
+      aggregateId: input.wristbandId,
+      memberId: assignment.memberId,
+      payload: { assignmentId: updated.id, memberId: updated.memberId, reason: updated.unassignedReason }
     });
 
     return {

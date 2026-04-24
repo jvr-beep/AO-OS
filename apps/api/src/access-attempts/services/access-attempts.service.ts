@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { AccessDecision } from "@prisma/client";
+import { DomainEventsService } from "../../domain-events/domain-events.service";
 import { PrismaService } from "../../prisma/prisma.service";
 import { AccessControlService } from "../../access-control/access-control.service";
 import { AccessAttemptResponseDto } from "../dto/access-attempt.response.dto";
@@ -11,7 +12,8 @@ import { ScanWristbandDto } from "../dto/scan-wristband.dto";
 export class AccessAttemptsService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly accessControl: AccessControlService
+    private readonly accessControl: AccessControlService,
+    private readonly domainEvents: DomainEventsService
   ) {}
 
   async createAttempt(input: CreateAccessAttemptDto): Promise<AccessAttemptResponseDto> {
@@ -109,6 +111,20 @@ export class AccessAttemptsService {
         }
       });
 
+      void this.domainEvents.emit({
+        eventName: evaluation.allowed ? "access.allowed" : "access.denied",
+        aggregateType: "AccessAttempt",
+        aggregateId: attempt.id,
+        memberId: assignment.memberId,
+        payload: {
+          wristbandUid: input.wristbandUid,
+          accessPointCode: input.accessPointCode,
+          accessZoneId: accessPoint.accessZoneId,
+          denialReasonCode: evaluation.denialReasonCode ?? null
+        },
+        occurredAt: occurredAt
+      });
+
       return {
         attemptId: attempt.id,
         decision: evaluation.allowed ? "allowed" : "denied",
@@ -153,6 +169,20 @@ export class AccessAttemptsService {
           denialReasonCode,
           occurredAt
         }
+      });
+
+      void this.domainEvents.emit({
+        eventName: allowed ? "access.allowed" : "access.denied",
+        aggregateType: "AccessAttempt",
+        aggregateId: attempt.id,
+        payload: {
+          wristbandUid: input.wristbandUid,
+          accessPointCode: input.accessPointCode,
+          accessZoneId: accessPoint.accessZoneId,
+          guestId: link.guestId,
+          denialReasonCode: denialReasonCode ?? null
+        },
+        occurredAt: occurredAt
       });
 
       return {

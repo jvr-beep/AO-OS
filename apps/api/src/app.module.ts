@@ -42,6 +42,8 @@ import { VoiceModule } from "./voice/voice.module";
 import { KioskModule } from "./kiosk/kiosk.module";
 import { MapStudioModule } from "./map-studio/map-studio.module";
 import { SimulationModule } from "./simulation/simulation.module";
+import { DomainEventsModule } from "./domain-events/domain-events.module";
+import { AccessGatewayModule } from "./access-gateway/access-gateway.module";
 
 @Module({
   imports: [
@@ -49,6 +51,8 @@ import { SimulationModule } from "./simulation/simulation.module";
       { name: "global", ttl: 60_000, limit: 120 },
       { name: "auth", ttl: 60_000, limit: 10 }
     ]),
+    DomainEventsModule,
+    AccessGatewayModule,
     PrismaModule,
     HealthModule,
     MembersModule,

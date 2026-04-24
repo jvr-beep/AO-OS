@@ -294,6 +294,7 @@ model Member {
   accountEntries        MemberAccountEntry[]
   roomBookings          RoomBooking[]
   roomAccessEvents      RoomAccessEvent[]
+  domainEvents          DomainEvent[]
 }
 
 model MemberProfile {
@@ -1689,5 +1690,26 @@ model MapObject {
   @@unique([floorId, code])
   @@index([floorId, objectType, active])
   @@map("map_objects")
+}
+
+model DomainEvent {
+  id            String   @id @default(uuid()) @db.Uuid
+  eventName     String   @map("event_name")
+  aggregateType String   @map("aggregate_type")
+  aggregateId   String   @map("aggregate_id")
+  memberId      String?  @map("member_id")
+  locationId    String?  @map("location_id")
+  occurredAt    DateTime @map("occurred_at") @db.Timestamptz(6)
+  payloadJson   Json     @map("payload_json")
+  sourceSystem  String?  @map("source_system")
+  correlationId String?  @map("correlation_id")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  member        Member?  @relation(fields: [memberId], references: [id], onDelete: SetNull)
+
+  @@index([eventName, occurredAt(sort: Desc)], map: "idx_domain_events_name_time")
+  @@index([memberId, occurredAt(sort: Desc)], map: "idx_domain_events_member_time")
+  @@index([aggregateType, aggregateId], map: "idx_domain_events_aggregate")
+  @@map("domain_events")
 }
 

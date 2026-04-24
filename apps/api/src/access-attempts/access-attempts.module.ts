@@ -6,6 +6,7 @@ import { AccessAttemptsService } from "./services/access-attempts.service";
 @Module({
   imports: [AccessControlModule],
   controllers: [AccessAttemptsController],
-  providers: [AccessAttemptsService]
+  providers: [AccessAttemptsService],
+  exports: [AccessAttemptsService]
 })
 export class AccessAttemptsModule {}
