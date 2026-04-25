@@ -1,5 +1,4 @@
 import { Injectable, Logger, OnModuleInit } from "@nestjs/common";
-import { ConfigService } from "@nestjs/config";
 import * as mqtt from "mqtt";
 import { AccessAttemptsService } from "../access-attempts/services/access-attempts.service";
 import { PrismaService } from "../prisma/prisma.service";
@@ -16,13 +15,12 @@ export class AccessGatewayService implements OnModuleInit {
   private client: mqtt.MqttClient | null = null;
 
   constructor(
-    private readonly config: ConfigService,
     private readonly accessAttempts: AccessAttemptsService,
     private readonly prisma: PrismaService
   ) {}
 
   onModuleInit(): void {
-    const brokerUrl = this.config.get<string>("MQTT_BROKER_URL");
+    const brokerUrl = process.env.MQTT_BROKER_URL;
 
     if (!brokerUrl) {
       this.logger.warn("MQTT_BROKER_URL not set — access gateway disabled");
@@ -31,8 +29,8 @@ export class AccessGatewayService implements OnModuleInit {
 
     this.client = mqtt.connect(brokerUrl, {
       clientId: `ao-os-gateway-${Date.now()}`,
-      username: this.config.get<string>("MQTT_USERNAME"),
-      password: this.config.get<string>("MQTT_PASSWORD"),
+      username: process.env.MQTT_USERNAME,
+      password: process.env.MQTT_PASSWORD,
       reconnectPeriod: 5000,
       connectTimeout: 10000
     });
