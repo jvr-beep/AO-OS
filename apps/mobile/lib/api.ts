@@ -149,3 +149,31 @@ export interface VisitSummary {
 export async function getVisitHistory(): Promise<VisitSummary[]> {
   return memberFetch('/members/self/visits')
 }
+
+export interface WristbandStatus {
+  assignmentId: string
+  wristbandId: string
+  uid: string
+  status: string
+  assignedAt: string
+  activatedAt: string | null
+}
+
+export async function getWristband(): Promise<WristbandStatus | null> {
+  return memberFetch('/me/wristband')
+}
+
+export interface WristbandTransaction {
+  id: string
+  transactionType: 'purchase' | 'adjustment' | 'refund'
+  merchantType: string
+  amount: string
+  currency: string
+  description: string | null
+  status: string
+  occurredAt: string
+}
+
+export async function getTransactions(): Promise<WristbandTransaction[]> {
+  return memberFetch('/me/transactions')
+}

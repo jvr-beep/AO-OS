@@ -9,16 +9,29 @@ import {
   ScrollView,
 } from 'react-native'
 import { router } from 'expo-router'
-import { getMemberProfile, MemberProfile } from '@/lib/api'
+import {
+  getMemberProfile,
+  getWristband,
+  getTransactions,
+  MemberProfile,
+  WristbandStatus,
+  WristbandTransaction,
+} from '@/lib/api'
 import { clearSession } from '@/lib/storage'
 
 export default function AccountScreen() {
   const [profile, setProfile] = useState<MemberProfile | null>(null)
+  const [wristband, setWristband] = useState<WristbandStatus | null>(null)
+  const [transactions, setTransactions] = useState<WristbandTransaction[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    getMemberProfile()
-      .then(setProfile)
+    Promise.all([getMemberProfile(), getWristband(), getTransactions()])
+      .then(([p, w, t]) => {
+        setProfile(p)
+        setWristband(w)
+        setTransactions(t)
+      })
       .finally(() => setLoading(false))
   }, [])
 
@@ -95,6 +108,57 @@ export default function AccountScreen() {
         </View>
       )}
 
+      {wristband && (
+        <View style={styles.card}>
+          <Text style={styles.cardLabel}>Wristband</Text>
+          <View style={styles.cardRow}>
+            <Text style={styles.cardKey}>UID</Text>
+            <Text style={[styles.cardVal, styles.mono]}>{wristband.uid}</Text>
+          </View>
+          <View style={styles.cardRow}>
+            <Text style={styles.cardKey}>Status</Text>
+            <Text style={[styles.cardVal, wristband.status === 'active' && styles.active]}>
+              {wristband.status}
+            </Text>
+          </View>
+          {wristband.activatedAt && (
+            <View style={styles.cardRow}>
+              <Text style={styles.cardKey}>Activated</Text>
+              <Text style={styles.cardVal}>
+                {new Date(wristband.activatedAt).toLocaleDateString('en-US', {
+                  month: 'short', day: 'numeric', year: 'numeric'
+                })}
+              </Text>
+            </View>
+          )}
+        </View>
+      )}
+
+      {transactions.length > 0 && (
+        <View style={styles.card}>
+          <Text style={styles.cardLabel}>Recent charges</Text>
+          {transactions.slice(0, 10).map((tx) => (
+            <View key={tx.id} style={styles.txRow}>
+              <View style={styles.txLeft}>
+                <Text style={styles.txMerchant}>{tx.merchantType}</Text>
+                {tx.description && (
+                  <Text style={styles.txDesc}>{tx.description}</Text>
+                )}
+                <Text style={styles.txDate}>
+                  {new Date(tx.occurredAt).toLocaleDateString('en-US', {
+                    month: 'short', day: 'numeric'
+                  })}
+                </Text>
+              </View>
+              <Text style={[styles.txAmount, tx.transactionType === 'refund' && styles.refund]}>
+                {tx.transactionType === 'refund' ? '-' : ''}
+                {tx.currency.toUpperCase()} {parseFloat(tx.amount).toFixed(2)}
+              </Text>
+            </View>
+          ))}
+        </View>
+      )}
+
       <TouchableOpacity style={styles.signOutBtn} onPress={handleSignOut}>
         <Text style={styles.signOutText}>Sign out</Text>
       </TouchableOpacity>
@@ -141,6 +205,21 @@ const styles = StyleSheet.create({
   cardKey: { fontSize: 14, color: '#666' },
   cardVal: { fontSize: 14, color: '#ccc', textTransform: 'capitalize' },
   active: { color: '#4ade80' },
+  mono: { fontFamily: 'monospace', letterSpacing: 1, fontSize: 12 },
+  txRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    paddingVertical: 6,
+    borderTopWidth: 1,
+    borderTopColor: '#222',
+  },
+  txLeft: { flex: 1, gap: 2 },
+  txMerchant: { fontSize: 13, color: '#ccc', textTransform: 'capitalize' },
+  txDesc: { fontSize: 11, color: '#555' },
+  txDate: { fontSize: 11, color: '#555' },
+  txAmount: { fontSize: 13, color: '#ccc', fontVariant: ['tabular-nums'] },
+  refund: { color: '#4ade80' },
   signOutBtn: {
     marginTop: 24,
     borderWidth: 1,

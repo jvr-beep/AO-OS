@@ -154,6 +154,44 @@ export class MeService {
     };
   }
 
+  async getWristband(memberId: string) {
+    const assignment = await this.prisma.wristbandAssignment.findFirst({
+      where: { memberId, active: true },
+      include: { wristband: true },
+      orderBy: { assignedAt: "desc" }
+    });
+
+    if (!assignment) return null;
+
+    return {
+      assignmentId: assignment.id,
+      wristbandId: assignment.wristband.id,
+      uid: assignment.wristband.uid,
+      status: assignment.wristband.status,
+      assignedAt: assignment.assignedAt.toISOString(),
+      activatedAt: assignment.wristband.activatedAt?.toISOString() ?? null
+    };
+  }
+
+  async getTransactions(memberId: string, limit = 50) {
+    const rows = await this.prisma.wristbandTransaction.findMany({
+      where: { memberId },
+      orderBy: { occurredAt: "desc" },
+      take: limit
+    });
+
+    return rows.map((r) => ({
+      id: r.id,
+      transactionType: r.transactionType,
+      merchantType: r.merchantType,
+      amount: r.amount.toString(),
+      currency: r.currency,
+      description: r.description ?? null,
+      status: r.status,
+      occurredAt: r.occurredAt.toISOString()
+    }));
+  }
+
   async updateProfile(memberId: string, dto: { preferredName?: string; pronouns?: string; marketingOptInEmail?: boolean }) {
     const member = await this.prisma.member.findUnique({ where: { id: memberId } });
     if (!member) throw new NotFoundException("Member not found");

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import { apiGet, apiPost } from '@/lib/browser-api'
 import { StatusBadge } from '@/components/status-badge'
 import type { Wristband } from '@/types/api'
@@ -164,7 +165,11 @@ export function WristbandsClient({ token, role }: { token: string; role?: string
               const isRowBusy = busyRowId === wb.id
               return (
                 <tr key={wb.id} className="hover:bg-surface-1/50 transition-colors">
-                  <td className="px-4 py-3 font-mono text-xs text-text-primary">{wb.uid}</td>
+                  <td className="px-4 py-3 font-mono text-xs text-text-primary">
+                    <Link href={`/wristbands/${wb.id}`} className="hover:underline hover:text-accent-primary">
+                      {wb.uid}
+                    </Link>
+                  </td>
                   <td className="px-4 py-3"><StatusBadge status={wb.status} /></td>
                   <td className="px-4 py-3 text-xs text-text-muted">
                     {wb.memberAlias

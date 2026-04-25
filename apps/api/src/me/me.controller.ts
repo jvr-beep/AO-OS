@@ -16,6 +16,8 @@ class UpdateProfileDto {
  * GET  /v1/me/visit        — active visit (if any)
  * GET  /v1/me/visits       — visit history
  * GET  /v1/me/subscription — full subscription details
+ * GET  /v1/me/wristband    — active wristband assignment
+ * GET  /v1/me/transactions — wristband transaction history
  * PATCH /v1/me/profile     — update profile preferences
  */
 @Controller("me")
@@ -41,6 +43,16 @@ export class MeController {
   @Get("subscription")
   getSubscription(@Req() req: any) {
     return this.meService.getSubscription(req.memberId);
+  }
+
+  @Get("wristband")
+  getWristband(@Req() req: any) {
+    return this.meService.getWristband(req.memberId);
+  }
+
+  @Get("transactions")
+  getTransactions(@Req() req: any) {
+    return this.meService.getTransactions(req.memberId);
   }
 
   @Patch("profile")
