@@ -1,6 +1,7 @@
-import { Controller, Post, Get, Body, Query, HttpCode, UseGuards, Logger } from '@nestjs/common'
+import { BadRequestException, Controller, Post, Get, Body, Query, HttpCode, NotFoundException, UseGuards, Logger } from '@nestjs/common'
 import { IsString, IsIn, IsOptional } from 'class-validator'
 import { KioskApiKeyGuard } from '../auth/guards/kiosk-api-key.guard'
+import { AccessControlService } from '../access-control/access-control.service'
 import { BillingService } from '../stripe/billing.service'
 import { VoiceService, VisitMode, RitualPhase } from '../voice/voice.service'
 import { CreateVisitPaymentIntentDto } from '../stripe/dto/create-visit-payment-intent.dto'
@@ -76,6 +77,14 @@ class ResolveQrDto {
   token!: string
 }
 
+class WristbandAssignDto {
+  @IsString()
+  visit_id!: string
+
+  @IsString()
+  wristband_uid!: string
+}
+
 @Controller('kiosk')
 @UseGuards(KioskApiKeyGuard)
 export class KioskController {
@@ -88,6 +97,7 @@ export class KioskController {
     private readonly inventoryService: InventoryService,
     private readonly qrTokenService: QrTokenService,
     private readonly prisma: PrismaService,
+    private readonly accessControl: AccessControlService,
   ) {}
 
   @Post('visit-payment')
@@ -163,6 +173,97 @@ export class KioskController {
       visit_id: dto.visit_id,
       hold_id: dto.hold_id,
     })
+  }
+
+  /**
+   * Links a wristband UID to an active visit, stamps zone permissions,
+   * and transitions the visit to checked_in.
+   * Called by the kiosk assign page when staff places the band on the reader.
+   */
+  @Post('wristband-assign')
+  @HttpCode(200)
+  async assignWristband(@Body() dto: WristbandAssignDto) {
+    const visit = await this.prisma.visit.findUnique({
+      where: { id: dto.visit_id },
+      include: { tier: true },
+    })
+    if (!visit) throw new NotFoundException('Visit not found')
+    if (!['paid_pending_assignment', 'checked_in'].includes(visit.status)) {
+      throw new BadRequestException(`Visit is in status '${visit.status}' — cannot assign wristband`)
+    }
+
+    // Find or provision the wristband
+    let wristband = await this.prisma.wristband.findFirst({ where: { uid: dto.wristband_uid } })
+    if (!wristband) {
+      wristband = await this.prisma.wristband.create({
+        data: { uid: dto.wristband_uid, status: 'active' },
+      })
+    }
+
+    if (['suspended', 'retired', 'replaced'].includes(wristband.status)) {
+      throw new BadRequestException(`Wristband ${dto.wristband_uid} is ${wristband.status}`)
+    }
+
+    // Revoke any existing active link for this wristband (re-issue scenario)
+    await this.prisma.wristbandLink.updateMany({
+      where: { wristbandId: wristband.id, linkStatus: 'active' },
+      data: { linkStatus: 'revoked', reasonCode: 'reassigned' },
+    })
+
+    const validFrom = new Date()
+    const validUntil = new Date(validFrom.getTime() + visit.durationMinutes * 60 * 1000)
+
+    // Link wristband to guest visit
+    await this.prisma.wristbandLink.create({
+      data: {
+        wristbandId: wristband.id,
+        guestId: visit.guestId,
+        visitId: visit.id,
+        linkStatus: 'active',
+      },
+    })
+
+    // Stamp zone permissions for the visit tier
+    await this.accessControl.grantVisitZonePermissions({
+      visitId: visit.id,
+      wristbandId: wristband.id,
+      tierCode: visit.tier.code,
+      validFrom,
+      validUntil,
+    })
+
+    // Activate the wristband if it was in inventory/unassigned
+    if (!['active', 'assigned'].includes(wristband.status)) {
+      await this.prisma.wristband.update({
+        where: { id: wristband.id },
+        data: { status: 'active' },
+      })
+    }
+
+    // Transition visit to checked_in
+    if (visit.status === 'paid_pending_assignment') {
+      await this.prisma.visit.update({
+        where: { id: visit.id },
+        data: { status: 'checked_in', version: { increment: 1 } },
+      })
+      await this.prisma.visitStatusHistory.create({
+        data: {
+          visitId: visit.id,
+          previousStatus: visit.status,
+          newStatus: 'checked_in',
+          reasonCode: 'wristband_assigned',
+        },
+      })
+    }
+
+    this.logger.log(`wristband-assign: visit=${visit.id} band=${dto.wristband_uid} tier=${visit.tier.code}`)
+
+    return {
+      wristband_id: wristband.id,
+      wristband_uid: wristband.uid,
+      visit_id: visit.id,
+      valid_until: validUntil.toISOString(),
+    }
   }
 
   /**

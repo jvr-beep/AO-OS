@@ -363,6 +363,36 @@ export async function selectRoomAction(formData: FormData): Promise<void> {
   redirect(session.clientSecret ? '/kiosk/payment' : '/kiosk/assign')
 }
 
+// ── Step 5a: Assign wristband UID and activate zone permissions ──────────
+
+export async function assignWristbandAction(formData: FormData): Promise<void> {
+  const session = await getKioskSession()
+  if (!session.visitId) redirect('/kiosk')
+
+  const wristbandUid = formData.get('wristband_uid')?.toString().trim()
+  if (!wristbandUid) redirect('/kiosk/assign?error=Please+scan+or+enter+a+wristband+UID')
+
+  try {
+    const res = await fetch(`${API_BASE}/kiosk/wristband-assign`, {
+      method: 'POST',
+      headers: { ...LOCATION_HEADERS, 'x-ao-kiosk-secret': process.env.KIOSK_API_SECRET ?? '' },
+      body: JSON.stringify({ visit_id: session.visitId, wristband_uid: wristbandUid }),
+    })
+
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}))
+      redirect(`/kiosk/assign?error=${encodeURIComponent(body?.message ?? 'Wristband assignment failed')}`)
+    }
+  } catch (err: any) {
+    if (err?.digest?.startsWith('NEXT_REDIRECT')) throw err
+    redirect(`/kiosk/assign?error=${encodeURIComponent(err?.message ?? 'Assignment failed')}`)
+  }
+
+  session.wristbandAssigned = true
+  await session.save()
+  redirect('/kiosk/active')
+}
+
 // ── Step 5: Complete visit after wristband assigned ───────────────────────
 
 export async function completeKioskAction(): Promise<void> {
