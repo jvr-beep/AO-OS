@@ -1,0 +1,21 @@
+name: Seed Floor Maps
+on:
+  workflow_dispatch:
+
+jobs:
+  seed:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run seed script on VM
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.VM_SSH_KEY }}
+          timeout: 5m
+          command_timeout: 5m
+          script: |
+            set -e
+            cd ~/AO-OS
+            git pull origin main
+            docker exec ao-os-api node /app/scripts/seed-floor-maps.mjs
