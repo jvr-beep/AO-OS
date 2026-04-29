@@ -1,0 +1,32 @@
+name: Test Resend Email
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check Resend provider and send test email
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.VM_SSH_KEY }}
+          timeout: 2m
+          command_timeout: 90s
+          script: |
+            docker exec ao-os-api node -e "
+            const key = process.env.RESEND_API_KEY;
+            console.log('RESEND_API_KEY present:', !!key, '| prefix:', key ? key.substring(0,8) : 'MISSING');
+            if (!key) { process.exit(1); }
+            fetch('https://api.resend.com/emails', {
+              method: 'POST',
+              headers: { 'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                from: 'AO OS <noreply@aosanctuary.com>',
+                to: 'jvr@aosanctuary.com',
+                subject: 'AO OS — Email is live',
+                html: '<p>Resend is wired up and working. Transactional email is now active on AO OS.</p>'
+              })
+            }).then(r => r.json()).then(j => { console.log('Resend response:', JSON.stringify(j)); process.exit(j.id ? 0 : 1); }).catch(e => { console.error(e); process.exit(1); });
+            "
