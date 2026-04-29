@@ -16,10 +16,17 @@ jobs:
     steps:
       - name: Ping API health endpoint
         id: api
+        env:
+          MONITOR_KEY: ${{ secrets.MONITOR_API_KEY }}
         run: |
-          code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 \
+          # Pass the monitor key so Cloudflare passes the request through.
+          # Unauthenticated requests from GH Actions runner IPs are blocked (403).
+          args=(-s --max-time 15)
+          [[ -n "${MONITOR_KEY:-}" ]] && args+=(-H "Authorization: Bearer ${MONITOR_KEY}")
+          code=$(curl "${args[@]}" -o /dev/null -w "%{http_code}" \
             https://api.aosanctuary.com/v1/health || echo "000")
-          body=$(curl -s --max-time 15 https://api.aosanctuary.com/v1/health || echo "unreachable")
+          body=$(curl "${args[@]}" \
+            https://api.aosanctuary.com/v1/health || echo "unreachable")
           echo "code=$code" >> "$GITHUB_OUTPUT"
           echo "body=$body" >> "$GITHUB_OUTPUT"
 
