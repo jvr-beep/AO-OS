@@ -18,4 +18,10 @@ jobs:
             set -e
             cd ~/AO-OS
             git pull origin main
+            # Copy seed script and SVG assets into the running container
+            docker exec ao-os-api mkdir -p /app/scripts/floor-plans
+            docker cp scripts/seed-floor-maps.mjs ao-os-api:/app/scripts/seed-floor-maps.mjs
+            docker cp scripts/floor-plans/main-floor.svg ao-os-api:/app/scripts/floor-plans/main-floor.svg
+            docker cp scripts/floor-plans/2nd-floor.svg ao-os-api:/app/scripts/floor-plans/2nd-floor.svg
+            docker cp scripts/floor-plans/3rd-floor.svg ao-os-api:/app/scripts/floor-plans/3rd-floor.svg
             docker exec ao-os-api node /app/scripts/seed-floor-maps.mjs
