@@ -23,11 +23,13 @@ jobs:
           echo "code=$code" >> "$GITHUB_OUTPUT"
           echo "body=$body" >> "$GITHUB_OUTPUT"
 
-      - name: Ping Web login page
+      - name: Ping Web app root (follows redirects — catches middleware failures)
         id: web
         run: |
-          code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 \
-            https://app.aosanctuary.com/login || echo "000")
+          # Check root URL following redirects; final page must be 200
+          # If middleware is broken, root has no page.tsx fallback → 404
+          code=$(curl -sL -o /dev/null -w "%{http_code}" --max-time 15 \
+            https://app.aosanctuary.com/ || echo "000")
           echo "code=$code" >> "$GITHUB_OUTPUT"
 
       - name: Evaluate overall health
@@ -87,7 +89,7 @@ jobs:
             echo "| Service | HTTP Status |"
             echo "|---------|-------------|"
             echo "| API \`api.aosanctuary.com/v1/health\` | \`$API_CODE\` |"
-            echo "| Web \`app.aosanctuary.com/login\` | \`$WEB_CODE\` |"
+            echo "| Web \`app.aosanctuary.com/\` (follows redirect) | \`$WEB_CODE\` |"
             echo ""
             echo "**API response body:**"
             echo '```'
