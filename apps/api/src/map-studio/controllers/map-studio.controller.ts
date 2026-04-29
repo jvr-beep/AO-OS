@@ -190,4 +190,12 @@ export class MapStudioController {
   analyzeFloor(@Param("floorId") floorId: string): Promise<MapAiAnalysisResponseDto> {
     return this.mapStudioService.analyzeFloor(floorId);
   }
+
+  // ── Zone editor data ──────────────────────────────────────────────────────
+
+  @Get("floors/:floorId/editor-data")
+  @Roles("operations", "admin")
+  getEditorData(@Param("floorId") floorId: string): Promise<{ rooms: unknown[]; accessZones: unknown[] }> {
+    return this.mapStudioService.getEditorData(floorId);
+  }
 }

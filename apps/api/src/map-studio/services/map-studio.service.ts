@@ -686,4 +686,27 @@ export class MapStudioService {
       updatedAt: o.updatedAt,
     };
   }
+
+  // ── Editor data ───────────────────────────────────────────────────────────
+
+  async getEditorData(floorId: string): Promise<{ rooms: unknown[]; accessZones: unknown[] }> {
+    await this.assertFloorOwnership(floorId);
+    const floor = await this.prisma.mapFloor.findFirstOrThrow({
+      where: { id: floorId },
+      select: { locationId: true },
+    });
+    const [rooms, accessZones] = await Promise.all([
+      this.prisma.room.findMany({
+        where: { locationId: floor.locationId, active: true },
+        select: { id: true, code: true, name: true, roomType: true, status: true },
+        orderBy: { code: "asc" },
+      }),
+      this.prisma.accessZone.findMany({
+        where: { locationId: floor.locationId },
+        select: { id: true, code: true, name: true },
+        orderBy: { code: "asc" },
+      }),
+    ]);
+    return { rooms, accessZones };
+  }
 }

@@ -1,8 +1,9 @@
 'use client'
 
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { ZoneEditor, type ExistingMapObject } from './ZoneEditor'
 
-type Tab = 'upload' | 'versions' | 'objects' | 'ai'
+type Tab = 'editor' | 'upload' | 'versions' | 'objects' | 'ai'
 
 interface MapFloorVersion {
   id: string
@@ -76,9 +77,13 @@ const API = 'https://api.aosanctuary.com/v1'
 export function MapStudioAuthoringPanel({ floorId, token }: { floorId: string; token: string }) {
   const base = `${API}/map-studio/floors/${floorId}`
   const auth = { Authorization: `Bearer ${token}` }
-  const [tab, setTab] = useState<Tab>('upload')
+  const [tab, setTab] = useState<Tab>('editor')
   const [versions, setVersions] = useState<MapFloorVersion[] | null>(null)
   const [objects, setObjects] = useState<MapObject[] | null>(null)
+
+  // Live SVG + map objects for the zone editor
+  const [liveSvg, setLiveSvg] = useState<string | null>(null)
+  const [editorObjects, setEditorObjects] = useState<ExistingMapObject[]>([])
   const [approvals, setApprovals] = useState<Record<string, ApprovalState | null>>({})
   const [aiAnalysis, setAiAnalysis] = useState<AiAnalysis | null>(null)
   const [busy, setBusy] = useState(false)
@@ -102,6 +107,29 @@ export function MapStudioAuthoringPanel({ floorId, token }: { floorId: string; t
     setMsg({ text, error })
     setTimeout(() => setMsg(null), 5000)
   }
+
+  // Load live SVG + objects for the zone editor
+  const loadEditorData = useCallback(async () => {
+    try {
+      const [liveRes, objRes] = await Promise.all([
+        fetch(`${base}/live`, { headers: auth, cache: 'no-store' }),
+        fetch(`${base}/objects`, { headers: auth, cache: 'no-store' }),
+      ])
+      if (liveRes.ok) {
+        const live = await liveRes.json()
+        setLiveSvg(live.svgContent ?? null)
+      }
+      if (objRes.ok) {
+        const objs: MapObject[] = await objRes.json()
+        setEditorObjects(objs.map((o) => ({
+          id: o.id, code: o.code, label: o.label, objectType: o.objectType,
+          svgElementId: o.svgElementId, roomId: o.roomId, accessZoneId: o.accessZoneId,
+        })))
+      }
+    } catch { /* non-blocking */ }
+  }, [floorId])
+
+  useEffect(() => { void loadEditorData() }, [loadEditorData])
 
   // ── Versions ──────────────────────────────────────────────────────────────
 
@@ -131,6 +159,7 @@ export function MapStudioAuthoringPanel({ floorId, token }: { floorId: string; t
 
   const handleTabClick = (t: Tab) => {
     setTab(t)
+    if (t === 'editor') loadEditorData()
     if (t === 'versions' && !versions) loadVersions()
     if (t === 'objects' && !objects) loadObjects()
   }
@@ -296,7 +325,8 @@ export function MapStudioAuthoringPanel({ floorId, token }: { floorId: string; t
   return (
     <div className="card">
       {/* Tabs */}
-      <div className="flex border-b border-border-subtle px-4">
+      <div className="flex border-b border-border-subtle px-4 gap-1 overflow-x-auto">
+        <button className={tabClass('editor')} onClick={() => handleTabClick('editor')}>Zone Editor</button>
         <button className={tabClass('upload')} onClick={() => handleTabClick('upload')}>Upload SVG</button>
         <button className={tabClass('versions')} onClick={() => handleTabClick('versions')}>Versions</button>
         <button className={tabClass('objects')} onClick={() => handleTabClick('objects')}>Objects</button>
@@ -311,6 +341,17 @@ export function MapStudioAuthoringPanel({ floorId, token }: { floorId: string; t
       )}
 
       <div className="p-4">
+        {/* ── Zone Editor Tab ───────────────────────────────── */}
+        {tab === 'editor' && (
+          <ZoneEditor
+            floorId={floorId}
+            token={token}
+            svgContent={liveSvg}
+            mapObjects={editorObjects}
+            onPublished={() => { loadEditorData(); loadVersions() }}
+          />
+        )}
+
         {/* ── Upload Tab ────────────────────────────────────── */}
         {tab === 'upload' && (
           <div className="space-y-4 max-w-xl">
