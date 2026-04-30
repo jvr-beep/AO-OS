@@ -76,7 +76,8 @@ export function MembersClient({ token }: { token: string }) {
       </div>
 
       <div className="card overflow-hidden">
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto">
+        <table className="w-full min-w-[580px] text-sm">
           <thead className="bg-surface-0 border-b border-border-subtle">
             <tr>
               <th className="text-left px-4 py-3 text-xs font-semibold text-accent-primary uppercase tracking-wide">AO Alias</th>
@@ -106,6 +107,7 @@ export function MembersClient({ token }: { token: string }) {
             ))}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   )

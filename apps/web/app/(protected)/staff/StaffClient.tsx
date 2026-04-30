@@ -60,7 +60,8 @@ export function StaffClient({ token }: { token: string }) {
             )}
           </div>
         </div>
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto">
+        <table className="w-full min-w-[580px] text-sm">
           <thead className="bg-surface-2 border-b border-border-subtle">
             <tr>
               <th className="text-left px-4 py-3 text-xs font-semibold text-text-secondary uppercase tracking-wide">Name</th>
@@ -88,6 +89,7 @@ export function StaffClient({ token }: { token: string }) {
             )}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   )

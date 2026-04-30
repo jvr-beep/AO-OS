@@ -39,7 +39,8 @@ export function RoomsClient({ token }: { token: string }) {
             {query && <button onClick={() => setQuery('')} className="btn-secondary">Clear</button>}
           </div>
         </div>
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto">
+        <table className="w-full text-sm min-w-[580px]">
           <thead className="bg-surface-0 border-b border-border-subtle">
             <tr>
               <th className="text-left px-4 py-3 text-xs font-semibold text-accent-primary uppercase tracking-wide">Code</th>
@@ -82,6 +83,7 @@ export function RoomsClient({ token }: { token: string }) {
             ))}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   )

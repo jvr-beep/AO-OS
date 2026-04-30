@@ -87,7 +87,8 @@ export function VisitsClient({ token, staffUserId }: { token: string; staffUserI
       </div>
 
       <div className="card overflow-hidden">
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto">
+        <table className="w-full min-w-[640px] text-sm">
           <thead className="bg-surface-0 border-b border-border-subtle">
             <tr>
               <th className="text-left px-4 py-3 text-xs font-semibold text-text-muted uppercase tracking-wide">Guest</th>
@@ -138,6 +139,7 @@ export function VisitsClient({ token, staffUserId }: { token: string; staffUserI
             })}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   )

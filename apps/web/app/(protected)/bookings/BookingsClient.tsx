@@ -115,7 +115,8 @@ export function BookingsClient({ token, prefilledRoomId, prefilledMemberId }: { 
             {query && <button onClick={() => setQuery('')} className="btn-secondary">Clear</button>}
           </div>
         </div>
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto">
+        <table className="w-full min-w-[640px] text-sm">
           <thead className="bg-surface-0 border-b border-border-subtle">
             <tr>
               <th className="text-left px-4 py-3 text-xs font-semibold text-accent-primary uppercase tracking-wide">Start</th>
@@ -171,6 +172,7 @@ export function BookingsClient({ token, prefilledRoomId, prefilledMemberId }: { 
             })}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   )

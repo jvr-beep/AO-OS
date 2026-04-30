@@ -193,7 +193,8 @@ export function LockersClient({ token, role, staffUserId }: { token: string; rol
                 Zone: {zone}<span className="ml-2 text-text-muted font-normal">({zoneGroups[zone].length})</span>
               </p>
             </div>
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto">
+            <table className="w-full min-w-[580px] text-sm">
               <thead className="bg-surface-0 border-b border-border-subtle">
                 <tr>
                   <th className="text-left px-4 py-2 text-xs font-semibold text-accent-primary uppercase tracking-wide">Code</th>
@@ -217,6 +218,7 @@ export function LockersClient({ token, role, staffUserId }: { token: string; rol
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
         ))}
       </div>

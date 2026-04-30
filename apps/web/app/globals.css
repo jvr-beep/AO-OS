@@ -30,15 +30,15 @@
   }
 
   h1 {
-    @apply font-heading text-3xl uppercase tracking-widest text-text-primary;
+    @apply font-heading text-xl md:text-3xl uppercase tracking-widest text-text-primary;
   }
 
   h2 {
-    @apply font-heading text-xl uppercase tracking-wider text-text-secondary;
+    @apply font-heading text-base md:text-xl uppercase tracking-wider text-text-secondary;
   }
 
   h3 {
-    @apply font-heading text-base uppercase tracking-wide text-text-primary;
+    @apply font-heading text-sm md:text-base uppercase tracking-wide text-text-primary;
   }
 
   a {
@@ -49,20 +49,22 @@
 @layer components {
   /* Primary action — ghost button, teal border, ivory text */
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded
            font-sans font-medium text-sm tracking-wide transition-all
            border border-accent-primary text-text-primary
            hover:bg-accent-primary hover:text-surface-0
-           active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100;
+           active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100
+           min-h-[44px] md:min-h-0 md:py-2;
   }
 
   /* Secondary action */
   .btn-secondary {
-    @apply inline-flex items-center justify-center px-4 py-2 rounded
+    @apply inline-flex items-center justify-center px-4 py-2.5 rounded
            font-sans font-medium text-sm transition-all
            border border-border-subtle text-text-secondary
            hover:border-accent-primary hover:text-text-primary
-           active:scale-95;
+           active:scale-95
+           min-h-[44px] md:min-h-0 md:py-2;
   }
 
   /* Cards / content containers */

@@ -146,7 +146,8 @@ export function WristbandsClient({ token, role }: { token: string; role?: string
             {query && <button onClick={() => setQuery('')} className="btn-secondary">Clear</button>}
           </div>
         </div>
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto">
+        <table className="w-full min-w-[580px] text-sm">
           <thead className="border-b border-border-subtle bg-surface-0">
             <tr>
               <th className="text-left px-4 py-3 text-xs font-semibold text-accent-primary uppercase tracking-wide">UID</th>
@@ -199,6 +200,7 @@ export function WristbandsClient({ token, role }: { token: string; role?: string
             })}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   )
