@@ -13,8 +13,9 @@ jobs:
     name: Enable auto-merge for Copilot PRs
     runs-on: ubuntu-latest
     if: |
-      contains(github.event.pull_request.labels.*.name, 'copilot') ||
-      startsWith(github.head_ref, 'copilot/')
+      (contains(github.event.pull_request.labels.*.name, 'copilot') ||
+       startsWith(github.head_ref, 'copilot/')) &&
+      !github.event.pull_request.draft
 
     steps:
       - name: Enable auto-merge
