@@ -69,11 +69,13 @@ export default async function DashboardPage() {
 
   return (
     <div className="max-w-5xl mx-auto py-8 px-4">
-      <h1 className="text-3xl font-bold mb-2 tracking-tight">AO OS Staff Dashboard</h1>
+      <h1 className="text-[clamp(1.75rem,5vw,3.5rem)] leading-tight font-bold mb-2 tracking-tight break-words">
+        AO OS Staff Dashboard
+      </h1>
       <p className="text-text-muted mb-8">Instant operating picture: occupancy, arrivals, cleaning, and alerts.</p>
 
       {/* Primary metrics */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-4">
         <StatWidget label="Active Visits" value={snapshot?.active_visits} />
         <StatWidget label="Check-ins Today" value={snapshot?.checkins_today} />
         <StatWidget
@@ -89,7 +91,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* Resource metrics */}
-      <div className="grid grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-8">
         <StatWidget label="Available Resources" value={snapshot?.available_resources} accent={snapshot?.available_resources === 0 ? 'critical' : undefined} />
         <StatWidget label="Occupied" value={snapshot?.occupied_resources} />
         <StatWidget label="On Hold" value={snapshot?.held_resources} />
@@ -185,9 +187,11 @@ function StatWidget({
 }) {
   const valueClass = accent === 'critical' ? 'text-critical' : 'text-text-primary'
   return (
-    <div className="rounded-lg bg-surface-1 border border-border-subtle p-4 shadow-sm">
-      <p className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-2">{label}</p>
-      <p className={`text-3xl font-bold ${valueClass}`}>
+    <div className="rounded-lg bg-surface-1 border border-border-subtle p-4 shadow-sm min-w-0">
+      <p className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-2 whitespace-normal break-words">
+        {label}
+      </p>
+      <p className={`text-3xl font-bold break-words ${valueClass}`}>
         {value == null ? <span className="text-text-muted text-lg">—</span> : value}
       </p>
     </div>
