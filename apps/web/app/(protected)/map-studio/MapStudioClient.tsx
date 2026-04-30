@@ -18,7 +18,9 @@ function levelLabel(level: number): string {
   return `Basement ${Math.abs(level)}`
 }
 
-function NewFloorForm({ onCreated }: { onCreated: () => void }) {
+const API = 'https://api.aosanctuary.com/v1'
+
+function NewFloorForm({ token, onCreated }: { token: string; onCreated: () => void }) {
   const [open, setOpen] = useState(false)
   const [name, setName] = useState('')
   const [level, setLevel] = useState('0')
@@ -32,9 +34,9 @@ function NewFloorForm({ onCreated }: { onCreated: () => void }) {
     setBusy(true)
     setError(null)
     try {
-      const res = await fetch('/api/map-studio/floors', {
+      const res = await fetch(`${API}/map-studio/floors`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
           name: name.trim(),
           level: parseInt(level, 10),
@@ -120,10 +122,16 @@ export function MapStudioClient({ token }: { token: string }) {
 
   const load = () => {
     setLoading(true)
-    fetch('/api/map-studio/floors', { cache: 'no-store' })
-      .then((r) => r.json())
-      .then(setFloors)
-      .catch((e) => setError(e.message))
+    fetch(`${API}/map-studio/floors`, {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: 'no-store',
+    })
+      .then((r) => {
+        if (!r.ok) throw new Error(`API error ${r.status}`)
+        return r.json()
+      })
+      .then((data: MapFloor[]) => setFloors(Array.isArray(data) ? data : []))
+      .catch((e: unknown) => setError(e instanceof Error ? e.message : 'Failed to load floors'))
       .finally(() => setLoading(false))
   }
 
@@ -139,7 +147,7 @@ export function MapStudioClient({ token }: { token: string }) {
       </div>
       {error && <div className="mb-4 rounded border border-critical/40 bg-critical/10 px-4 py-3 text-sm text-critical">{error}</div>}
 
-      <NewFloorForm onCreated={load} />
+      <NewFloorForm token={token} onCreated={load} />
 
       {floors.length === 0 && !error ? (
         <div className="card p-8 text-center text-sm text-text-muted">No floors configured for this location. Create one above to get started.</div>
