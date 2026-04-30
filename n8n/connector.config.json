@@ -1,0 +1,102 @@
+{
+  "version": "1",
+  "description": "AO OS ↔ n8n ↔ Notion connector configuration",
+  "n8n": {
+    "url": "https://ao-os.app.n8n.cloud",
+    "apiBaseUrl": "https://ao-os.app.n8n.cloud/api/v1",
+    "webhookBaseUrl": "https://ao-os.app.n8n.cloud/webhook"
+  },
+  "aoosApi": {
+    "baseUrl": "https://api.aosanctuary.com/v1",
+    "authEndpoint": "/auth/login",
+    "eventsEndpoint": "/events/poll"
+  },
+  "notion": {
+    "databases": {
+      "operationalLog": {
+        "name": "AO OS - Operational Log",
+        "envVar": "NOTION_OPERATIONAL_LOG_DB_ID",
+        "description": "All AO OS events polled every 30 minutes from the API",
+        "fields": [
+          "Title",
+          "Event Type",
+          "Status",
+          "Severity",
+          "Timestamp",
+          "Member ID",
+          "Locker ID",
+          "Room ID",
+          "Decision",
+          "Denial Reason",
+          "Raw Data",
+          "Polled At"
+        ]
+      },
+      "healthCheck": {
+        "name": "AO OS - Health Check Log",
+        "envVar": "NOTION_HEALTH_CHECK_DB_ID",
+        "description": "Auth health check results written by the health-check workflow",
+        "fields": [
+          "Name",
+          "Workflow Name",
+          "Status",
+          "Timestamp"
+        ]
+      }
+    }
+  },
+  "workflows": [
+    {
+      "file": "n8n/workflows/health-check.json",
+      "name": "AO OS Auth Health Check",
+      "direction": "n8n → Notion",
+      "trigger": "manual",
+      "description": "Validates API auth endpoint and logs result to Notion"
+    },
+    {
+      "file": "n8n/workflows/notion-to-n8n-webhook.json",
+      "name": "AO OS Notion → n8n Webhook",
+      "direction": "Notion → n8n",
+      "trigger": "webhook",
+      "webhookPath": "/ao-os/notion-event",
+      "description": "Receives Notion automation webhooks and routes to AO OS API"
+    }
+  ],
+  "requiredEnvVars": [
+    {
+      "name": "NOTION_OPERATIONAL_LOG_DB_ID",
+      "description": "Notion Database ID for the Operational Log",
+      "example": "abc123def456ghi789jkl012"
+    },
+    {
+      "name": "NOTION_HEALTH_CHECK_DB_ID",
+      "description": "Notion Database ID for the Health Check Log",
+      "example": "xyz789abc123def456ghi012"
+    },
+    {
+      "name": "AO_OS_API_BASE",
+      "description": "Base URL of the AO OS API",
+      "example": "https://api.aosanctuary.com/v1"
+    },
+    {
+      "name": "AO_OS_STAFF_EMAIL",
+      "description": "Staff email for API authentication",
+      "example": "staff@ao-os.local"
+    },
+    {
+      "name": "AO_OS_STAFF_PASSWORD",
+      "description": "Staff password for API authentication — store in secrets manager, never in plain text",
+      "example": "(use GitHub secrets or n8n credentials vault)"
+    },
+    {
+      "name": "STAFF_DIGEST_EMAIL",
+      "description": "Email address to receive critical event alerts",
+      "example": "operations@ao-os.local"
+    },
+    {
+      "name": "NOTION_WEBHOOK_SECRET",
+      "description": "Shared secret for validating incoming Notion automation webhooks",
+      "example": "a-random-secret-string"
+    }
+  ]
+}
