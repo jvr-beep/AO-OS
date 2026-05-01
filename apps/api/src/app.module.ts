@@ -44,6 +44,7 @@ import { MapStudioModule } from "./map-studio/map-studio.module";
 import { SimulationModule } from "./simulation/simulation.module";
 import { DomainEventsModule } from "./domain-events/domain-events.module";
 import { AccessGatewayModule } from "./access-gateway/access-gateway.module";
+import { GuestAppModule } from "./guest-app/guest-app.module";
 
 @Module({
   imports: [
@@ -93,6 +94,7 @@ import { AccessGatewayModule } from "./access-gateway/access-gateway.module";
     KioskModule,
     MapStudioModule,
     SimulationModule,
+    GuestAppModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard }

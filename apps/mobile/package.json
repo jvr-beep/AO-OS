@@ -21,6 +21,7 @@
     "expo-constants": "~16.0.2",
     "react": "18.2.0",
     "react-native": "0.74.5",
+    "@stripe/stripe-react-native": "0.38.0",
     "react-native-qrcode-svg": "^6.3.2",
     "react-native-signature-canvas": "^4.7.2",
     "react-native-webview": "13.8.6",

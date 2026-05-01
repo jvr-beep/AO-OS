@@ -14,7 +14,14 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.aosanctuary.app",
-      "buildNumber": "1"
+      "buildNumber": "1",
+      "infoPlist": {
+        "NSUserTrackingUsageDescription": "AO Sanctuary does not track you.",
+        "ITSAppUsesNonExemptEncryption": false
+      },
+      "privacyManifests": {
+        "NSPrivacyAccessedAPITypes": []
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -22,11 +29,13 @@
         "backgroundColor": "#0a0a0a"
       },
       "package": "com.aosanctuary.app",
-      "versionCode": 1
+      "versionCode": 1,
+      "permissions": []
     },
     "plugins": [
       "expo-router",
-      "expo-secure-store"
+      "expo-secure-store",
+      "@stripe/stripe-react-native"
     ],
     "scheme": "ao-sanctuary",
     "experiments": {
@@ -35,7 +44,9 @@
     "extra": {
       "eas": {
         "projectId": "ao-sanctuary"
-      }
+      },
+      "stripePublishableKey": "",
+      "apiBaseUrl": "https://api.aosanctuary.com/v1"
     }
   }
 }

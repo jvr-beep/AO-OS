@@ -14,7 +14,7 @@ export default function RootLayout() {
 
     getSession().then((session) => {
       if (!session) {
-        router.replace('/(auth)/login')
+        router.replace('/(auth)/welcome')
       } else {
         router.replace('/(app)/')
       }
