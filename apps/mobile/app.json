@@ -45,7 +45,7 @@
       "eas": {
         "projectId": "ao-sanctuary"
       },
-      "stripePublishableKey": "",
+      "stripePublishableKey": "pk_live_51TSRXpBHYucDWKuUvNlveR1j75u9WrCl3aH2KMyOLAyNNRuC83Qcxq9KirE34BvLX4g9j5BAwcb4l5BeJkYn7vy400iUqksvXq",
       "apiBaseUrl": "https://api.aosanctuary.com/v1"
     }
   }

@@ -1,0 +1,20 @@
+name: Set Stripe publishable key in Vercel
+on:
+  workflow_dispatch:
+
+jobs:
+  set-env:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Add NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY to Vercel
+        run: |
+          curl -s -X POST \
+            "https://api.vercel.com/v10/projects/prj_6IlYeR5DySHmvLIoWIGFbuhzPxSh/env?teamId=team_iuQ1aHpcZbVJQES1EQzvKKqr" \
+            -H "Authorization: Bearer ${{ secrets.VERCEL_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "key": "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY",
+              "value": "${{ secrets.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY }}",
+              "type": "plain",
+              "target": ["production", "preview", "development"]
+            }' | jq '{key: .key, created: .createdAt}'
