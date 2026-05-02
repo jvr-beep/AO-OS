@@ -8,13 +8,10 @@ jobs:
     steps:
       - name: Add NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY to Vercel
         run: |
-          curl -s -X POST \
+          RESPONSE=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -X POST \
             "https://api.vercel.com/v10/projects/prj_6IlYeR5DySHmvLIoWIGFbuhzPxSh/env?teamId=team_iuQ1aHpcZbVJQES1EQzvKKqr" \
             -H "Authorization: Bearer ${{ secrets.VERCEL_TOKEN }}" \
             -H "Content-Type: application/json" \
-            -d '{
-              "key": "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY",
-              "value": "${{ secrets.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY }}",
-              "type": "plain",
-              "target": ["production", "preview", "development"]
-            }' | jq '{key: .key, created: .createdAt}'
+            --data-raw "{\"key\":\"NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY\",\"value\":\"${{ secrets.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY }}\",\"type\":\"plain\",\"target\":[\"production\",\"preview\",\"development\"]}")
+          echo "$RESPONSE" | grep -v HTTP_STATUS | jq .
+          echo "$RESPONSE" | grep HTTP_STATUS
