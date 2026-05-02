@@ -35,7 +35,13 @@
     "plugins": [
       "expo-router",
       "expo-secure-store",
-      "@stripe/stripe-react-native"
+      [
+        "@stripe/stripe-react-native",
+        {
+          "merchantIdentifier": "merchant.com.aosanctuary.app",
+          "enableGooglePay": false
+        }
+      ]
     ],
     "scheme": "ao-sanctuary",
     "experiments": {
@@ -43,10 +49,14 @@
     },
     "extra": {
       "eas": {
-        "projectId": "ao-sanctuary"
+        "projectId": "4f2b2454-a27f-49e9-9868-708df22a710b"
       },
       "stripePublishableKey": "pk_live_51TSRXpBHYucDWKuUvNlveR1j75u9WrCl3aH2KMyOLAyNNRuC83Qcxq9KirE34BvLX4g9j5BAwcb4l5BeJkYn7vy400iUqksvXq",
-      "apiBaseUrl": "https://api.aosanctuary.com/v1"
-    }
+      "apiBaseUrl": "https://api.aosanctuary.com/v1",
+      "router": {
+        "origin": false
+      }
+    },
+    "owner": "jvr_beep"
   }
 }

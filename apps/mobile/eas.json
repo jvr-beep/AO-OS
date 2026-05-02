@@ -29,9 +29,7 @@
   "submit": {
     "production": {
       "ios": {
-        "appleId": "jvr@aosanctuary.com",
-        "ascAppId": "",
-        "appleTeamId": ""
+        "appleId": "jvr@aosanctuary.com"
       },
       "android": {
         "serviceAccountKeyPath": "./google-service-account.json",
