@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator, Alert,
+  KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator, Alert, Linking,
 } from 'react-native'
 import { router } from 'expo-router'
 import { identifyGuest } from '@/lib/guest-api'
@@ -28,6 +28,9 @@ export default function InfoScreen() {
       })
       bookingState.guestId = result.guestId
       bookingState.guestToken = result.guestToken
+      bookingState.guestFirstName = firstName.trim()
+      bookingState.guestEmail = email.trim()
+      bookingState.guestPhone = phone.trim()
       router.push('/(guest)/waiver')
     } catch (err: any) {
       Alert.alert('Error', err.message ?? 'Could not continue. Please try again.')
@@ -102,9 +105,9 @@ export default function InfoScreen() {
         <View style={styles.privacyBox}>
           <Text style={styles.privacyText}>
             By continuing you agree to our{' '}
-            <Text style={styles.privacyLink}>Privacy Policy</Text>
+            <Text style={styles.privacyLink} onPress={() => Linking.openURL('https://aosanctuary.com/privacy')}>Privacy Policy</Text>
             {' '}and{' '}
-            <Text style={styles.privacyLink}>Terms of Service</Text>.
+            <Text style={styles.privacyLink} onPress={() => Linking.openURL('https://aosanctuary.com/terms')}>Terms of Service</Text>.
             Your information is used solely to manage your visit.
           </Text>
         </View>

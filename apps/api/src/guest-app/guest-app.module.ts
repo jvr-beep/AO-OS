@@ -4,9 +4,10 @@ import { GuestAppService } from './guest-app.service'
 import { GuestTokenService } from './guest-token.service'
 import { PrismaModule } from '../prisma/prisma.module'
 import { StripeModule } from '../stripe/stripe.module'
+import { EmailModule } from '../email/email.module'
 
 @Module({
-  imports: [PrismaModule, StripeModule],
+  imports: [PrismaModule, StripeModule, EmailModule],
   controllers: [GuestAppController],
   providers: [GuestAppService, GuestTokenService],
 })

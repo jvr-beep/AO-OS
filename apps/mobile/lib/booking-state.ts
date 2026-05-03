@@ -18,6 +18,9 @@ export const bookingState = {
   arrivalDate: '',      // YYYY-MM-DD
   guestId: '',
   guestToken: '',
+  guestFirstName: '',
+  guestEmail: '',
+  guestPhone: '',
   // Set after payment confirmed
   bookingCode: '',
   arrivalWindowStart: '',
@@ -37,6 +40,9 @@ export function clearBookingState() {
   bookingState.arrivalDate = ''
   bookingState.guestId = ''
   bookingState.guestToken = ''
+  bookingState.guestFirstName = ''
+  bookingState.guestEmail = ''
+  bookingState.guestPhone = ''
   bookingState.bookingCode = ''
   bookingState.arrivalWindowStart = ''
   bookingState.arrivalWindowEnd = ''

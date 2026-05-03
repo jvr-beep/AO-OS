@@ -4,8 +4,28 @@ import {
 } from 'react-native'
 import { router } from 'expo-router'
 import { useStripe } from '@stripe/stripe-react-native'
-import { createBookingPaymentIntent, confirmGuestBooking } from '@/lib/guest-api'
+import { createBookingPaymentIntent, confirmGuestBooking, identifyGuest } from '@/lib/guest-api'
 import { bookingState } from '@/lib/booking-state'
+
+async function ensureFreshToken(): Promise<void> {
+  try {
+    const payload = JSON.parse(
+      Buffer.from(bookingState.guestToken.split('.')[0], 'base64url').toString()
+    )
+    const expiresAt = payload.exp * 1000
+    if (Date.now() > expiresAt - 3 * 60 * 1000) {
+      const result = await identifyGuest({
+        firstName: bookingState.guestFirstName || 'Guest',
+        email: bookingState.guestEmail || undefined,
+        phone: bookingState.guestPhone || undefined,
+      })
+      bookingState.guestId = result.guestId
+      bookingState.guestToken = result.guestToken
+    }
+  } catch {
+    // Proceed — API will 401 if truly expired
+  }
+}
 
 function formatPrice(cents: number) {
   return `$${(cents / 100).toFixed(2)}`
@@ -39,6 +59,7 @@ export default function PaymentScreen() {
 
   async function initiate() {
     try {
+      await ensureFreshToken()
       const result = await createBookingPaymentIntent(bookingState.guestToken, {
         tierId: bookingState.tierId,
         durationMinutes: bookingState.durationMinutes,

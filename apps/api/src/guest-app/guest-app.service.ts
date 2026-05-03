@@ -8,6 +8,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service'
 import { StripeService } from '../stripe/stripe.service'
 import { GuestTokenService } from './guest-token.service'
+import { EmailService } from '../email/email.service'
 import { randomBytes } from 'crypto'
 
 function generateBookingCode(): string {
@@ -22,6 +23,7 @@ export class GuestAppService {
     private readonly prisma: PrismaService,
     private readonly stripe: StripeService,
     private readonly guestTokens: GuestTokenService,
+    private readonly email: EmailService,
   ) {}
 
   async getCatalog() {
@@ -214,6 +216,19 @@ export class GuestAppService {
     })
 
     this.logger.log(`booking-confirm: guest=${guestId} booking=${booking.id} code=${booking.bookingCode}`)
+
+    // Fire-and-forget confirmation email (don't fail the booking if email fails)
+    const guest = await this.prisma.guest.findUnique({ where: { id: guestId } })
+    if (guest?.email) {
+      this.email.sendBookingConfirmation({
+        to: guest.email,
+        guestFirstName: guest.firstName ?? 'Guest',
+        bookingCode: booking.bookingCode,
+        tierName: tier.name,
+        durationMinutes: booking.durationMinutes,
+        arrivalWindowStart: booking.arrivalWindowStart.toISOString(),
+      }).catch((err) => this.logger.warn(`Booking email failed: ${err?.message}`))
+    }
 
     return {
       bookingId: booking.id,

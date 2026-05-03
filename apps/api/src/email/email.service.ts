@@ -50,6 +50,45 @@ export class EmailService {
     });
   }
 
+  async sendBookingConfirmation(params: {
+    to: string
+    guestFirstName: string
+    bookingCode: string
+    tierName: string
+    durationMinutes: number
+    arrivalWindowStart: string
+  }): Promise<void> {
+    const { to, guestFirstName, bookingCode, tierName, durationMinutes, arrivalWindowStart } = params
+    const hours = Math.floor(durationMinutes / 60)
+    const mins = durationMinutes % 60
+    const durationStr = hours ? `${hours}h${mins ? ` ${mins}m` : ''}` : `${mins}m`
+    const arrivalDate = new Date(arrivalWindowStart).toLocaleDateString('en-US', {
+      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+    })
+    await this._send({
+      to,
+      subject: `Your AO Sanctuary booking — ${bookingCode}`,
+      html: `
+        <div style="font-family:sans-serif;max-width:520px;margin:0 auto;background:#0a0a0a;color:#fff;padding:40px 32px;border-radius:12px;">
+          <h1 style="font-size:32px;color:#c9a96e;letter-spacing:6px;margin:0 0 4px;">ΑΩ</h1>
+          <p style="color:#666;font-size:12px;letter-spacing:3px;text-transform:uppercase;margin:0 0 32px;">AO Sanctuary</p>
+          <h2 style="font-size:20px;font-weight:600;margin:0 0 8px;">You're booked, ${guestFirstName}.</h2>
+          <p style="color:#888;margin:0 0 32px;">Show this code when you arrive. Save it somewhere handy.</p>
+          <div style="background:#111;border:1px solid #222;border-radius:10px;padding:24px;text-align:center;margin-bottom:24px;">
+            <p style="color:#666;font-size:11px;letter-spacing:3px;margin:0 0 8px;">BOOKING CODE</p>
+            <p style="color:#c9a96e;font-size:28px;font-weight:700;letter-spacing:4px;margin:0;">${bookingCode}</p>
+          </div>
+          <table style="width:100%;border-collapse:collapse;margin-bottom:32px;">
+            <tr><td style="padding:8px 0;color:#666;font-size:14px;">Experience</td><td style="padding:8px 0;color:#fff;font-size:14px;text-align:right;">${tierName}</td></tr>
+            <tr><td style="padding:8px 0;color:#666;font-size:14px;">Duration</td><td style="padding:8px 0;color:#fff;font-size:14px;text-align:right;">${durationStr}</td></tr>
+            <tr><td style="padding:8px 0;color:#666;font-size:14px;">Arrival Date</td><td style="padding:8px 0;color:#fff;font-size:14px;text-align:right;">${arrivalDate}</td></tr>
+          </table>
+          <p style="color:#555;font-size:12px;line-height:1.6;">Questions? Reply to this email or visit <a href="https://aosanctuary.com" style="color:#c9a96e;">aosanctuary.com</a>.</p>
+        </div>
+      `,
+    })
+  }
+
   async sendInvite(to: string, rawToken: string): Promise<void> {
     const link = `${this.appBaseUrl}/auth/set-password?token=${rawToken}`;
     await this._send({

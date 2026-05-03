@@ -60,8 +60,8 @@ export default function ConfirmationScreen() {
           <QRCode
             value={bookingCode}
             size={180}
-            color="#c9a96e"
-            backgroundColor="#0f0f0f"
+            color="#000000"
+            backgroundColor="#ffffff"
           />
         </View>
 
@@ -129,10 +129,8 @@ const styles = StyleSheet.create({
   code: { fontSize: 32, color: '#c9a96e', fontWeight: '700', letterSpacing: 4 },
   qrWrapper: {
     padding: 20,
-    backgroundColor: '#0f0f0f',
+    backgroundColor: '#ffffff',
     borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#1e1e1e',
     marginBottom: 28,
   },
   detailsBox: {
