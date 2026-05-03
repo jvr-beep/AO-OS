@@ -1,0 +1,145 @@
+{
+  "name": "AO OS Auth Health Check",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "trigger",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.AO_OS_API_BASE }}/auth/login",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "email",
+              "value": "={{ $env.AO_OS_STAFF_EMAIL }}"
+            },
+            {
+              "name": "password",
+              "value": "={{ $env.AO_OS_STAFF_PASSWORD }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "auth-login",
+      "name": "Auth Login",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "create",
+        "databaseId": {
+          "__rl": true,
+          "value": "={{ $env.NOTION_HEALTH_CHECK_DB_ID }}",
+          "mode": "id"
+        },
+        "title": "AO OS auth health check",
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Workflow Name|rich_text",
+              "textContent": "AO OS auth health check"
+            },
+            {
+              "key": "Status|select",
+              "selectValue": "Success"
+            },
+            {
+              "key": "Timestamp|date",
+              "date": "={{ $now }}"
+            }
+          ]
+        }
+      },
+      "id": "log-success",
+      "name": "Log Success (Notion)",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [680, 180]
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "create",
+        "databaseId": {
+          "__rl": true,
+          "value": "={{ $env.NOTION_HEALTH_CHECK_DB_ID }}",
+          "mode": "id"
+        },
+        "title": "AO OS auth health check - FAILURE",
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Workflow Name|rich_text",
+              "textContent": "AO OS auth health check"
+            },
+            {
+              "key": "Status|select",
+              "selectValue": "Failure"
+            },
+            {
+              "key": "Timestamp|date",
+              "date": "={{ $now }}"
+            }
+          ]
+        }
+      },
+      "id": "log-failure",
+      "name": "Log Failure (Notion)",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [680, 420],
+      "disabled": true
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Auth Login",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Auth Login": {
+      "main": [
+        [
+          {
+            "node": "Log Success (Notion)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "createdAt": "2026-03-28T00:00:00.000Z",
+      "updatedAt": "2026-03-28T00:00:00.000Z",
+      "id": "health-check",
+      "name": "health-check"
+    }
+  ],
+  "triggerCount": 0,
+  "updatedAt": "2026-03-28T00:00:00.000Z",
+  "versionId": "1"
+}

@@ -1,6 +1,13 @@
 # N8N Workflow Quick Reference
 
-## Visual Flow
+> **Connector config**: [`n8n/connector.config.json`](../n8n/connector.config.json)  
+> **Full connector guide**: [`docs/N8N_CONNECTOR_SETUP.md`](N8N_CONNECTOR_SETUP.md)
+
+---
+
+## Direction 1: n8n → Notion (Outbound Polling)
+
+### Visual Flow
 
 ```
 ┌─────────────────┐
@@ -9,7 +16,7 @@
          │
          ▼
 ┌──────────────────────────┐
-│  HTTP GET                │ http://localhost:4000/v1/events/poll
+│  HTTP GET                │ https://api.aosanctuary.com/v1/events/poll
 │  Bearer: <JWT-token>     │
 └────────┬─────────────────┘
          │
@@ -39,6 +46,41 @@
 └────────┘  └────────────────┘
 ```
 
+---
+
+## Direction 2: Notion → n8n (Inbound Webhook)
+
+### Visual Flow
+
+```
+[Notion Automation]
+       ↓  POST with x-notion-secret header
+[n8n Webhook]  https://ao-os.app.n8n.cloud/webhook/ao-os/notion-event
+       ↓
+[Validate Secret]
+       ↓
+[Parse Notion Payload]
+       ↓
+  ┌────┴────────────────────┐
+api_action              other event
+  ↓                         ↓
+[Get Auth Token]    [Update Notion Status]
+  ↓
+[POST to AO OS API]
+  ↓
+[Respond 200 OK]
+```
+
+### Webhook Endpoint
+
+```
+Method: POST
+URL: https://ao-os.app.n8n.cloud/webhook/ao-os/notion-event
+Header: x-notion-secret: <NOTION_WEBHOOK_SECRET>
+```
+
+---
+
 ## Key Values Reference
 
 ### Cron Expression
@@ -53,7 +95,7 @@
 
 ### API Request
 ```
-URL: http://localhost:4000/v1/events/poll
+URL: https://api.aosanctuary.com/v1/events/poll
 Method: GET
 Auth: Bearer <JWT-token>
 ```
@@ -97,6 +139,19 @@ Polled At → $now.toIso()
 ---
 
 ## Setup Checklist
+
+### Health Check Workflow (Run First)
+
+- [ ] Import `n8n/workflows/health-check.json` (or create manually)
+- [ ] Auth Login node: POST `https://api.aosanctuary.com/v1/auth/login`
+- [ ] Auth Login body: `{"email": "staff@ao-os.local", "password": "TestPassword123!"}`
+- [ ] Execute Auth Login → confirm HTTP 200 + `accessToken` in output
+- [ ] Log Success (Notion): re-select DB from dropdown
+- [ ] Log Success: add only 4 properties (Name, Workflow Name, Status, Timestamp)
+- [ ] Log Failure (Notion): keep **disabled**
+- [ ] Execute workflow → confirm 1 row in Notion
+
+### Polling Workflow (After Health Check Passes)
 
 - [ ] Notion database created: "AO OS - Operational Log"
 - [ ] All 12 fields added to Notion

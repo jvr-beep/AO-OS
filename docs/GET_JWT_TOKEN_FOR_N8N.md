@@ -47,12 +47,20 @@ If your AO OS API has an auth endpoint, you can get a token programmatically.
 ### Check if Auth Endpoint Exists
 
 ```bash
-# Try to authenticate
+# Try to authenticate against the production API
+curl -X POST https://api.aosanctuary.com/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "staff@ao-os.local",
+    "password": "<your-staff-password>"
+  }'
+
+# Or against a local instance
 curl -X POST http://localhost:4000/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{
     "email": "staff@ao-os.local",
-    "password": "your-staff-password"
+    "password": "<your-staff-password>"
   }'
 ```
 

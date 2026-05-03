@@ -24,9 +24,10 @@ This will fire every 30 minutes.
 
 **Configuration:**
 - **Method**: `GET`
-- **URL**: `http://localhost:4000/v1/events/poll`
+- **URL**: `https://api.aosanctuary.com/v1/events/poll`
+  - (For local development: `http://localhost:4000/v1/events/poll`)
 - **Authentication**: `Bearer Token`
-- **Bearer Token**: Use AO OS staff API key (ask the ops team or generate from staff/admin auth flow)
+- **Bearer Token**: Obtained from Auth Login node — see [Auth Login setup](../../../docs/N8N_HEALTH_CHECK_WORKFLOW.md)
 - **Response Format**: `JSON`
 
 **Expected Response Structure:**
@@ -200,7 +201,7 @@ NOTION_OPERATIONAL_LOG_DB_ID=<database-id>
 STAFF_DIGEST_EMAIL=operations@ao-os.local
 
 # AO OS API
-AO_OS_API_BASE=http://localhost:4000/v1
+AO_OS_API_BASE=https://api.aosanctuary.com/v1
 AO_OS_API_KEY=<staff-api-token>
 ```
 
@@ -235,5 +236,35 @@ Once polling is working, Phase 2 adds:
 - Aggregate stats (bookings, cleaning, wristbands)
 - Notion Automation Log
 - Gmail management summary
+
+---
+
+## Notion Property Remap (Required After DB Changes)
+
+Whenever the Notion database schema changes or node configurations become stale, follow this pattern to reset the property mappings:
+
+1. Open the **Notion** node in the workflow canvas.
+2. **Re-select the database** from the dropdown — this clears stale property IDs.
+3. **Delete all old mapped properties** (click the trash icon on each row).
+4. **Add fresh property mappings** using only the fields that exist in your database. Example for operational log:
+
+   | Property | Type | Value |
+   |----------|------|-------|
+   | **Title** | title | `={{$json.type}} - {{$json.data.memberId &#124;&#124; 'System'}}` |
+   | **Event Type** | select | `={{$json.type}}` |
+   | **Status** | select | `={{$json.data.decision &#124;&#124; 'pending'}}` |
+   | **Severity** | select | `={{$json.severity}}` |
+   | **Timestamp** | date | `={{$json.occurredAt}}` |
+   | **Member ID** | rich text | `={{$json.data.memberId}}` |
+   | **Locker ID** | rich text | `={{$json.data.lockerId}}` |
+   | **Room ID** | rich text | `={{$json.data.roomId}}` |
+   | **Decision** | rich text | `={{$json.data.decision}}` |
+   | **Denial Reason** | rich text | `={{$json.data.denialReasonCode}}` |
+   | **Raw Data** | rich text | `={{JSON.stringify($json.data)}}` |
+   | **Polled At** | date | `={{$now}}` |
+
+5. Click **Execute previous nodes** from the Notion node and confirm one row appears in Notion.
+
+> **Tip**: Always run the health-check workflow first (`AO OS Auth Health Check`) to confirm auth is working before testing the full polling flow.
 
 ---
