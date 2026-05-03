@@ -220,11 +220,35 @@ AO_OS_API_KEY=<staff-api-token>
 
 | Issue | Solution |
 |-------|----------|
+| **403 from Cloudflare on n8n.cloud** | Cloudflare is blocking your IP — contact n8n.io support with your Ray ID and IP, or switch to self-hosted n8n |
 | "No events polled" | Check `lastPolledAt` cursor - may need manual reset |
 | Notion connection fails | Verify Notion DB ID and API key in credentials |
 | Gmail auth fails | Reauthorize Gmail account in N8N UI |
 | Filter not working | Check that `event.severity` is being computed in Step 3 |
 | Events missing from Notion | Check N8N execution logs - may be a field mapping issue |
+
+### Resolving a 403 Cloudflare Block on n8n.cloud
+
+If n8n.cloud shows a Cloudflare 403 error, Cloudflare is detecting suspicious activity from your IP address. This is unrelated to your AO OS API setup.
+
+**To resolve the block:**
+1. Note the **Cloudflare Ray ID** from the 403 page (e.g. `9e3273a45b7bbd24`)
+2. Note your **public IP** (e.g. `20.52.126.10` — also shown on the 403 page)
+3. Contact n8n.io support at [n8n.io/contact](https://n8n.io/contact) with:
+   - The Ray ID
+   - Your IP address
+   - What you were doing (e.g. "Logging into app.n8n.cloud to configure a polling workflow")
+
+**Alternative — self-hosted n8n** (no Cloudflare, full control):
+```bash
+docker run -it --rm \
+  --name n8n \
+  -p 5678:5678 \
+  -v ~/.n8n:/home/node/.n8n \
+  docker.n8n.io/n8nio/n8n
+# Access at http://localhost:5678
+```
+See [n8n hosting docs](https://docs.n8n.io/hosting/) for details.
 
 ---
 

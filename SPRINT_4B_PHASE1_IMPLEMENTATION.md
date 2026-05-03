@@ -282,12 +282,37 @@ Expected: JSON response with events and counts.
 
 | Symptom | Cause | Fix |
 |---------|-------|-----|
+| **403 on n8n.cloud (Cloudflare block)** | Cloudflare WAF blocking your IP | Contact n8n.io support with Ray ID + IP, or use self-hosted n8n |
 | API returns 401 | JWT token expired or invalid | Re-authenticate to get fresh token |
 | "No events found" | Polling cursor ahead of actual events | Manually reset cursor in database |
 | Notion connection times out | Bad database ID | Double-check Database ID in N8N |
 | Gmail auth fails | Permissions issue | Re-authorize Gmail account in N8N |
 | Events duplicate in Notion | Cursor not updating | Check N8N logs for errors in update step |
 | Only recent events appear | `lastPolledAt` set too late | Manually query with earlier `since` timestamp |
+
+### Resolving a 403 Cloudflare Block on n8n.cloud
+
+If you receive a Cloudflare 403 error when accessing [app.n8n.cloud](https://app.n8n.cloud) or [n8n.io](https://n8n.io), Cloudflare is blocking your IP address due to detected suspicious activity. This is entirely unrelated to the AO OS API or your workflow configuration.
+
+**Steps to resolve:**
+1. On the 403 page, note the **Cloudflare Ray ID** (e.g. `9e3273a45b7bbd24`)
+2. Note your **public IP address** (e.g. `20.52.126.10` — shown on the 403 page or at [whatismyip.com](https://www.whatismyip.com))
+3. Contact n8n.io support at [n8n.io/contact](https://n8n.io/contact) or [community.n8n.io](https://community.n8n.io) including:
+   - The Cloudflare Ray ID
+   - Your public IP address
+   - What you were doing when the block occurred (e.g. "Setting up event polling workflow on app.n8n.cloud")
+
+**Alternative: self-hosted n8n** bypasses Cloudflare entirely and is recommended for CI/CD environments or any environment where the outbound IP may trigger cloud WAF rules:
+```bash
+# Quick local start with Docker
+docker run -it --rm \
+  --name n8n \
+  -p 5678:5678 \
+  -v ~/.n8n:/home/node/.n8n \
+  docker.n8n.io/n8nio/n8n
+# Open http://localhost:5678 in your browser
+```
+See the [n8n self-hosting documentation](https://docs.n8n.io/hosting/) for production deployment options (Docker Compose, Kubernetes, etc.).
 
 ---
 
