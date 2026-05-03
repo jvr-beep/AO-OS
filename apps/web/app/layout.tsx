@@ -17,13 +17,25 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
-  title: 'AO OS — Staff',
-  description: 'AO OS internal staff portal',
+  title: 'AO Sanctuary — Staff',
+  description: 'AO Sanctuary internal operations portal',
+  robots: { index: false, follow: false },
+  openGraph: {
+    title: 'AO Sanctuary — Staff',
+    description: 'AO Sanctuary internal operations portal',
+    siteName: 'AO Sanctuary',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary',
+    title: 'AO Sanctuary — Staff',
+  },
 }
 
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
+  themeColor: '#0a0a0a',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
