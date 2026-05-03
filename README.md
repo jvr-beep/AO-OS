@@ -1,6 +1,8 @@
 # AO-OS
 AO OS monorepo for membership, wristbands, access control, bookings, transactions, and operations tooling.
 
+**GitHub Repository:** https://github.com/jvr-beep/AO-OS
+
 ## Locker Policy Smoke Harness
 
 Use the repo-owned smoke script for locker-policy and credential-lifecycle regression checks:
