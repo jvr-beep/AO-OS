@@ -152,8 +152,8 @@ importers:
         specifier: ^6.1.17
         version: 6.1.18(react-native@0.74.5(@babel/core@7.29.0)(@babel/preset-env@7.29.2(@babel/core@7.29.0))(@types/react@18.2.79)(react@18.2.0))(react@18.2.0)
       '@stripe/stripe-react-native':
-        specifier: 0.38.0
-        version: 0.38.0(expo@51.0.39(@babel/core@7.29.0)(@babel/preset-env@7.29.2(@babel/core@7.29.0))(react-native@0.74.5(@babel/core@7.29.0)(@babel/preset-env@7.29.2(@babel/core@7.29.0))(@types/react@18.2.79)(react@18.2.0))(react@18.2.0))(react-native@0.74.5(@babel/core@7.29.0)(@babel/preset-env@7.29.2(@babel/core@7.29.0))(@types/react@18.2.79)(react@18.2.0))(react@18.2.0)
+        specifier: 0.37.2
+        version: 0.37.2(expo@51.0.39(@babel/core@7.29.0)(@babel/preset-env@7.29.2(@babel/core@7.29.0))(react-native@0.74.5(@babel/core@7.29.0)(@babel/preset-env@7.29.2(@babel/core@7.29.0))(@types/react@18.2.79)(react@18.2.0))(react@18.2.0))(react-native@0.74.5(@babel/core@7.29.0)(@babel/preset-env@7.29.2(@babel/core@7.29.0))(@types/react@18.2.79)(react@18.2.0))(react@18.2.0)
       expo:
         specifier: ~51.0.0
         version: 51.0.39(@babel/core@7.29.0)(@babel/preset-env@7.29.2(@babel/core@7.29.0))(react-native@0.74.5(@babel/core@7.29.0)(@babel/preset-env@7.29.2(@babel/core@7.29.0))(@types/react@18.2.79)(react@18.2.0))(react@18.2.0)
@@ -2161,8 +2161,8 @@ packages:
     resolution: {integrity: sha512-KrMOL+sH69htCIXCaZ4JluJ35bchuCCznyPyrbN8JXSGQfwBI1SuIEMZNwvy8L8ykj29t6sa5BAAiL7fNoLZ8A==}
     engines: {node: '>=12.16'}
 
-  '@stripe/stripe-react-native@0.38.0':
-    resolution: {integrity: sha512-OK/FdF+2CRgiZEgVpql61Iz5K1x+OOVxP9WyCJeA39Cf7MK9EYSuNugoF+dZqXG4otDkUe1ffKYX2OiBU1qGKQ==}
+  '@stripe/stripe-react-native@0.37.2':
+    resolution: {integrity: sha512-dLM4jknWQEmqIAXgWpskwty6fL7EHpaW70P+75hVYrGasxMNEbZpdNQIN9SEUppULiyrMIeMp5NtksCZCcolUQ==}
     peerDependencies:
       expo: '>=46.0.9'
       react: '*'
@@ -9833,7 +9833,7 @@ snapshots:
 
   '@stripe/stripe-js@4.10.0': {}
 
-  '@stripe/stripe-react-native@0.38.0(expo@51.0.39(@babel/core@7.29.0)(@babel/preset-env@7.29.2(@babel/core@7.29.0))(react-native@0.74.5(@babel/core@7.29.0)(@babel/preset-env@7.29.2(@babel/core@7.29.0))(@types/react@18.2.79)(react@18.2.0))(react@18.2.0))(react-native@0.74.5(@babel/core@7.29.0)(@babel/preset-env@7.29.2(@babel/core@7.29.0))(@types/react@18.2.79)(react@18.2.0))(react@18.2.0)':
+  '@stripe/stripe-react-native@0.37.2(expo@51.0.39(@babel/core@7.29.0)(@babel/preset-env@7.29.2(@babel/core@7.29.0))(react-native@0.74.5(@babel/core@7.29.0)(@babel/preset-env@7.29.2(@babel/core@7.29.0))(@types/react@18.2.79)(react@18.2.0))(react@18.2.0))(react-native@0.74.5(@babel/core@7.29.0)(@babel/preset-env@7.29.2(@babel/core@7.29.0))(@types/react@18.2.79)(react@18.2.0))(react@18.2.0)':
     dependencies:
       react: 18.2.0
       react-native: 0.74.5(@babel/core@7.29.0)(@babel/preset-env@7.29.2(@babel/core@7.29.0))(@types/react@18.2.79)(react@18.2.0)
